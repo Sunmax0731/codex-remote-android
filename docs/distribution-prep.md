@@ -151,3 +151,5 @@ QRに含めてはいけないもの:
 release APK作成手順と署名方針は [release APK作成手順](release-apk.md) に記録する。
 
 PCブリッジ配布パッケージの作成・展開・起動手順は [PCブリッジ配布パッケージ](pc-bridge-distribution.md) に記録する。
+
+利用者が初回セッション成功まで進めるための最短手順は [利用者向けクイックスタート](user-quickstart.md) に記録する。
