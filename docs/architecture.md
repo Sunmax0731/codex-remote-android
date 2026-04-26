@@ -193,6 +193,127 @@ MVPでは次の方針を採用する。
 
 Androidアプリは管理者権限やFirebase Admin credentialを持たない。
 
+## 認証・ペアリング方針
+
+MVPでは、単一ユーザー・単一主PCを前提にした簡易ペアリングを採用する。
+
+### Androidアプリ認証
+
+MVPの推奨方針は Firebase Auth の anonymous auth を使い、後からemail sign-in等へ移行できる構成にすること。
+
+- 初回起動時にAndroidアプリがFirebase Authで匿名ユーザーを作成する。
+- 作成された `uid` を `userId` としてFirestoreパスに使う。
+- 端末ごとに `devices/{deviceId}` を作成する。
+- FCM tokenは `devices/{deviceId}` に保存する。
+- email sign-inやGoogle sign-inはpost-MVPで追加可能にする。
+
+この方針は、MVPの個人利用ではセットアップを軽くしつつ、Firestore Security Rulesでユーザー境界を作りやすい。
+
+### PCブリッジ登録
+
+PCブリッジはAndroidアプリ側で作成したユーザーに紐づく。
+
+MVPでは次のどちらかをPhase 3で選べるようにする。
+
+- Androidアプリが短時間有効なpairing codeを表示し、PCブリッジの初回設定で入力する。
+- 開発者がFirebase consoleまたはローカル設定で `userId` と `pcBridgeId` を登録する。
+
+Releaseに近いMVPでは、pairing code方式を優先する。手動登録は開発初期の暫定手段として扱う。
+
+PCブリッジ登録後は、`pcBridges/{pcBridgeId}` に次を保存する。
+
+- 読みやすいPC名。
+- 固定ワークスペース名。
+- 最終接続時刻。
+- ブリッジの有効/無効状態。
+
+### PCブリッジ資格情報
+
+PCブリッジはローカル設定ファイルに資格情報を保存する。
+
+制約:
+
+- 資格情報はGitにコミットしない。
+- AndroidアプリにFirebase Admin credentialを持たせない。
+- PCブリッジに広範な管理者権限を持たせる場合でも、Phase 3でローカル限定の設定手順と `.gitignore` を整える。
+- 可能であれば、PCブリッジもユーザー単位の制約付き認証でFirestoreへアクセスする。
+
+## Firestore Security Rules要件
+
+Phase 3以降でSecurity Rulesを実装する際は、少なくとも次を満たす。
+
+### ユーザー境界
+
+- `users/{userId}` 配下は、認証済みユーザーの `request.auth.uid == userId` の場合だけ読める。
+- 他ユーザーのセッション、コマンド、デバイス、PCブリッジは読めない。
+- Androidアプリは自分の `devices/{deviceId}` と `sessions/{sessionId}` と `commands/{commandId}` だけを作成/参照できる。
+
+### Androidアプリの書き込み制限
+
+Androidアプリから許可する書き込み:
+
+- 自端末の `devices/{deviceId}` 作成/更新。
+- セッション作成。
+- `queued` コマンド作成。
+- 通知token更新。
+
+Androidアプリから禁止する書き込み:
+
+- `running`, `completed`, `failed` への直接遷移。
+- `resultText`, `errorText`, `claimedByPcBridgeId`, `claimExpiresAt` の直接更新。
+- 他端末やPCブリッジの資格情報更新。
+
+### PCブリッジの書き込み制限
+
+PCブリッジから許可する書き込み:
+
+- 自分の `pcBridges/{pcBridgeId}` の `lastSeenAt`, `status`, `version` 更新。
+- 自分を `targetPcBridgeId` に持つ `queued` コマンドのclaim。
+- claim済みコマンドの `running`, `completed`, `failed` 更新。
+- `resultText`, `errorText`, `startedAt`, `completedAt` 更新。
+
+PCブリッジから禁止する書き込み:
+
+- 他PCブリッジ宛コマンドのclaim。
+- Android端末のFCM token変更。
+- 他ユーザー配下へのアクセス。
+
+### Rulesテスト要件
+
+Phase 3またはPhase 6までに、Firebase Emulatorで次を確認する。
+
+- 他ユーザーのセッションを読めない。
+- Androidアプリが結果フィールドを書けない。
+- PCブリッジが他PC宛コマンドをclaimできない。
+- `queued` 以外のコマンドをclaimできない。
+- 通知tokenは対象端末だけ更新できる。
+
+## 秘密情報とローカル設定
+
+リポジトリに含めないもの:
+
+- Firebase Admin SDK service account JSON。
+- PCブリッジのpairing tokenやrefresh token。
+- Android署名鍵。
+- `.env` やローカルFirebase設定の秘密値。
+
+リポジトリに含めてよいもの:
+
+- サンプル設定ファイル。
+- 必須環境変数名の一覧。
+- セットアップ手順。
+- Security Rulesとテスト。
+
+## 認可境界
+
+Androidアプリ、PCブリッジ、Cloud Functionsの権限は分離する。
+
+- Androidアプリ: セッション作成、コマンド作成、結果読み取り、通知token登録。
+- PCブリッジ: 自分宛コマンドのclaim、処理結果更新、heartbeat更新。
+- Cloud Functions: 通知送信、必要に応じたpairing code検証。
+
+この分離により、Androidアプリが侵害されても、任意の結果書き込みや他ユーザーアクセスを防ぐ。
+
 ## PCブリッジ責務
 
 PCブリッジの詳細はPhase 2の別サブIssueで確定する。MVPでは次を前提にする。
@@ -211,8 +332,6 @@ PCブリッジの詳細はPhase 2の別サブIssueで確定する。MVPでは次
 
 次の項目は、Phase 2の残りサブIssueで確定する。
 
-- Firebase Auth とペアリング方式の詳細。
-- Firestore Security Rulesの具体要件。
 - PCブリッジの実装ランタイムとCodex呼び出し方式。
 - Cloud Functions通知トリガーの詳細。
 - MVP脅威モデルとRelease前セキュリティ確認項目。
