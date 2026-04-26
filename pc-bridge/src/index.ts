@@ -1,12 +1,12 @@
 import { loadBridgeConfig } from "./lib/config.js";
 import { createCodexInvoker } from "./lib/codexInvoker.js";
-import { LocalRelayRepository } from "./lib/localRelayRepository.js";
 import { processNextCommand } from "./lib/processor.js";
+import { createCommandRepository } from "./lib/relayRepository.js";
 
 async function main(): Promise<void> {
   const configPath = process.env.CODEX_REMOTE_BRIDGE_CONFIG ?? "config.local.json";
   const config = await loadBridgeConfig(configPath);
-  const repository = new LocalRelayRepository(config.localRelayPath);
+  const repository = createCommandRepository(config);
   const invoker = createCodexInvoker(config);
 
   console.log(`Config path: ${configPath}`);

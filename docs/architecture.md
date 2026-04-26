@@ -398,6 +398,15 @@ Phase 4時点の実装:
 - スマホ入力はCLI引数ではなくstdin promptとして渡す。
 - 実行ファイル、作業ディレクトリ、sandbox、timeoutはFirestore値ではなくローカル設定で決める。
 
+### Relay adapter境界
+
+Phase 4時点では、PCブリッジのrelayアクセスを `CommandRepository` interfaceで分離する。
+
+- `local`: ローカルJSON relay。Firebase未設定でも状態遷移を検証するために使う。
+- `firestore`: Firestore relayのadapter入口。実接続はFirebaseプロジェクト設定後に実装する。
+
+Firestore実接続時は、`CommandRepository` のclaim/complete/fail/heartbeat操作をFirestore transactionとSecurity Rules前提に置き換える。
+
 ### 起動とheartbeat
 
 PCブリッジは起動中、定期的に `pcBridges/{pcBridgeId}.lastSeenAt` を更新する。

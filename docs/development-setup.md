@@ -324,6 +324,13 @@ Phase 4開始時の既知ブロッカー:
 - Firebase実プロジェクト未設定。
 - Codex呼び出し方式は未実装。
 
+Phase 4実装後のrelay状態:
+
+- `local` relayは実装済みで、`npm.cmd run validate:local` で検証できる。
+- `firestore` relayはadapter入口のみ実装済み。
+- Firestore実接続には `firebaseProjectId` とローカルの `serviceAccountPath` が必要。
+- `serviceAccountPath` のJSONはGitに含めない。
+
 Phase 4開始時にブロッカーではないもの:
 
 - Flutter SDK未導入。PCブリッジのローカル実装はNode.jsで開始できる。
