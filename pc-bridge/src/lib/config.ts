@@ -45,7 +45,7 @@ export function normalizeConfig(raw: RawConfig): BridgeConfig {
     maxCommandsPerTick: raw.maxCommandsPerTick ?? 5,
     codexMode,
     codexCommandPath: raw.codexCommandPath ?? "codex.cmd",
-    codexModel: normalizeOptionalString(raw.codexModel),
+    codexModel: normalizeOptionalString(raw.codexModel) ?? "gpt-5.4",
     codexBypassSandbox: raw.codexBypassSandbox ?? false,
     codexSandbox,
     codexTimeoutSeconds: raw.codexTimeoutSeconds ?? 900,

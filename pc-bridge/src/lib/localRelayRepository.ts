@@ -14,6 +14,10 @@ type UserState = {
 type SessionState = {
   status?: string;
   targetPcBridgeId?: string;
+  codexModel?: string;
+  codexSandbox?: RemoteCommand["codexSandbox"];
+  codexBypassSandbox?: boolean;
+  codexProfile?: string;
   updatedAt?: string;
   lastCommandId?: string;
   lastResultPreview?: string;
@@ -53,7 +57,7 @@ export class LocalRelayRepository implements CommandRepository {
 
           await this.writeState(state);
 
-          return toRemoteCommand(userId, sessionId, commandId, command);
+          return toRemoteCommand(userId, sessionId, commandId, session, command);
         }
       }
     }
@@ -184,11 +188,21 @@ function isClaimable(command: CommandState, pcBridgeId: string, now: Date): bool
   return Number.isFinite(claimExpiresAt) && claimExpiresAt <= now.getTime();
 }
 
-function toRemoteCommand(userId: string, sessionId: string, commandId: string, command: CommandState): RemoteCommand {
+function toRemoteCommand(
+  userId: string,
+  sessionId: string,
+  commandId: string,
+  session: SessionState,
+  command: CommandState,
+): RemoteCommand {
   return {
     userId,
     sessionId,
     commandId,
+    codexModel: session.codexModel,
+    codexSandbox: session.codexSandbox,
+    codexBypassSandbox: session.codexBypassSandbox,
+    codexProfile: session.codexProfile,
     ...command,
   };
 }

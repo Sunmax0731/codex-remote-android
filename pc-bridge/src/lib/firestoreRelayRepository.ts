@@ -45,6 +45,8 @@ export class FirestoreRelayRepository implements CommandRepository {
       }
 
       const ids = getCommandPathIds(current);
+      const sessionRef = current.ref.parent.parent!;
+      const session = await transaction.get(sessionRef);
 
       transaction.update(current.ref, {
         status: "running",
@@ -54,7 +56,7 @@ export class FirestoreRelayRepository implements CommandRepository {
         startedAt: nowTimestamp,
       });
 
-      transaction.update(current.ref.parent.parent!, {
+      transaction.update(sessionRef, {
         status: "running",
         updatedAt: nowTimestamp,
         lastCommandId: ids.commandId,
@@ -62,6 +64,7 @@ export class FirestoreRelayRepository implements CommandRepository {
 
       return toRemoteCommand(ids.userId, ids.sessionId, ids.commandId, {
         ...data,
+        ...sessionCodexOptions(session.data()),
         status: "running",
         claimedAt: now.toISOString(),
         claimedByPcBridgeId: pcBridgeId,
@@ -345,9 +348,22 @@ function toRemoteCommand(
     completedAt: timestampToIso(data.completedAt),
     progressText: data.progressText,
     progressUpdatedAt: timestampToIso(data.progressUpdatedAt),
+    codexModel: optionalString(data.codexModel),
+    codexSandbox: isCodexSandbox(data.codexSandbox) ? data.codexSandbox : undefined,
+    codexBypassSandbox: typeof data.codexBypassSandbox === "boolean" ? data.codexBypassSandbox : undefined,
+    codexProfile: optionalString(data.codexProfile),
     resultText: data.resultText,
     errorText: data.errorText,
     notificationSentAt: timestampToIso(data.notificationSentAt),
+  };
+}
+
+function sessionCodexOptions(data: DocumentData | undefined): Partial<RemoteCommand> {
+  return {
+    codexModel: optionalString(data?.codexModel),
+    codexSandbox: isCodexSandbox(data?.codexSandbox) ? data?.codexSandbox : undefined,
+    codexBypassSandbox: typeof data?.codexBypassSandbox === "boolean" ? data.codexBypassSandbox : undefined,
+    codexProfile: optionalString(data?.codexProfile),
   };
 }
 
@@ -381,4 +397,17 @@ function timestampToIso(value: unknown): string {
 
 function preview(value: string): string {
   return value.length <= 120 ? value : `${value.slice(0, 117)}...`;
+}
+
+function optionalString(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function isCodexSandbox(value: unknown): value is RemoteCommand["codexSandbox"] {
+  return value === "read-only" || value === "workspace-write" || value === "danger-full-access";
 }

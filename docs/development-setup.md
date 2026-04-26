@@ -339,7 +339,7 @@ Phase 4で確認済み:
 
 Issue #29で追加確認済み:
 
-- Codex CLI `0.114.0` では既定モデル `gpt-5.5` が未対応だったため、PCブリッジのローカル設定に `codexModel: "gpt-5.2"` を追加する。
+- PCブリッジのローカル既定モデルは `codexModel: "gpt-5.4"` とする。スマホのNew sessionでモデルを指定した場合はセッション設定を優先する。
 - WindowsではNode.jsから `.cmd` を直接spawnできないため、PCブリッジはローカル設定の `.cmd` 起動だけ `cmd.exe /d /s /c` を使う。スマホ入力はstdin promptのままで、shell commandとして扱わない。
 - `--output-last-message` が空の場合は成功扱いにせず、`failed` と `errorText` 保存にする。
 - ローカルrelayで `cli` modeの成功、未対応モデル失敗、timeout失敗を確認済み。
@@ -351,7 +351,7 @@ Issue #29で追加確認済み:
 {
   "codexMode": "cli",
   "codexCommandPath": "codex.cmd",
-  "codexModel": "gpt-5.2",
+  "codexModel": "gpt-5.4",
   "codexBypassSandbox": true,
   "codexSandbox": "workspace-write",
   "codexTimeoutSeconds": 900,
