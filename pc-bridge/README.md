@@ -240,6 +240,12 @@ Androidアプリを再インストールした場合など、Firebase Anonymous 
 
 これにより、スマホ側のUIDが変わっても、アプリが起動して `users/{uid}.defaultPcBridgeId` を保存した後は、watcherの次回 heartbeat / queue check で新しいUID側にも `lastSeenAt` / `lastQueueCheckedAt` が更新される。`ownerUserId` は明示的に追跡したいユーザーを追加するための任意設定として残す。
 
+### スマホからの任意稼働確認
+
+Androidアプリの `Check PC now` は `users/{uid}/pcBridges/{pcBridgeId}/healthChecks/{healthCheckId}` に `requested` 状態の確認要求を作成する。PCブリッジwatcherは通常の5秒polling中に未応答health checkを検出し、稼働中であれば `responded` と `respondedAt` を書き戻す。
+
+アプリ側では `pcBridges/{pcBridgeId}` の `lastHealthCheckRequestedAt` / `lastHealthCheckRespondedAt` / `lastHealthCheckStatus` を表示する。watcherが停止している場合は応答時刻が更新されないため、直近heartbeatと合わせてPC側常駐プロセスの停止を判断できる。
+
 実Codex実行は作業内容を伴うため、Issueの受入条件が明確な時だけ `cli` modeで検証する。
 
 ### #29 実Codex CLI受け入れ検証

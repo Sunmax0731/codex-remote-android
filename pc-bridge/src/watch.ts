@@ -39,6 +39,11 @@ async function main(): Promise<void> {
   while (!shuttingDown) {
     try {
       await repository.updateQueueCheck(config.pcBridgeId, new Date());
+      const respondedHealthChecks = await repository.respondPendingHealthChecks(config.pcBridgeId, new Date());
+
+      if (respondedHealthChecks > 0) {
+        console.log(`Responded to ${respondedHealthChecks} health check(s).`);
+      }
 
       let processedCount = 0;
 
