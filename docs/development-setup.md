@@ -327,9 +327,10 @@ Phase 4開始時の既知ブロッカー:
 Phase 4実装後のrelay状態:
 
 - `local` relayは実装済みで、`npm.cmd run validate:local` で検証できる。
-- `firestore` relayはadapter入口のみ実装済み。
+- `firestore` relayはFirebase Admin SDKを使う実adapterコードを実装済み。
 - Firestore実接続には `firebaseProjectId` とローカルの `serviceAccountPath` が必要。
 - `serviceAccountPath` のJSONはGitに含めない。
+- 実Firebase資格情報がまだないため、Firestore adapterは `npm.cmd run check` によるコンパイル確認まで実施済み。
 
 Phase 4開始時にブロッカーではないもの:
 

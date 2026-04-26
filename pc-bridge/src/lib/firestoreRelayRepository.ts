@@ -1,39 +1,243 @@
+import { readFile } from "node:fs/promises";
+import { cert, getApps, initializeApp } from "firebase-admin/app";
+import {
+  FieldPath,
+  FieldValue,
+  Timestamp,
+  getFirestore,
+  type DocumentData,
+  type DocumentSnapshot,
+  type Firestore,
+} from "firebase-admin/firestore";
 import type { BridgeConfig, CommandClaim, CommandRepository, RemoteCommand } from "./types.js";
 
 export class FirestoreRelayRepository implements CommandRepository {
   private readonly config: BridgeConfig;
+  private firestorePromise: Promise<Firestore> | null = null;
 
   constructor(config: BridgeConfig) {
     this.config = config;
   }
 
   async claimNextQueuedCommand(
-    _pcBridgeId: string,
-    _now: Date,
-    _claimTtlSeconds: number,
+    pcBridgeId: string,
+    now: Date,
+    claimTtlSeconds: number,
   ): Promise<RemoteCommand | null> {
-    throw this.notConfiguredError();
+    const firestore = await this.getFirestore();
+    const snapshot = await firestore
+      .collectionGroup("commands")
+      .where("targetPcBridgeId", "==", pcBridgeId)
+      .where("status", "==", "queued")
+      .limit(1)
+      .get();
+
+    const candidate = snapshot.docs[0];
+    if (!candidate) {
+      return null;
+    }
+
+    const nowTimestamp = Timestamp.fromDate(now);
+    const claimExpiresAt = Timestamp.fromMillis(now.getTime() + claimTtlSeconds * 1000);
+
+    return firestore.runTransaction(async (transaction) => {
+      const current = await transaction.get(candidate.ref);
+
+      if (!current.exists) {
+        return null;
+      }
+
+      const data = current.data();
+      if (data?.status !== "queued" || data.targetPcBridgeId !== pcBridgeId) {
+        return null;
+      }
+
+      const ids = getCommandPathIds(current);
+
+      transaction.update(current.ref, {
+        status: "running",
+        claimedAt: nowTimestamp,
+        claimedByPcBridgeId: pcBridgeId,
+        claimExpiresAt,
+        startedAt: nowTimestamp,
+      });
+
+      transaction.update(current.ref.parent.parent!, {
+        status: "running",
+        updatedAt: nowTimestamp,
+        lastCommandId: ids.commandId,
+      });
+
+      return toRemoteCommand(ids.userId, ids.sessionId, ids.commandId, {
+        ...data,
+        status: "running",
+        claimedAt: now.toISOString(),
+        claimedByPcBridgeId: pcBridgeId,
+        claimExpiresAt: claimExpiresAt.toDate().toISOString(),
+        startedAt: now.toISOString(),
+      });
+    });
   }
 
-  async markCompleted(_claim: CommandClaim, _resultText: string, _now: Date): Promise<void> {
-    throw this.notConfiguredError();
+  async markCompleted(claim: CommandClaim, resultText: string, now: Date): Promise<void> {
+    const firestore = await this.getFirestore();
+    const nowTimestamp = Timestamp.fromDate(now);
+    const commandRef = commandDocument(firestore, claim);
+    const sessionRef = commandRef.parent.parent!;
+
+    await firestore.runTransaction(async (transaction) => {
+      transaction.update(commandRef, {
+        status: "completed",
+        completedAt: nowTimestamp,
+        resultText,
+        errorText: FieldValue.delete(),
+      });
+
+      transaction.update(sessionRef, {
+        status: "completed",
+        updatedAt: nowTimestamp,
+        lastResultPreview: preview(resultText),
+        lastErrorPreview: FieldValue.delete(),
+      });
+    });
   }
 
-  async markFailed(_claim: CommandClaim, _errorText: string, _now: Date): Promise<void> {
-    throw this.notConfiguredError();
+  async markFailed(claim: CommandClaim, errorText: string, now: Date): Promise<void> {
+    const firestore = await this.getFirestore();
+    const nowTimestamp = Timestamp.fromDate(now);
+    const commandRef = commandDocument(firestore, claim);
+    const sessionRef = commandRef.parent.parent!;
+
+    await firestore.runTransaction(async (transaction) => {
+      transaction.update(commandRef, {
+        status: "failed",
+        completedAt: nowTimestamp,
+        errorText,
+        resultText: FieldValue.delete(),
+      });
+
+      transaction.update(sessionRef, {
+        status: "failed",
+        updatedAt: nowTimestamp,
+        lastErrorPreview: preview(errorText),
+      });
+    });
   }
 
-  async updateHeartbeat(_pcBridgeId: string, _now: Date): Promise<void> {
-    throw this.notConfiguredError();
+  async updateHeartbeat(pcBridgeId: string, now: Date): Promise<void> {
+    const firestore = await this.getFirestore();
+    const snapshot = await firestore
+      .collectionGroup("pcBridges")
+      .where(FieldPath.documentId(), "==", pcBridgeId)
+      .limit(1)
+      .get();
+
+    const bridge = snapshot.docs[0];
+    if (!bridge) {
+      return;
+    }
+
+    await bridge.ref.update({
+      lastSeenAt: Timestamp.fromDate(now),
+      status: "active",
+      version: "0.1.0",
+    });
   }
 
-  private notConfiguredError(): Error {
+  private async getFirestore(): Promise<Firestore> {
+    if (this.firestorePromise) {
+      return this.firestorePromise;
+    }
+
+    this.firestorePromise = this.initializeFirestore();
+    return this.firestorePromise;
+  }
+
+  private async initializeFirestore(): Promise<Firestore> {
     const missing = [
       this.config.firebaseProjectId ? null : "firebaseProjectId",
       this.config.serviceAccountPath ? null : "serviceAccountPath",
     ].filter((value): value is string => value !== null);
 
-    const suffix = missing.length > 0 ? ` Missing config: ${missing.join(", ")}.` : "";
-    return new Error(`Firestore relay adapter is not implemented yet.${suffix}`);
+    if (missing.length > 0) {
+      throw new Error(`Firestore relay adapter is not configured. Missing config: ${missing.join(", ")}.`);
+    }
+
+    const serviceAccount = JSON.parse(await readFile(this.config.serviceAccountPath!, "utf8")) as object;
+    const appName = `codex-remote-${this.config.pcBridgeId}`;
+    const existing = getApps().find((app) => app.name === appName);
+    const app =
+      existing ??
+      initializeApp(
+        {
+          credential: cert(serviceAccount),
+          projectId: this.config.firebaseProjectId,
+        },
+        appName,
+      );
+
+    return getFirestore(app);
   }
+}
+
+function commandDocument(firestore: Firestore, claim: CommandClaim) {
+  return firestore.doc(`users/${claim.userId}/sessions/${claim.sessionId}/commands/${claim.commandId}`);
+}
+
+function getCommandPathIds(snapshot: DocumentSnapshot<DocumentData>): CommandClaim {
+  const commandId = snapshot.id;
+  const session = snapshot.ref.parent.parent;
+  const user = session?.parent.parent;
+
+  if (!session || !user) {
+    throw new Error(`Unexpected command path: ${snapshot.ref.path}`);
+  }
+
+  return {
+    userId: user.id,
+    sessionId: session.id,
+    commandId,
+  };
+}
+
+function toRemoteCommand(
+  userId: string,
+  sessionId: string,
+  commandId: string,
+  data: DocumentData,
+): RemoteCommand {
+  return {
+    userId,
+    sessionId,
+    commandId,
+    text: String(data.text ?? ""),
+    status: data.status,
+    targetPcBridgeId: String(data.targetPcBridgeId ?? ""),
+    createdByDeviceId: data.createdByDeviceId,
+    createdAt: timestampToIso(data.createdAt),
+    claimedAt: timestampToIso(data.claimedAt),
+    claimedByPcBridgeId: data.claimedByPcBridgeId,
+    claimExpiresAt: timestampToIso(data.claimExpiresAt),
+    startedAt: timestampToIso(data.startedAt),
+    completedAt: timestampToIso(data.completedAt),
+    resultText: data.resultText,
+    errorText: data.errorText,
+    notificationSentAt: timestampToIso(data.notificationSentAt),
+  };
+}
+
+function timestampToIso(value: unknown): string {
+  if (value instanceof Timestamp) {
+    return value.toDate().toISOString();
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return "";
+}
+
+function preview(value: string): string {
+  return value.length <= 120 ? value : `${value.slice(0, 117)}...`;
 }

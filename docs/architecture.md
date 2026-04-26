@@ -403,9 +403,11 @@ Phase 4時点の実装:
 Phase 4時点では、PCブリッジのrelayアクセスを `CommandRepository` interfaceで分離する。
 
 - `local`: ローカルJSON relay。Firebase未設定でも状態遷移を検証するために使う。
-- `firestore`: Firestore relayのadapter入口。実接続はFirebaseプロジェクト設定後に実装する。
+- `firestore`: Firebase Admin SDKでFirestoreへ接続するMVP本番想定adapter。
 
 Firestore実接続時は、`CommandRepository` のclaim/complete/fail/heartbeat操作をFirestore transactionとSecurity Rules前提に置き換える。
+
+Phase 4時点でFirestore adapterコードは実装済み。ただし、実Firebaseプロジェクトとservice accountが未設定のため、実接続検証はFirebase設定後に行う。
 
 ### 起動とheartbeat
 
