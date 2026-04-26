@@ -289,7 +289,23 @@ const _messages = <String, Map<String, String>>{
     'sessionCount': 'session(s)',
     'loadingSessions': 'Loading sessions...',
     'noSessionsYet': 'No sessions yet',
+    'noMatchingSessions': 'No matching sessions',
     'noCommandsYet': 'No commands yet',
+    'searchSessions': 'Search sessions',
+    'allGroups': 'All groups',
+    'ungrouped': 'Ungrouped',
+    'favorites': 'Favorites',
+    'favorite': 'Favorite',
+    'removeFavorite': 'Remove favorite',
+    'renameSession': 'Rename session',
+    'sessionName': 'Session name',
+    'group': 'Group',
+    'groupName': 'Group name',
+    'changeGroup': 'Change group',
+    'deleteSession': 'Delete session',
+    'deleteSessionQuestion': 'Delete this session from the app history?',
+    'delete': 'Delete',
+    'more': 'More',
     'waitingFinalResult': 'Waiting for final result.',
     'elapsed': 'Elapsed',
     'lastProgress': 'Last progress',
@@ -358,7 +374,23 @@ const _messages = <String, Map<String, String>>{
     'sessionCount': '件',
     'loadingSessions': 'セッションを読み込み中...',
     'noSessionsYet': 'セッションはまだありません',
+    'noMatchingSessions': '一致するセッションはありません',
     'noCommandsYet': 'コマンドはまだありません',
+    'searchSessions': 'セッションを検索',
+    'allGroups': 'すべてのグループ',
+    'ungrouped': '未分類',
+    'favorites': 'お気に入り',
+    'favorite': 'お気に入り',
+    'removeFavorite': 'お気に入りを解除',
+    'renameSession': 'セッション名を変更',
+    'sessionName': 'セッション名',
+    'group': 'グループ',
+    'groupName': 'グループ名',
+    'changeGroup': 'グループを変更',
+    'deleteSession': 'セッションを削除',
+    'deleteSessionQuestion': 'このセッションをアプリの履歴から削除しますか？',
+    'delete': '削除',
+    'more': 'その他',
     'waitingFinalResult': '最終結果を待っています。',
     'elapsed': '経過時間',
     'lastProgress': '最終進捗',
@@ -427,7 +459,23 @@ const _messages = <String, Map<String, String>>{
     'sessionCount': '个会话',
     'loadingSessions': '正在加载会话...',
     'noSessionsYet': '还没有会话',
+    'noMatchingSessions': '没有匹配的会话',
     'noCommandsYet': '还没有命令',
+    'searchSessions': '搜索会话',
+    'allGroups': '所有分组',
+    'ungrouped': '未分组',
+    'favorites': '收藏',
+    'favorite': '收藏',
+    'removeFavorite': '取消收藏',
+    'renameSession': '重命名会话',
+    'sessionName': '会话名称',
+    'group': '分组',
+    'groupName': '分组名称',
+    'changeGroup': '更改分组',
+    'deleteSession': '删除会话',
+    'deleteSessionQuestion': '要从应用历史记录中删除此会话吗？',
+    'delete': '删除',
+    'more': '更多',
     'waitingFinalResult': '正在等待最终结果。',
     'elapsed': '已用时间',
     'lastProgress': '上次进度',
@@ -496,7 +544,23 @@ const _messages = <String, Map<String, String>>{
     'sessionCount': '개 세션',
     'loadingSessions': '세션 로딩 중...',
     'noSessionsYet': '아직 세션이 없습니다',
+    'noMatchingSessions': '일치하는 세션이 없습니다',
     'noCommandsYet': '아직 명령이 없습니다',
+    'searchSessions': '세션 검색',
+    'allGroups': '모든 그룹',
+    'ungrouped': '미분류',
+    'favorites': '즐겨찾기',
+    'favorite': '즐겨찾기',
+    'removeFavorite': '즐겨찾기 해제',
+    'renameSession': '세션 이름 변경',
+    'sessionName': '세션 이름',
+    'group': '그룹',
+    'groupName': '그룹 이름',
+    'changeGroup': '그룹 변경',
+    'deleteSession': '세션 삭제',
+    'deleteSessionQuestion': '앱 기록에서 이 세션을 삭제할까요?',
+    'delete': '삭제',
+    'more': '더보기',
     'waitingFinalResult': '최종 결과를 기다리는 중입니다.',
     'elapsed': '경과 시간',
     'lastProgress': '마지막 진행',
@@ -846,6 +910,8 @@ class SessionSummary {
     required this.id,
     required this.title,
     required this.status,
+    this.favorite = false,
+    this.groupName,
     this.codexOptions,
     this.lastResultPreview,
     this.lastErrorPreview,
@@ -854,6 +920,8 @@ class SessionSummary {
   final String id;
   final String title;
   final String status;
+  final bool favorite;
+  final String? groupName;
   final SessionCreateOptions? codexOptions;
   final String? lastResultPreview;
   final String? lastErrorPreview;
@@ -966,6 +1034,22 @@ abstract class SessionRepository {
     required String pcBridgeId,
     required SessionCreateOptions options,
   });
+  Future<void> renameSession({
+    required String uid,
+    required String sessionId,
+    required String title,
+  });
+  Future<void> updateSessionFavorite({
+    required String uid,
+    required String sessionId,
+    required bool favorite,
+  });
+  Future<void> updateSessionGroup({
+    required String uid,
+    required String sessionId,
+    required String? groupName,
+  });
+  Future<void> deleteSession({required String uid, required String sessionId});
   Future<void> createCommand({
     required String uid,
     required String sessionId,
@@ -990,21 +1074,35 @@ class FirestoreSessionRepository implements SessionRepository {
         .collection('sessions')
         .orderBy('updatedAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs.map((doc) {
-            final data = doc.data();
-            return SessionSummary(
-              id: doc.id,
-              title: (data['title'] as String?)?.trim().isNotEmpty == true
-                  ? data['title'] as String
-                  : 'Untitled session',
-              status: data['status'] as String? ?? 'idle',
-              codexOptions: sessionOptionsFromData(data),
-              lastResultPreview: data['lastResultPreview'] as String?,
-              lastErrorPreview: data['lastErrorPreview'] as String?,
-            );
-          }).toList(),
-        );
+        .map((snapshot) {
+          final sessions = snapshot.docs
+              .where((doc) {
+                return doc.data()['deletedAt'] == null;
+              })
+              .map((doc) {
+                final data = doc.data();
+                return SessionSummary(
+                  id: doc.id,
+                  title: (data['title'] as String?)?.trim().isNotEmpty == true
+                      ? data['title'] as String
+                      : 'Untitled session',
+                  status: data['status'] as String? ?? 'idle',
+                  favorite: data['favorite'] as bool? ?? false,
+                  groupName: optionString(data['groupName']),
+                  codexOptions: sessionOptionsFromData(data),
+                  lastResultPreview: data['lastResultPreview'] as String?,
+                  lastErrorPreview: data['lastErrorPreview'] as String?,
+                );
+              })
+              .toList();
+          sessions.sort((a, b) {
+            if (a.favorite != b.favorite) {
+              return a.favorite ? -1 : 1;
+            }
+            return 0;
+          });
+          return sessions;
+        });
   }
 
   @override
@@ -1147,6 +1245,57 @@ class FirestoreSessionRepository implements SessionRepository {
   }
 
   @override
+  Future<void> renameSession({
+    required String uid,
+    required String sessionId,
+    required String title,
+  }) async {
+    await sessionDocument(uid, sessionId).update({
+      'title': title.trim(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  @override
+  Future<void> updateSessionFavorite({
+    required String uid,
+    required String sessionId,
+    required bool favorite,
+  }) async {
+    await sessionDocument(
+      uid,
+      sessionId,
+    ).update({'favorite': favorite, 'updatedAt': FieldValue.serverTimestamp()});
+  }
+
+  @override
+  Future<void> updateSessionGroup({
+    required String uid,
+    required String sessionId,
+    required String? groupName,
+  }) async {
+    final trimmed = groupName?.trim();
+    await sessionDocument(uid, sessionId).update({
+      if (trimmed == null || trimmed.isEmpty)
+        'groupName': FieldValue.delete()
+      else
+        'groupName': trimmed,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  @override
+  Future<void> deleteSession({
+    required String uid,
+    required String sessionId,
+  }) async {
+    await sessionDocument(uid, sessionId).update({
+      'deletedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  @override
   Future<void> createCommand({
     required String uid,
     required String sessionId,
@@ -1177,6 +1326,17 @@ class FirestoreSessionRepository implements SessionRepository {
     }, SetOptions(merge: true));
 
     await batch.commit();
+  }
+
+  DocumentReference<Map<String, dynamic>> sessionDocument(
+    String uid,
+    String sessionId,
+  ) {
+    return firestore
+        .collection('users')
+        .doc(uid)
+        .collection('sessions')
+        .doc(sessionId);
   }
 }
 
@@ -1318,6 +1478,14 @@ class RemoteCodexApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2563EB)),
         useMaterial3: true,
       ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF60A5FA),
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      themeMode: ThemeMode.system,
       home: StartupView(
         bootstrap: bootstrap,
         sessionRepository: sessionRepository,
@@ -1387,7 +1555,9 @@ class SessionListView extends StatefulWidget {
 }
 
 class _SessionListViewState extends State<SessionListView> {
+  final TextEditingController searchController = TextEditingController();
   bool isCreating = false;
+  String selectedGroup = '';
 
   @override
   void initState() {
@@ -1395,6 +1565,173 @@ class _SessionListViewState extends State<SessionListView> {
     NotificationService().attachNavigation(
       bootstrap: widget.bootstrap,
       sessionRepository: widget.sessionRepository,
+    );
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  List<SessionSummary> filteredSessions(List<SessionSummary> sessions) {
+    final query = searchController.text.trim().toLowerCase();
+    return sessions
+        .where((session) {
+          final matchesSearch =
+              query.isEmpty || session.title.toLowerCase().contains(query);
+          final matchesGroup =
+              selectedGroup.isEmpty ||
+              sessionGroupKey(session) == selectedGroup;
+          return matchesSearch && matchesGroup;
+        })
+        .toList(growable: false);
+  }
+
+  List<String> sessionGroups(List<SessionSummary> sessions) {
+    final groups = sessions.map(sessionGroupKey).toSet().toList();
+    groups.sort((a, b) {
+      if (a == '') {
+        return -1;
+      }
+      if (b == '') {
+        return 1;
+      }
+      return a.compareTo(b);
+    });
+    return groups;
+  }
+
+  Future<void> openSessionActions(SessionSummary session) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: Text(context.l10n.t('renameSession')),
+              onTap: () async {
+                Navigator.of(context).pop();
+                await renameSession(session);
+              },
+            ),
+            ListTile(
+              leading: Icon(session.favorite ? Icons.star : Icons.star_border),
+              title: Text(
+                context.l10n.t(
+                  session.favorite ? 'removeFavorite' : 'favorite',
+                ),
+              ),
+              onTap: () async {
+                Navigator.of(context).pop();
+                await widget.sessionRepository.updateSessionFavorite(
+                  uid: widget.bootstrap.uid,
+                  sessionId: session.id,
+                  favorite: !session.favorite,
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.folder_outlined),
+              title: Text(context.l10n.t('changeGroup')),
+              onTap: () async {
+                Navigator.of(context).pop();
+                await changeSessionGroup(session);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: Text(context.l10n.t('cliOptionHelp')),
+              onTap: () {
+                Navigator.of(context).pop();
+                showSessionOptionsSummaryDialog(context, session);
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.delete_outline,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: Text(
+                context.l10n.t('deleteSession'),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              onTap: () async {
+                Navigator.of(context).pop();
+                await confirmDeleteSession(session);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> renameSession(SessionSummary session) async {
+    final title = await showTextValueDialog(
+      context,
+      title: context.l10n.t('renameSession'),
+      label: context.l10n.t('sessionName'),
+      initialValue: session.title,
+    );
+    if (title == null) {
+      return;
+    }
+
+    await widget.sessionRepository.renameSession(
+      uid: widget.bootstrap.uid,
+      sessionId: session.id,
+      title: title,
+    );
+  }
+
+  Future<void> changeSessionGroup(SessionSummary session) async {
+    final groupName = await showTextValueDialog(
+      context,
+      title: context.l10n.t('changeGroup'),
+      label: context.l10n.t('groupName'),
+      initialValue: session.groupName ?? '',
+    );
+    if (groupName == null) {
+      return;
+    }
+
+    await widget.sessionRepository.updateSessionGroup(
+      uid: widget.bootstrap.uid,
+      sessionId: session.id,
+      groupName: groupName,
+    );
+  }
+
+  Future<void> confirmDeleteSession(SessionSummary session) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.l10n.t('deleteSession')),
+        content: Text(context.l10n.t('deleteSessionQuestion')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(context.l10n.t('cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(context.l10n.t('delete')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    await widget.sessionRepository.deleteSession(
+      uid: widget.bootstrap.uid,
+      sessionId: session.id,
     );
   }
 
@@ -1463,6 +1800,8 @@ class _SessionListViewState extends State<SessionListView> {
       stream: widget.sessionRepository.watchSessions(widget.bootstrap.uid),
       builder: (context, snapshot) {
         final sessions = snapshot.data ?? const <SessionSummary>[];
+        final visibleSessions = filteredSessions(sessions);
+        final groups = sessionGroups(sessions);
 
         return Stack(
           children: [
@@ -1477,6 +1816,65 @@ class _SessionListViewState extends State<SessionListView> {
                       child: _ConnectionSummary(
                         bootstrap: widget.bootstrap,
                         sessionRepository: widget.sessionRepository,
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextField(
+                            controller: searchController,
+                            onChanged: (_) => setState(() {}),
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(Icons.search),
+                              labelText: context.l10n.t('searchSessions'),
+                              border: const OutlineInputBorder(),
+                              suffixIcon: searchController.text.isEmpty
+                                  ? null
+                                  : IconButton(
+                                      onPressed: () {
+                                        searchController.clear();
+                                        setState(() {});
+                                      },
+                                      icon: const Icon(Icons.clear),
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: ChoiceChip(
+                                    label: Text(context.l10n.t('allGroups')),
+                                    selected: selectedGroup.isEmpty,
+                                    onSelected: (_) =>
+                                        setState(() => selectedGroup = ''),
+                                  ),
+                                ),
+                                for (final group in groups)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: ChoiceChip(
+                                      label: Text(
+                                        group.isEmpty
+                                            ? context.l10n.t('ungrouped')
+                                            : group,
+                                      ),
+                                      selected: selectedGroup == group,
+                                      onSelected: (_) =>
+                                          setState(() => selectedGroup = group),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1497,29 +1895,31 @@ class _SessionListViewState extends State<SessionListView> {
                       hasScrollBody: false,
                       child: _EmptySessions(),
                     )
+                  else if (visibleSessions.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _EmptySessions(messageKey: 'noMatchingSessions'),
+                    )
                   else
                     SliverList.builder(
-                      itemCount: sessions.length,
+                      itemCount: visibleSessions.length,
                       itemBuilder: (context, index) {
+                        final session = visibleSessions[index];
                         return _SessionTile(
-                          session: sessions[index],
+                          session: session,
                           onTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute<void>(
                                 builder: (_) => SessionDetailPage(
                                   bootstrap: widget.bootstrap,
-                                  session: sessions[index],
+                                  session: session,
                                   sessionRepository: widget.sessionRepository,
                                 ),
                               ),
                             );
                           },
-                          onLongPress: () {
-                            showSessionOptionsSummaryDialog(
-                              context,
-                              sessions[index],
-                            );
-                          },
+                          onLongPress: () => openSessionActions(session),
+                          onMore: () => openSessionActions(session),
                         );
                       },
                     ),
@@ -2217,6 +2617,42 @@ String summaryList(BuildContext context, List<String> values) {
   return values.join(', ');
 }
 
+String sessionGroupKey(SessionSummary session) => session.groupName ?? '';
+
+Future<String?> showTextValueDialog(
+  BuildContext context, {
+  required String title,
+  required String label,
+  required String initialValue,
+}) {
+  final controller = TextEditingController(text: initialValue);
+
+  return showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(title),
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(context.l10n.t('cancel')),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+          child: Text(context.l10n.t('save')),
+        ),
+      ],
+    ),
+  );
+}
+
 class _ConnectionSummary extends StatefulWidget {
   const _ConnectionSummary({
     required this.bootstrap,
@@ -2520,11 +2956,13 @@ class _SessionTile extends StatelessWidget {
     required this.session,
     required this.onTap,
     required this.onLongPress,
+    required this.onMore,
   });
 
   final SessionSummary session;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
+  final VoidCallback onMore;
 
   @override
   Widget build(BuildContext context) {
@@ -2537,9 +2975,24 @@ class _SessionTile extends StatelessWidget {
         child: ListTile(
           onTap: onTap,
           onLongPress: onLongPress,
+          leading: Icon(
+            session.favorite ? Icons.star : Icons.forum_outlined,
+            color: session.favorite
+                ? Theme.of(context).colorScheme.primary
+                : null,
+          ),
           title: Text(session.title),
-          subtitle: Text(subtitle),
-          trailing: const Icon(Icons.chevron_right),
+          subtitle: Text(
+            [
+              if (session.groupName != null) session.groupName!,
+              subtitle,
+            ].join(' / '),
+          ),
+          trailing: IconButton(
+            onPressed: onMore,
+            tooltip: context.l10n.t('more'),
+            icon: const Icon(Icons.more_vert),
+          ),
         ),
       ),
     );
@@ -2594,10 +3047,128 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
     }
   }
 
+  Future<void> renameSession() async {
+    final title = await showTextValueDialog(
+      context,
+      title: context.l10n.t('renameSession'),
+      label: context.l10n.t('sessionName'),
+      initialValue: widget.session.title,
+    );
+    if (title == null) {
+      return;
+    }
+
+    await widget.sessionRepository.renameSession(
+      uid: widget.bootstrap.uid,
+      sessionId: widget.session.id,
+      title: title,
+    );
+  }
+
+  Future<void> updateGroup() async {
+    final groupName = await showTextValueDialog(
+      context,
+      title: context.l10n.t('changeGroup'),
+      label: context.l10n.t('groupName'),
+      initialValue: widget.session.groupName ?? '',
+    );
+    if (groupName == null) {
+      return;
+    }
+
+    await widget.sessionRepository.updateSessionGroup(
+      uid: widget.bootstrap.uid,
+      sessionId: widget.session.id,
+      groupName: groupName,
+    );
+  }
+
+  Future<void> deleteSession() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.l10n.t('deleteSession')),
+        content: Text(context.l10n.t('deleteSessionQuestion')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(context.l10n.t('cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(context.l10n.t('delete')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    await widget.sessionRepository.deleteSession(
+      uid: widget.bootstrap.uid,
+      sessionId: widget.session.id,
+    );
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.session.title)),
+      appBar: AppBar(
+        title: Text(widget.session.title),
+        actions: [
+          IconButton(
+            onPressed: () => widget.sessionRepository.updateSessionFavorite(
+              uid: widget.bootstrap.uid,
+              sessionId: widget.session.id,
+              favorite: !widget.session.favorite,
+            ),
+            tooltip: context.l10n.t(
+              widget.session.favorite ? 'removeFavorite' : 'favorite',
+            ),
+            icon: Icon(
+              widget.session.favorite ? Icons.star : Icons.star_border,
+            ),
+          ),
+          PopupMenuButton<String>(
+            tooltip: context.l10n.t('more'),
+            onSelected: (value) {
+              switch (value) {
+                case 'rename':
+                  renameSession();
+                case 'group':
+                  updateGroup();
+                case 'delete':
+                  deleteSession();
+                case 'options':
+                  showSessionOptionsSummaryDialog(context, widget.session);
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'rename',
+                child: Text(context.l10n.t('renameSession')),
+              ),
+              PopupMenuItem(
+                value: 'group',
+                child: Text(context.l10n.t('changeGroup')),
+              ),
+              PopupMenuItem(
+                value: 'options',
+                child: Text(context.l10n.t('cliOptionHelp')),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Text(context.l10n.t('deleteSession')),
+              ),
+            ],
+          ),
+        ],
+      ),
       drawer: SessionDrawer(
         bootstrap: widget.bootstrap,
         sessionRepository: widget.sessionRepository,
@@ -2853,7 +3424,9 @@ class _NoCommands extends StatelessWidget {
 }
 
 class _EmptySessions extends StatelessWidget {
-  const _EmptySessions();
+  const _EmptySessions({this.messageKey = 'noSessionsYet'});
+
+  final String messageKey;
 
   @override
   Widget build(BuildContext context) {
@@ -2866,7 +3439,7 @@ class _EmptySessions extends StatelessWidget {
             const Icon(Icons.forum_outlined, size: 40),
             const SizedBox(height: 16),
             Text(
-              context.l10n.t('noSessionsYet'),
+              context.l10n.t(messageKey),
               style: Theme.of(context).textTheme.titleLarge,
             ),
           ],

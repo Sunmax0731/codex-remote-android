@@ -112,8 +112,11 @@ Codexへ送る作業単位を表す。
 - `title`
 - `status`: `idle`, `queued`, `running`, `completed`, `failed`
 - `targetPcBridgeId`
+- `favorite`: Androidアプリでお気に入りとして表示するための真偽値。未設定時は `false` と同等に扱う。
+- `groupName`: Androidアプリでセッションを絞り込むための任意グループ名。未設定時は未分類として扱う。
 - `createdAt`
 - `updatedAt`
+- `deletedAt`: Androidアプリの履歴から除外するためのソフト削除時刻。物理削除は初期実装では行わない。
 - `lastCommandId`
 - `lastResultPreview`
 - `lastErrorPreview`
