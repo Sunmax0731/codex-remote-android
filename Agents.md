@@ -14,6 +14,7 @@
 - Androidアプリ、PCブリッジ、Firebase/Cloud Functions は別々の成果物として扱い、境界と契約をドキュメントに残す。
 - Androidアプリから任意のシェルコマンドを直接実行できる設計にしない。
 - Release前には実機またはエミュレータで検証する。主ターゲット実機は Xperia 1 III とする。
+- Android UIの表示文言を追加・変更する場合は、日本語・英語・中国語・韓国語の端末言語追従と英語フォールバックを維持する。
 
 ## Documentation Language
 
@@ -47,6 +48,14 @@
 - ドキュメントと実装が食い違う状態を残さない。すぐ直せない場合はIssueに残す。
 - 要件IDは安易に振り直さない。追加が必要な場合は末尾に追加する。
 - 新しいドキュメントを追加した場合は、`README.md` または `process/README.md` などの索引も更新する。
+
+## Android Implementation Notes
+
+- ユーザーに見える通常文言は localization layer を通す。CLIオプション名、model ID、status値、API名、ファイルパスなどの技術識別子は翻訳しない。
+- Flutter localizationを触った場合は、`flutter analyze`、`flutter test`、必要に応じて実機インストールを行う。
+- widget testでは、端末言語を明示しないと実行環境のlocaleで期待値が揺れる。英語期待のテストは `Locale('en')` を明示する。
+- stream-backed UIのテストでは、`pumpAndSettle()` のタイムアウトとbroadcast streamのイベント取りこぼしに注意する。
+- ワイヤレスデバッグ実機は接続ポートが変わるため、`flutter devices` で現在のdevice idを確認してから `flutter install -d <device-id> --debug` を実行する。
 
 ## Phase Order
 
