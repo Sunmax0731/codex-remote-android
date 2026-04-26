@@ -63,6 +63,7 @@ export type CommandRepository = {
   markFailed(claim: CommandClaim, errorText: string, now: Date): Promise<void>;
   updateHeartbeat(pcBridgeId: string, now: Date): Promise<void>;
   updateQueueCheck(pcBridgeId: string, now: Date): Promise<void>;
+  respondPendingHealthChecks(pcBridgeId: string, now: Date): Promise<number>;
 };
 
 export type CodexInvocation = {

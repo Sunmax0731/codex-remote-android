@@ -184,6 +184,69 @@ export class FirestoreRelayRepository implements CommandRepository {
     }, { merge: true })));
   }
 
+  async respondPendingHealthChecks(pcBridgeId: string, now: Date): Promise<number> {
+    const firestore = await this.getFirestore();
+    const userIds = await this.resolveBridgeUserIds(firestore, pcBridgeId);
+
+    const nowTimestamp = Timestamp.fromDate(now);
+    let respondedCount = 0;
+
+    for (const userId of userIds) {
+      const healthChecks = await firestore
+        .collection(`users/${userId}/pcBridges/${pcBridgeId}/healthChecks`)
+        .where("status", "==", "requested")
+        .limit(20)
+        .get();
+
+      for (const healthCheck of healthChecks.docs) {
+        await firestore.runTransaction(async (transaction) => {
+          const current = await transaction.get(healthCheck.ref);
+
+          if (!current.exists || current.data()?.status !== "requested") {
+            return;
+          }
+
+          if (current.data()?.targetPcBridgeId !== pcBridgeId) {
+            return;
+          }
+
+          const bridgeRef = healthCheck.ref.parent.parent;
+          if (!bridgeRef) {
+            return;
+          }
+
+          transaction.update(healthCheck.ref, {
+            status: "responded",
+            respondedAt: nowTimestamp,
+            respondingPcBridgeId: pcBridgeId,
+            message: "PC bridge watcher responded.",
+          });
+
+          const requestedAt = current.data()?.requestedAt;
+          const bridgeUpdate: Record<string, unknown> = {
+            pcBridgeId,
+            displayName: this.config.displayName,
+            workspaceName: this.config.workspaceName,
+            status: "active",
+            version: "0.1.0",
+            lastHealthCheckRespondedAt: nowTimestamp,
+            lastHealthCheckStatus: "responded",
+          };
+
+          if (requestedAt) {
+            bridgeUpdate.lastHealthCheckRequestedAt = requestedAt;
+          }
+
+          transaction.set(bridgeRef, bridgeUpdate, { merge: true });
+
+          respondedCount += 1;
+        });
+      }
+    }
+
+    return respondedCount;
+  }
+
   private async getFirestore(): Promise<Firestore> {
     if (this.firestorePromise) {
       return this.firestorePromise;

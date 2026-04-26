@@ -44,8 +44,39 @@ void main() {
 
     expect(find.text('Connected as anonymous user'), findsOneWidget);
     expect(find.text('PC bridge: home-main-pc (active)'), findsOneWidget);
+    expect(find.text('Check PC now'), findsOneWidget);
     expect(find.text('UID: test-uid'), findsOneWidget);
     expect(find.text('No sessions yet'), findsOneWidget);
+  });
+
+  testWidgets('requests a PC bridge health check from the status panel', (
+    tester,
+  ) async {
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const <SessionSummary>[]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Check PC now'));
+    await tester.pump();
+
+    expect(repository.healthCheckCount, 1);
   });
 
   testWidgets('creates a session from the floating action button', (
@@ -129,6 +160,7 @@ class FakeSessionRepository implements SessionRepository {
   final Map<String, StreamController<List<CommandSummary>>> commandControllers =
       {};
   int createdSessionCount = 0;
+  int healthCheckCount = 0;
   String? createdCommandText;
 
   void emit(List<SessionSummary> sessions) {
@@ -154,9 +186,20 @@ class FakeSessionRepository implements SessionRepository {
         PcBridgeStatus(
           lastSeenAt: DateTime(2026, 4, 26, 12),
           lastQueueCheckedAt: DateTime(2026, 4, 26, 12, 1),
+          lastHealthCheckRequestedAt: DateTime(2026, 4, 26, 12, 2),
+          lastHealthCheckRespondedAt: DateTime(2026, 4, 26, 12, 2, 5),
+          lastHealthCheckStatus: 'responded',
           status: 'active',
         ),
       );
+
+  @override
+  Future<void> requestPcBridgeHealthCheck({
+    required String uid,
+    required String pcBridgeId,
+  }) async {
+    healthCheckCount++;
+  }
 
   void emitCommands(String sessionId, List<CommandSummary> commands) {
     commandControllers

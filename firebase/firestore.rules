@@ -21,7 +21,31 @@ service cloud.firestore {
 
       match /pcBridges/{pcBridgeId} {
         allow read: if ownsUser(userId);
-        allow create, update, delete: if false;
+        allow create: if ownsUser(userId)
+          && request.resource.data.keys().hasOnly([
+            "pcBridgeId",
+            "lastHealthCheckRequestedAt",
+            "lastHealthCheckStatus"
+          ])
+          && request.resource.data.pcBridgeId == pcBridgeId
+          && request.resource.data.lastHealthCheckStatus == "requested";
+        allow update: if ownsUser(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            "pcBridgeId",
+            "lastHealthCheckRequestedAt",
+            "lastHealthCheckStatus"
+          ])
+          && request.resource.data.pcBridgeId == pcBridgeId
+          && request.resource.data.lastHealthCheckStatus == "requested";
+        allow delete: if false;
+
+        match /healthChecks/{healthCheckId} {
+          allow read: if ownsUser(userId);
+          allow create: if ownsUser(userId)
+            && request.resource.data.status == "requested"
+            && request.resource.data.targetPcBridgeId == pcBridgeId;
+          allow update, delete: if false;
+        }
       }
 
       match /sessions/{sessionId} {

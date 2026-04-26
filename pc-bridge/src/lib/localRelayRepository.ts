@@ -127,6 +127,10 @@ export class LocalRelayRepository implements CommandRepository {
     await this.writeState(state);
   }
 
+  async respondPendingHealthChecks(_pcBridgeId: string, _now: Date): Promise<number> {
+    return 0;
+  }
+
   private async updateClaimedCommand(
     claim: CommandClaim,
     now: Date,

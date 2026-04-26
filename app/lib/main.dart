@@ -356,10 +356,20 @@ class CommandSummary {
 }
 
 class PcBridgeStatus {
-  const PcBridgeStatus({this.lastSeenAt, this.lastQueueCheckedAt, this.status});
+  const PcBridgeStatus({
+    this.lastSeenAt,
+    this.lastQueueCheckedAt,
+    this.lastHealthCheckRequestedAt,
+    this.lastHealthCheckRespondedAt,
+    this.lastHealthCheckStatus,
+    this.status,
+  });
 
   final DateTime? lastSeenAt;
   final DateTime? lastQueueCheckedAt;
+  final DateTime? lastHealthCheckRequestedAt;
+  final DateTime? lastHealthCheckRespondedAt;
+  final String? lastHealthCheckStatus;
   final String? status;
 }
 
@@ -367,6 +377,10 @@ abstract class SessionRepository {
   Stream<List<SessionSummary>> watchSessions(String uid);
   Stream<List<CommandSummary>> watchCommands(String uid, String sessionId);
   Stream<PcBridgeStatus> watchPcBridgeStatus(String uid, String pcBridgeId);
+  Future<void> requestPcBridgeHealthCheck({
+    required String uid,
+    required String pcBridgeId,
+  });
   Future<SessionSummary> createSession({
     required String uid,
     required String pcBridgeId,
@@ -455,9 +469,45 @@ class FirestoreSessionRepository implements SessionRepository {
             lastQueueCheckedAt: timestampToDateTime(
               data?['lastQueueCheckedAt'],
             ),
+            lastHealthCheckRequestedAt: timestampToDateTime(
+              data?['lastHealthCheckRequestedAt'],
+            ),
+            lastHealthCheckRespondedAt: timestampToDateTime(
+              data?['lastHealthCheckRespondedAt'],
+            ),
+            lastHealthCheckStatus: data?['lastHealthCheckStatus'] as String?,
             status: data?['status'] as String?,
           );
         });
+  }
+
+  @override
+  Future<void> requestPcBridgeHealthCheck({
+    required String uid,
+    required String pcBridgeId,
+  }) async {
+    final bridgeRef = firestore
+        .collection('users')
+        .doc(uid)
+        .collection('pcBridges')
+        .doc(pcBridgeId);
+    final healthCheckRef = bridgeRef.collection('healthChecks').doc();
+    final batch = firestore.batch();
+
+    batch.set(healthCheckRef, {
+      'status': 'requested',
+      'targetPcBridgeId': pcBridgeId,
+      'createdByDeviceId': androidDeviceId,
+      'requestedAt': FieldValue.serverTimestamp(),
+    });
+
+    batch.set(bridgeRef, {
+      'pcBridgeId': pcBridgeId,
+      'lastHealthCheckRequestedAt': FieldValue.serverTimestamp(),
+      'lastHealthCheckStatus': 'requested',
+    }, SetOptions(merge: true));
+
+    await batch.commit();
   }
 
   @override
@@ -751,7 +801,7 @@ class _SessionListViewState extends State<SessionListView> {
   }
 }
 
-class _ConnectionSummary extends StatelessWidget {
+class _ConnectionSummary extends StatefulWidget {
   const _ConnectionSummary({
     required this.bootstrap,
     required this.sessionRepository,
@@ -761,11 +811,41 @@ class _ConnectionSummary extends StatelessWidget {
   final SessionRepository sessionRepository;
 
   @override
+  State<_ConnectionSummary> createState() => _ConnectionSummaryState();
+}
+
+class _ConnectionSummaryState extends State<_ConnectionSummary> {
+  bool isCheckingBridge = false;
+  String? checkError;
+
+  Future<void> requestHealthCheck() async {
+    setState(() {
+      isCheckingBridge = true;
+      checkError = null;
+    });
+
+    try {
+      await widget.sessionRepository.requestPcBridgeHealthCheck(
+        uid: widget.bootstrap.uid,
+        pcBridgeId: widget.bootstrap.pcBridgeId,
+      );
+    } catch (error) {
+      checkError = error.toString();
+    } finally {
+      if (mounted) {
+        setState(() {
+          isCheckingBridge = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<PcBridgeStatus>(
-      stream: sessionRepository.watchPcBridgeStatus(
-        bootstrap.uid,
-        bootstrap.pcBridgeId,
+      stream: widget.sessionRepository.watchPcBridgeStatus(
+        widget.bootstrap.uid,
+        widget.bootstrap.pcBridgeId,
       ),
       builder: (context, snapshot) {
         final bridge = snapshot.data ?? const PcBridgeStatus();
@@ -786,7 +866,7 @@ class _ConnectionSummary extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'PC bridge: ${bootstrap.pcBridgeId}${bridge.status == null ? '' : ' (${bridge.status})'}',
+                  'PC bridge: ${widget.bootstrap.pcBridgeId}${bridge.status == null ? '' : ' (${bridge.status})'}',
                 ),
                 const SizedBox(height: 4),
                 Text('Last heartbeat: ${formatDateTime(bridge.lastSeenAt)}'),
@@ -796,10 +876,42 @@ class _ConnectionSummary extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Notifications: ${bootstrap.notificationState.permissionStatus}',
+                  'Last manual check: ${formatDateTime(bridge.lastHealthCheckRequestedAt)}',
                 ),
                 const SizedBox(height: 4),
-                SelectableText('UID: ${bootstrap.uid}'),
+                Text(
+                  'Last response: ${formatDateTime(bridge.lastHealthCheckRespondedAt)}${bridge.lastHealthCheckStatus == null ? '' : ' (${bridge.lastHealthCheckStatus})'}',
+                ),
+                if (checkError != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    checkError!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.icon(
+                    onPressed: isCheckingBridge ? null : requestHealthCheck,
+                    icon: isCheckingBridge
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.sensors),
+                    label: Text(isCheckingBridge ? 'Checking' : 'Check PC now'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Notifications: ${widget.bootstrap.notificationState.permissionStatus}',
+                ),
+                const SizedBox(height: 4),
+                SelectableText('UID: ${widget.bootstrap.uid}'),
               ],
             ),
           ),
