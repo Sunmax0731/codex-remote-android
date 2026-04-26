@@ -287,7 +287,7 @@ AndroidアプリにはFirebase Admin SDK credentialやservice account JSONを入
 
 手入力の負担を下げるため、PC側には `google-services.json` からFirebaseクライアント設定だけを抽出してQRコードを生成する補助コマンドを用意する。QR payloadは `schema=codex-remote.firebase-client.v1` を持つJSONで、`projectId`, `apiKey`, `appId`, `messagingSenderId`, 任意の `storageBucket` だけを含める。Android側のセットアップ画面はこのQRを読み取り、フォームへ自動入力する。QRにはservice account JSON、private key、Admin SDK credential、PCブリッジのローカルtokenを含めない。
 
-PC側にはローカルWebのセットアップ支援UIも用意する。UIはFirebase ConsoleやGoogle Cloud Consoleへのリンク、プロジェクト作成からJSON取得までの手順、アプリ名/package name入力、`google-services.json` 登録、service account JSONのローカル確認、QR生成をまとめる。QR生成APIへ送るのは `google-services.json` とpackage nameだけで、service account JSONはブラウザ内の確認表示に留める。
+PC側にはローカルWebのセットアップ支援UIも用意する。UIはFirebase ConsoleやGoogle Cloud Consoleへのリンク、プロジェクト作成からJSON取得までの手順、配布APKの固定アプリ名 `RemoteCodex` とpackage name `com.sunmax.remotecodex` の表示、`google-services.json` 登録、service account JSONのローカル確認、QR生成をまとめる。QR生成APIへ送るのは `google-services.json` と固定package nameだけで、service account JSONはブラウザ内の確認表示に留める。
 
 ### Android表示言語
 

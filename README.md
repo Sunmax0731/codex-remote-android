@@ -171,7 +171,7 @@ firebase deploy --only functions
 
 ## 利用開始手順
 
-このアプリを使い始めるための準備は、[利用開始手順](docs/getting-started.md) を参照してください。
+このアプリを使い始めるための準備は、[利用開始手順](docs/getting-started.md) を参照してください。自分以外の利用者へ配布するための準備は、[配布準備](docs/distribution-prep.md) を参照してください。
 
 関連する詳細手順:
 
@@ -179,6 +179,7 @@ firebase deploy --only functions
 - [Firebase手順](firebase/README.md)
 - [Cloud Functions手順](firebase/functions/README.md)
 - [Androidアプリ手順](app/README.md)
+- [配布準備](docs/distribution-prep.md)
 
 ## ライセンス
 

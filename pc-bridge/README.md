@@ -402,10 +402,12 @@ npm run setup:web
 ```
 
 Open `http://127.0.0.1:8787`. The UI includes cloud service links,
-step-by-step Firebase setup guidance, app/package inputs, JSON registration
-checks, and Android setup QR generation. The service account JSON check runs in
-the browser for setup progress only. It is not sent to the QR generator and is
-not included in the QR payload.
+step-by-step Firebase setup guidance, JSON registration checks, fixed
+distributed APK settings, and Android setup QR generation. The distributed APK
+uses the fixed app name `RemoteCodex` and Android package name
+`com.sunmax.remotecodex`. The service account JSON check runs in the browser
+for setup progress only. It is not sent to the QR generator and is not included
+in the QR payload.
 
 The setup UI can switch between English, Japanese, and Chinese. The selected
 language is saved in the browser with the other local setup inputs.
@@ -420,6 +422,10 @@ npm run qr:firebase -- --google-services ..\app\android\app\google-services.json
 
 The command prints a QR code in the terminal. The Android Firebase setup screen
 can scan it with `Scan setup QR` and fill the form automatically.
+
+For APK distribution, do not ask users to choose an arbitrary package name.
+Firebase Android app registration and QR generation must use
+`com.sunmax.remotecodex`, which matches the distributed APK.
 
 The QR payload includes only Firebase client configuration:
 
