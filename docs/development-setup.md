@@ -229,6 +229,21 @@ Phase 3時点の確認結果:
 - `npm.cmd run check` 成功。
 - `npm audit` は 2 low / 8 moderate の脆弱性警告を報告。Phase 4で依存関係を実装に合わせて再評価する。
 
+Phase 4で追加された確認コマンド:
+
+```powershell
+Set-Location pc-bridge
+npm.cmd run validate:local
+```
+
+確認内容:
+
+- ローカルJSON relay上の `queued` コマンドをclaimする。
+- 成功コマンドを `completed` にする。
+- 失敗コマンドを `failed` にする。
+- `resultText` と `errorText` の保存を確認する。
+- スマホ入力をraw shell commandとして実行しないstub境界で処理する。
+
 ### Phase 5: Androidアプリ
 
 Flutter SDKが必須。現時点では `flutter` が未検出のため、Flutter導入がPhase 5開始前のブロッカー。

@@ -5,9 +5,10 @@
   "description": "PC-side bridge for Codex Remote Android MVP.",
   "type": "module",
   "scripts": {
-    "build": "tsc --noEmit",
-    "start": "node src/index.js",
-    "check": "tsc --noEmit"
+    "build": "tsc",
+    "start": "tsc && node dist/src/index.js",
+    "check": "tsc --noEmit",
+    "validate:local": "tsc && node dist/scripts/validate-local-relay.js"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0"

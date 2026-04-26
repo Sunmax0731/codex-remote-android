@@ -1,21 +1,34 @@
-type BridgeConfig = {
-  pcBridgeId: string;
-  displayName: string;
-  workspaceName: string;
-  workspacePath: string;
-  firebaseProjectId: string;
-  serviceAccountPath?: string;
-};
+import { loadBridgeConfig } from "./lib/config.js";
+import { createCodexInvoker } from "./lib/codexInvoker.js";
+import { LocalRelayRepository } from "./lib/localRelayRepository.js";
+import { processNextCommand } from "./lib/processor.js";
 
-function main(): void {
+async function main(): Promise<void> {
   const configPath = process.env.CODEX_REMOTE_BRIDGE_CONFIG ?? "config.local.json";
+  const config = await loadBridgeConfig(configPath);
+  const repository = new LocalRelayRepository(config.localRelayPath);
+  const invoker = createCodexInvoker(config);
 
-  console.log("Codex Remote PC Bridge scaffold");
   console.log(`Config path: ${configPath}`);
-  console.log("Phase 4 will implement Firebase command listening and Codex invocation.");
+  console.log(`Relay mode: ${config.relayMode}`);
+  console.log(`PC bridge: ${config.pcBridgeId}`);
+
+  const result = await processNextCommand({
+    config,
+    repository,
+    invoker,
+  });
+
+  if (result.kind === "none") {
+    console.log("No queued command found.");
+    return;
+  }
+
+  console.log(`Processed command ${result.commandId}: ${result.status}`);
 }
 
-main();
-
-export type { BridgeConfig };
+main().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});
 
