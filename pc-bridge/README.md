@@ -42,6 +42,45 @@ npm.cmd run start:watch
 
 手動ターミナル依存を避けるため、Windows用のバッチファイルを `scripts/` に用意している。
 
+### 推奨手順
+
+通常利用では、まずバックグラウンド起動で動作確認し、問題なければタスクスケジューラへ登録する。
+
+1. バックグラウンド起動する。
+
+```powershell
+cd D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+.\scripts\start-watch-background.bat
+```
+
+2. watcherが動いていることを確認する。
+
+```powershell
+Get-CimInstance Win32_Process |
+  Where-Object { $_.CommandLine -match 'dist[\\/]+src[\\/]+watch.js|start:watch|run-watch.bat' } |
+  Select-Object ProcessId,Name,CommandLine
+```
+
+3. スマホアプリからセッションへ送信し、`queued` から `running` / `completed` へ進むことを確認する。
+
+4. ログを確認する。
+
+```powershell
+Get-ChildItem .\logs -Filter 'pc-bridge-watch-*.log' |
+  Sort-Object LastWriteTime -Descending |
+  Select-Object -First 1 |
+  ForEach-Object { Get-Content $_.FullName -Tail 40 }
+```
+
+5. 問題なければ、ログオン時に自動起動するタスクを登録する。
+
+```powershell
+.\scripts\register-watch-task.bat
+schtasks /Run /TN "CodexRemotePcBridge"
+```
+
+タスク登録後は、PCにログオンするとPCブリッジwatcherが起動する。
+
 ### フォアグラウンドで起動
 
 ログを残しながら現在のコマンドプロンプト内でwatcherを実行する。
@@ -108,6 +147,32 @@ schtasks /Delete /TN "CodexRemotePcBridge" /F
 ```
 
 タスクスケジューラ起動では画面に常駐ログが出ないため、動作確認は `pc-bridge\logs\pc-bridge-watch-<random>.log` とFirestore上のcommand状態で行う。
+
+### 停止方法
+
+起動した最小化ウィンドウが見える場合は、そのウィンドウで `Ctrl+C` を押す。
+
+ウィンドウが見つからない場合は、プロセスを確認して停止する。
+
+```powershell
+Get-CimInstance Win32_Process |
+  Where-Object { $_.CommandLine -match 'dist[\\/]+src[\\/]+watch.js|start:watch|run-watch.bat' } |
+  Select-Object ProcessId,Name,CommandLine
+```
+
+対象の `ProcessId` を指定して停止する。
+
+```powershell
+Stop-Process -Id <ProcessId>
+```
+
+### 使い分け
+
+- `run-watch.bat`: 現在のターミナルで動作を見ながら起動する。
+- `start-watch-background.bat`: 手動でバックグラウンド起動する。
+- `register-watch-task.bat`: Windowsログオン時に自動起動するタスクを登録する。
+- `npm.cmd run start`: 常駐しない。queued commandを1回だけ処理して終了する。
+- `npm.cmd run start:watch`: 常駐するが、手動ターミナルに依存する。
 
 ## ローカルrelay検証
 
