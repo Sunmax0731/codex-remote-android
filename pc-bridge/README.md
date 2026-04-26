@@ -407,6 +407,9 @@ checks, and Android setup QR generation. The service account JSON check runs in
 the browser for setup progress only. It is not sent to the QR generator and is
 not included in the QR payload.
 
+The setup UI can switch between English, Japanese, and Chinese. The selected
+language is saved in the browser with the other local setup inputs.
+
 To avoid typing the Android Firebase client values on the phone, generate a QR
 code from `google-services.json` on the PC:
 

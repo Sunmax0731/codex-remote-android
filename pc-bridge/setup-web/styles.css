@@ -52,6 +52,35 @@ body {
   border-bottom: 1px solid var(--line);
 }
 
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.language-label {
+  min-width: 150px;
+  margin: 0;
+}
+
+.language-label span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+select {
+  width: 100%;
+  padding: 8px 10px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+}
+
 h1,
 h2,
 h3,
@@ -291,6 +320,7 @@ code {
 
 @media (max-width: 860px) {
   .topbar,
+  .top-actions,
   .layout,
   .two-column,
   .qr-area,
@@ -299,6 +329,7 @@ code {
   }
 
   .topbar > a,
+  .top-actions > a,
   .panel,
   .link-grid a,
   .two-column > div + div {
