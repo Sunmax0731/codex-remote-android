@@ -352,6 +352,20 @@ function toRemoteCommand(
     codexSandbox: isCodexSandbox(data.codexSandbox) ? data.codexSandbox : undefined,
     codexBypassSandbox: typeof data.codexBypassSandbox === "boolean" ? data.codexBypassSandbox : undefined,
     codexProfile: optionalString(data.codexProfile),
+    codexConfigOverrides: optionalStringArray(data.codexConfigOverrides),
+    codexEnableFeatures: optionalStringArray(data.codexEnableFeatures),
+    codexDisableFeatures: optionalStringArray(data.codexDisableFeatures),
+    codexImages: optionalStringArray(data.codexImages),
+    codexOss: typeof data.codexOss === "boolean" ? data.codexOss : undefined,
+    codexLocalProvider: optionalString(data.codexLocalProvider),
+    codexFullAuto: typeof data.codexFullAuto === "boolean" ? data.codexFullAuto : undefined,
+    codexAddDirs: optionalStringArray(data.codexAddDirs),
+    codexSkipGitRepoCheck: typeof data.codexSkipGitRepoCheck === "boolean" ? data.codexSkipGitRepoCheck : undefined,
+    codexEphemeral: typeof data.codexEphemeral === "boolean" ? data.codexEphemeral : undefined,
+    codexIgnoreUserConfig: typeof data.codexIgnoreUserConfig === "boolean" ? data.codexIgnoreUserConfig : undefined,
+    codexIgnoreRules: typeof data.codexIgnoreRules === "boolean" ? data.codexIgnoreRules : undefined,
+    codexOutputSchema: optionalString(data.codexOutputSchema),
+    codexJson: typeof data.codexJson === "boolean" ? data.codexJson : undefined,
     resultText: data.resultText,
     errorText: data.errorText,
     notificationSentAt: timestampToIso(data.notificationSentAt),
@@ -364,6 +378,20 @@ function sessionCodexOptions(data: DocumentData | undefined): Partial<RemoteComm
     codexSandbox: isCodexSandbox(data?.codexSandbox) ? data?.codexSandbox : undefined,
     codexBypassSandbox: typeof data?.codexBypassSandbox === "boolean" ? data.codexBypassSandbox : undefined,
     codexProfile: optionalString(data?.codexProfile),
+    codexConfigOverrides: optionalStringArray(data?.codexConfigOverrides),
+    codexEnableFeatures: optionalStringArray(data?.codexEnableFeatures),
+    codexDisableFeatures: optionalStringArray(data?.codexDisableFeatures),
+    codexImages: optionalStringArray(data?.codexImages),
+    codexOss: typeof data?.codexOss === "boolean" ? data.codexOss : undefined,
+    codexLocalProvider: optionalString(data?.codexLocalProvider),
+    codexFullAuto: typeof data?.codexFullAuto === "boolean" ? data.codexFullAuto : undefined,
+    codexAddDirs: optionalStringArray(data?.codexAddDirs),
+    codexSkipGitRepoCheck: typeof data?.codexSkipGitRepoCheck === "boolean" ? data.codexSkipGitRepoCheck : undefined,
+    codexEphemeral: typeof data?.codexEphemeral === "boolean" ? data.codexEphemeral : undefined,
+    codexIgnoreUserConfig: typeof data?.codexIgnoreUserConfig === "boolean" ? data.codexIgnoreUserConfig : undefined,
+    codexIgnoreRules: typeof data?.codexIgnoreRules === "boolean" ? data.codexIgnoreRules : undefined,
+    codexOutputSchema: optionalString(data?.codexOutputSchema),
+    codexJson: typeof data?.codexJson === "boolean" ? data.codexJson : undefined,
   };
 }
 
@@ -406,6 +434,19 @@ function optionalString(value: unknown): string | undefined {
 
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function optionalStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const entries = value
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+
+  return entries.length > 0 ? entries : undefined;
 }
 
 function isCodexSandbox(value: unknown): value is RemoteCommand["codexSandbox"] {

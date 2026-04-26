@@ -63,6 +63,49 @@ void main() {
     expect(optionNames, contains('--json'));
   });
 
+  test('serializes advanced CLI options for Firestore', () {
+    const options = SessionCreateOptions(
+      codexModel: 'gpt-5.5',
+      codexSandbox: 'workspace-write',
+      codexBypassSandbox: false,
+      codexConfigOverrides: ['model="gpt-5.5"'],
+      codexEnableFeatures: ['feature-a'],
+      codexDisableFeatures: ['feature-b'],
+      codexImages: [r'C:\tmp\image.png'],
+      codexOss: true,
+      codexLocalProvider: 'ollama',
+      codexFullAuto: true,
+      codexAddDirs: [r'D:\work'],
+      codexSkipGitRepoCheck: true,
+      codexEphemeral: true,
+      codexIgnoreUserConfig: true,
+      codexIgnoreRules: true,
+      codexOutputSchema: r'C:\tmp\schema.json',
+      codexJson: true,
+    );
+
+    final data = sessionOptionsToData(options);
+    final parsed = sessionOptionsFromData(data);
+
+    expect(data['codexConfigOverrides'], ['model="gpt-5.5"']);
+    expect(data['codexEnableFeatures'], ['feature-a']);
+    expect(data['codexDisableFeatures'], ['feature-b']);
+    expect(data['codexImages'], [r'C:\tmp\image.png']);
+    expect(data['codexOss'], true);
+    expect(data['codexLocalProvider'], 'ollama');
+    expect(data['codexFullAuto'], true);
+    expect(data['codexAddDirs'], [r'D:\work']);
+    expect(data['codexSkipGitRepoCheck'], true);
+    expect(data['codexEphemeral'], true);
+    expect(data['codexIgnoreUserConfig'], true);
+    expect(data['codexIgnoreRules'], true);
+    expect(data['codexOutputSchema'], r'C:\tmp\schema.json');
+    expect(data['codexJson'], true);
+    expect(parsed?.codexConfigOverrides, ['model="gpt-5.5"']);
+    expect(parsed?.codexLocalProvider, 'ollama');
+    expect(parsed?.codexJson, true);
+  });
+
   testWidgets('requests a PC bridge health check from the status panel', (
     tester,
   ) async {
@@ -183,6 +226,9 @@ void main() {
           codexModel: 'gpt-5.4-mini',
           codexSandbox: 'read-only',
           codexBypassSandbox: false,
+          codexConfigOverrides: ['model="gpt-5.4-mini"'],
+          codexEnableFeatures: ['feature-a'],
+          codexJson: true,
         ),
       ),
     ]);
@@ -193,6 +239,9 @@ void main() {
 
     expect(find.text('Model: gpt-5.4-mini'), findsOneWidget);
     expect(find.text('Sandbox: read-only'), findsOneWidget);
+    expect(find.text('Config: model="gpt-5.4-mini"'), findsOneWidget);
+    expect(find.text('Enable: feature-a'), findsOneWidget);
+    expect(find.text('JSON events: on'), findsOneWidget);
   });
 
   testWidgets('creates a session from the floating action button', (

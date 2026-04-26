@@ -20,6 +20,27 @@ npm.cmd install
 npm.cmd run build
 ```
 
+### Advanced CLI options from Android
+
+The Android app can store the following session-level Codex CLI options in Firestore. The PC bridge reads them from the session document when it claims a queued command and reflects them into `codex exec`.
+
+- `codexConfigOverrides` -> repeated `--config key=value`
+- `codexEnableFeatures` -> repeated `--enable`
+- `codexDisableFeatures` -> repeated `--disable`
+- `codexImages` -> repeated `--image`
+- `codexOss` -> `--oss`
+- `codexLocalProvider` -> `--local-provider`
+- `codexFullAuto` -> `--full-auto`
+- `codexAddDirs` -> repeated `--add-dir`
+- `codexSkipGitRepoCheck` -> `--skip-git-repo-check`
+- `codexEphemeral` -> `--ephemeral`
+- `codexIgnoreUserConfig` -> `--ignore-user-config`
+- `codexIgnoreRules` -> `--ignore-rules`
+- `codexOutputSchema` -> `--output-schema`
+- `codexJson` -> `--json`
+
+`codexBypassSandbox` has precedence over `codexFullAuto`; when bypass is enabled, the bridge uses `--dangerously-bypass-approvals-and-sandbox` instead of `--full-auto` or `--sandbox`.
+
 ローカル設定は `config.example.json` を参考に `config.local.json` を作成する。`config.local.json` はGitに含めない。
 
 ## 実行方法
