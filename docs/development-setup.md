@@ -418,14 +418,14 @@ Issue #29で追加確認済み:
 PC側で常駐実行する。
 
 ```powershell
-Set-Location D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+Set-Location pc-bridge
 npm.cmd run start:watch
 ```
 
 pnpmで起動する場合:
 
 ```powershell
-Set-Location D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+Set-Location pc-bridge
 corepack pnpm run start:watch
 ```
 

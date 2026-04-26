@@ -94,7 +94,7 @@ corepack pnpm run start:watch
 1. バックグラウンド起動する。
 
 ```powershell
-cd D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+cd pc-bridge
 .\scripts\start-watch-background.bat
 ```
 
@@ -131,7 +131,7 @@ schtasks /Run /TN "CodexRemotePcBridge"
 ログを残しながら現在のコマンドプロンプト内でwatcherを実行する。
 
 ```powershell
-Set-Location D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+Set-Location pc-bridge
 .\scripts\run-watch.bat
 ```
 
@@ -146,7 +146,7 @@ pc-bridge\logs\pc-bridge-watch-<random>.log
 最小化された別ウィンドウでwatcherを起動する。
 
 ```powershell
-Set-Location D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+Set-Location pc-bridge
 .\scripts\start-watch-background.bat
 ```
 
@@ -169,7 +169,7 @@ Stop-Process -Id <ProcessId>
 ログオン時に自動起動するタスクを登録する。
 
 ```powershell
-Set-Location D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+Set-Location pc-bridge
 .\scripts\register-watch-task.bat
 ```
 
