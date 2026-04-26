@@ -30,6 +30,77 @@ void main() {
     expect(sessionIdFromMessageData({'sessionId': 'session-2'}), 'session-2');
   });
 
+  test('validates runtime Firebase client config', () {
+    final invalid = const FirebaseClientConfigDraft(
+      projectId: 'project',
+      apiKey: '',
+      appId: '1:123:android:abc',
+      messagingSenderId: '123',
+    ).validate();
+
+    final valid = const FirebaseClientConfigDraft(
+      projectId: ' project ',
+      apiKey: ' key ',
+      appId: ' app ',
+      messagingSenderId: ' sender ',
+      authDomain: ' ',
+      storageBucket: ' bucket ',
+    ).validate();
+
+    expect(invalid, isNull);
+    expect(valid?.projectId, 'project');
+    expect(valid?.apiKey, 'key');
+    expect(valid?.appId, 'app');
+    expect(valid?.messagingSenderId, 'sender');
+    expect(valid?.authDomain, isNull);
+    expect(valid?.storageBucket, 'bucket');
+  });
+
+  testWidgets('shows Firebase setup before bootstrapping without config', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    FirebaseClientConfig? savedConfig;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: FirebaseSetupView(
+          onConfigured: (config) async {
+            savedConfig = config;
+          },
+          onUseBundledConfig: () async {},
+        ),
+      ),
+    );
+
+    expect(find.text('Firebase setup'), findsOneWidget);
+    expect(find.text('Save and connect'), findsOneWidget);
+    expect(find.text('Use bundled Firebase config'), findsOneWidget);
+
+    await tester.tap(find.text('Save and connect'));
+    await pumpFrames(tester);
+    expect(
+      find.text('Project ID, API key, app ID, and sender ID are required.'),
+      findsOneWidget,
+    );
+
+    await tester.enterText(find.widgetWithText(TextField, 'Project ID'), 'p');
+    await tester.enterText(find.widgetWithText(TextField, 'API key'), 'k');
+    await tester.enterText(find.widgetWithText(TextField, 'App ID'), 'a');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Messaging sender ID'),
+      's',
+    );
+    await tester.tap(find.text('Save and connect'));
+    await pumpFrames(tester);
+
+    expect(savedConfig?.projectId, 'p');
+    expect(savedConfig?.apiKey, 'k');
+    expect(savedConfig?.appId, 'a');
+    expect(savedConfig?.messagingSenderId, 's');
+  });
+
   testWidgets('shows empty session list after anonymous auth baseline', (
     tester,
   ) async {

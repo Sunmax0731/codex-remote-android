@@ -1,7 +1,9 @@
 part of '../../main.dart';
 
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  DartPluginRegistrant.ensureInitialized();
+  final config = await const SharedPreferencesFirebaseConfigStore().load();
+  await initializeFirebase(config: config);
 }
 
 void main() {
@@ -9,14 +11,29 @@ void main() {
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   runApp(
     RemoteCodexApp(
-      bootstrap: bootstrapRemoteCodex(),
+      firebaseConfigStore: const SharedPreferencesFirebaseConfigStore(),
       sessionRepository: FirestoreSessionRepository(),
     ),
   );
 }
 
-Future<AppBootstrap> bootstrapRemoteCodex() async {
-  await Firebase.initializeApp();
+Future<void> initializeFirebase({FirebaseClientConfig? config}) async {
+  if (Firebase.apps.isNotEmpty) {
+    return;
+  }
+
+  if (config == null) {
+    await Firebase.initializeApp();
+    return;
+  }
+
+  await Firebase.initializeApp(options: config.toFirebaseOptions());
+}
+
+Future<AppBootstrap> bootstrapRemoteCodex({
+  FirebaseClientConfig? config,
+}) async {
+  await initializeFirebase(config: config);
   final firestore = FirebaseFirestore.instance;
 
   final credential = await FirebaseAuth.instance.signInAnonymously();
@@ -42,6 +59,7 @@ Future<AppBootstrap> bootstrapRemoteCodex() async {
     uid: uid,
     pcBridgeId: defaultPcBridgeId,
     notificationState: notificationState,
+    firebaseConfig: config,
   );
 }
 
@@ -50,11 +68,13 @@ class AppBootstrap {
     required this.uid,
     required this.pcBridgeId,
     required this.notificationState,
+    this.firebaseConfig,
   });
 
   final String uid;
   final String pcBridgeId;
   final NotificationState notificationState;
+  final FirebaseClientConfig? firebaseConfig;
 }
 
 class NotificationState {
