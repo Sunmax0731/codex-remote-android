@@ -11,7 +11,9 @@ Each phase has two files:
 - Treat the parent phase Issue as the milestone boundary.
 - Create detailed sub-issues when starting a phase, not all at repository bootstrap time.
 - Work one issue at a time on a dedicated branch.
+- At the start of each phase, review the related documents and identify any mismatch with the current Issue state before implementation.
 - Update relevant docs in the same issue as implementation or decision work.
+- At the end of each phase, review the related documents again and update them to match the actual decisions, implementation state, validation evidence, and remaining issues.
 - Validate before closing an issue.
 
 ## Phases

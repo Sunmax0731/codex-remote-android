@@ -12,11 +12,13 @@ Codex Remote Android プロジェクトを進めるときは、このSkillを使
 4. 親Issueが大きい工程の場合は、着手時に実作業サイズのサブIssueを作る。
 5. 作業対象Issueを1つ選び、そのIssueを作業契約として読む。
 6. `process/<phase>/Agents.md` と `process/<phase>/Skill.md` を読む。
-7. Issue用ブランチを作成または切り替える。
-8. 実装、ドキュメント、検証をIssue範囲に絞って進める。
-9. 変更を検証し、結果をIssueコメントまたは完了コメントに残す。
-10. コミットしてpushする。
-11. `main` へ統合した後、Issueを閉じる。
+7. 工程開始時点で関連ドキュメントを読み直し、現状やIssue内容と食い違う箇所があれば先に更新方針を決める。
+8. Issue用ブランチを作成または切り替える。
+9. 実装、ドキュメント、検証をIssue範囲に絞って進める。
+10. 工程完了時に関連ドキュメントを再確認し、実装・決定・検証結果に合わせて修正する。
+11. 変更を検証し、結果をIssueコメントまたは完了コメントに残す。
+12. コミットしてpushする。
+13. `main` へ統合した後、Issueを閉じる。
 
 ## Issue and Branch Procedure
 
@@ -50,9 +52,11 @@ git switch -c <type>/<issue-number>-<short-scope>
 ### 3. 作業
 
 - 先に関連ドキュメントを読む。
+- 工程開始時は、要件・設計・環境・検証・Release文書が現在のIssue内容と一致しているかを確認する。
 - 実装だけで完了にしない。必要なドキュメントも同じIssue内で更新する。
 - スコープが広がる場合は、作業を増やす前にIssueを更新するか、別Issueへ分ける。
 - セキュリティ、認証、通知、PCブリッジ実行境界に関わる変更は、設計ドキュメントへ必ず反映する。
+- 工程完了時は、作業で確定した実態に合わせて関連ドキュメントを見直し、古い記述や未決定扱いのまま残った記述を更新する。
 
 ### 4. 検証
 
@@ -125,7 +129,9 @@ Before finishing an Issue:
 - The active Issue number is clear.
 - Work was done on an Issue branch.
 - Scope matches the Issue body and comments.
+- Phase-start document review was done for the relevant docs.
 - Relevant docs are updated.
+- Phase-end document review confirmed docs match the actual implementation, decision, or validation result.
 - Validation was run, or the reason it could not run is recorded.
 - Changes are committed and pushed.
 - `main` is updated when integration is part of the requested boundary.
