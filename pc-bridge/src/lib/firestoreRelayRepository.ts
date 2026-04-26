@@ -1,7 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import {
-  FieldPath,
   FieldValue,
   Timestamp,
   getFirestore,
@@ -125,23 +124,19 @@ export class FirestoreRelayRepository implements CommandRepository {
   }
 
   async updateHeartbeat(pcBridgeId: string, now: Date): Promise<void> {
-    const firestore = await this.getFirestore();
-    const snapshot = await firestore
-      .collectionGroup("pcBridges")
-      .where(FieldPath.documentId(), "==", pcBridgeId)
-      .limit(1)
-      .get();
-
-    const bridge = snapshot.docs[0];
-    if (!bridge) {
+    if (!this.config.ownerUserId) {
       return;
     }
 
-    await bridge.ref.update({
+    const firestore = await this.getFirestore();
+    await firestore.doc(`users/${this.config.ownerUserId}/pcBridges/${pcBridgeId}`).set({
+      pcBridgeId,
+      displayName: this.config.displayName,
+      workspaceName: this.config.workspaceName,
       lastSeenAt: Timestamp.fromDate(now),
       status: "active",
       version: "0.1.0",
-    });
+    }, { merge: true });
   }
 
   private async getFirestore(): Promise<Firestore> {

@@ -34,6 +34,7 @@ export function normalizeConfig(raw: RawConfig): BridgeConfig {
     displayName: required(raw.displayName, "displayName"),
     workspaceName: required(raw.workspaceName, "workspaceName"),
     workspacePath: required(raw.workspacePath, "workspacePath"),
+    ownerUserId: raw.ownerUserId,
     firebaseProjectId: raw.firebaseProjectId,
     serviceAccountPath: raw.serviceAccountPath,
     relayMode,

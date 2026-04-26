@@ -9,6 +9,7 @@ export type BridgeConfig = {
   displayName: string;
   workspaceName: string;
   workspacePath: string;
+  ownerUserId?: string;
   firebaseProjectId?: string;
   serviceAccountPath?: string;
   relayMode: RelayMode;
