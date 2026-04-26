@@ -3,12 +3,23 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 const defaultPcBridgeId = 'home-main-pc';
+const androidDeviceId = 'android-app';
+const notificationChannelId = 'remote_codex_completion';
+const notificationChannelName = 'RemoteCodex completion';
+
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   runApp(
     RemoteCodexApp(
       bootstrap: bootstrapRemoteCodex(),
@@ -35,14 +46,145 @@ Future<AppBootstrap> bootstrapRemoteCodex() async {
     'lastSignedInAt': FieldValue.serverTimestamp(),
   }, SetOptions(merge: true));
 
-  return AppBootstrap(uid: uid, pcBridgeId: defaultPcBridgeId);
+  final notificationState = await NotificationService().registerDevice(
+    uid: uid,
+    firestore: firestore,
+  );
+
+  return AppBootstrap(
+    uid: uid,
+    pcBridgeId: defaultPcBridgeId,
+    notificationState: notificationState,
+  );
 }
 
 class AppBootstrap {
-  const AppBootstrap({required this.uid, required this.pcBridgeId});
+  const AppBootstrap({
+    required this.uid,
+    required this.pcBridgeId,
+    required this.notificationState,
+  });
 
   final String uid;
   final String pcBridgeId;
+  final NotificationState notificationState;
+}
+
+class NotificationState {
+  const NotificationState({
+    required this.permissionStatus,
+    required this.hasToken,
+  });
+
+  final String permissionStatus;
+  final bool hasToken;
+}
+
+class NotificationService {
+  factory NotificationService() => _instance;
+
+  NotificationService._();
+
+  static final NotificationService _instance = NotificationService._();
+  static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  static bool _initialized = false;
+
+  Future<NotificationState> registerDevice({
+    required String uid,
+    required FirebaseFirestore firestore,
+  }) async {
+    await _initializeLocalNotifications();
+
+    final messaging = FirebaseMessaging.instance;
+    final settings = await messaging.requestPermission();
+    final token = await messaging.getToken();
+
+    await _storeToken(
+      firestore: firestore,
+      uid: uid,
+      token: token,
+      permissionStatus: settings.authorizationStatus.name,
+    );
+
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+      _storeToken(
+        firestore: firestore,
+        uid: uid,
+        token: newToken,
+        permissionStatus: settings.authorizationStatus.name,
+      );
+    });
+
+    FirebaseMessaging.onMessage.listen(_showForegroundNotification);
+
+    return NotificationState(
+      permissionStatus: settings.authorizationStatus.name,
+      hasToken: token != null && token.isNotEmpty,
+    );
+  }
+
+  Future<void> _initializeLocalNotifications() async {
+    if (_initialized) {
+      return;
+    }
+
+    const initializationSettings = InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    );
+    await _localNotifications.initialize(settings: initializationSettings);
+
+    const channel = AndroidNotificationChannel(
+      notificationChannelId,
+      notificationChannelName,
+      description: 'Notifications for completed or failed remote Codex commands.',
+      importance: Importance.high,
+    );
+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+
+    _initialized = true;
+  }
+
+  Future<void> _storeToken({
+    required FirebaseFirestore firestore,
+    required String uid,
+    required String? token,
+    required String permissionStatus,
+  }) async {
+    await firestore.collection('users').doc(uid).collection('devices').doc(androidDeviceId).set({
+      'deviceId': androidDeviceId,
+      'platform': 'android',
+      'fcmToken': token,
+      'notificationPermission': permissionStatus,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> _showForegroundNotification(RemoteMessage message) async {
+    final notification = message.notification;
+    final title = notification?.title ?? 'RemoteCodex';
+    final body = notification?.body ?? 'Remote processing finished.';
+
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        notificationChannelId,
+        notificationChannelName,
+        channelDescription: 'Notifications for completed or failed remote Codex commands.',
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+    );
+
+    await _localNotifications.show(
+      id: message.hashCode,
+      title: title,
+      body: body,
+      notificationDetails: details,
+      payload: message.data['sessionId'] as String?,
+    );
+  }
 }
 
 class SessionSummary {
@@ -397,6 +539,8 @@ class _ConnectionSummary extends StatelessWidget {
             Text('Connected as anonymous user', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text('PC bridge: ${bootstrap.pcBridgeId}'),
+            const SizedBox(height: 4),
+            Text('Notifications: ${bootstrap.notificationState.permissionStatus}'),
             const SizedBox(height: 4),
             SelectableText('UID: ${bootstrap.uid}'),
           ],
