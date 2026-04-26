@@ -28,10 +28,14 @@ This avoids opening inbound ports on the home network and allows cellular access
 
 ## Current Setup Status
 
-- `app/`: Flutter app placeholder. Flutter SDK is not installed on PATH yet.
-- `pc-bridge/`: Node.js/TypeScript scaffold for the Windows PC bridge.
-- `firebase/`: Firebase relay scaffold for Firestore, Functions, and Emulators.
-- `docs/development-setup.md`: Local toolchain status and setup handoff.
+- `app/`: Flutter Android project generated for package `com.sunmax.remotecodex`. Firebase SDK wiring is the next app task.
+- `pc-bridge/`: Node.js/TypeScript bridge with local relay and Firestore relay support. Current local config can reach Firebase in `stub` mode.
+- `firebase/`: Firebase relay scaffold linked to project `remotecodex-c52ae`, with Firestore rules and command query index.
+- `docs/development-setup.md`: Local toolchain status, wireless debugging workflow, and Firebase/Flutter setup handoff.
+
+## Current Phase
+
+Phase 5 Android app MVP is in progress. The first task is the Flutter Android scaffold; subsequent tasks add Firebase initialization, anonymous auth, sessions, command submission, and Xperia 1 III validation.
 
 ## Documents
 

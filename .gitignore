@@ -13,6 +13,7 @@ key.properties
 local.properties
 
 # Firebase
+app/google-services.json
 firebase/.runtimeconfig.json
 firebase/serviceAccount*.json
 firebase/firebase-debug.log
