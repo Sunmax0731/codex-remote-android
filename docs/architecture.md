@@ -198,6 +198,81 @@ MVPでは次の方針を採用する。
 
 Androidアプリは管理者権限やFirebase Admin credentialを持たない。
 
+## Androidアプリ設計パターン
+
+Androidアプリは、Flutterの画面構成に合わせた **MVVM + Repository** を採用する。
+
+- Model: Firestoreに保存するセッション、コマンド、PCブリッジ状態、CLIオプションなどのデータ構造を表す。
+- View: Flutterの画面、ダイアログ、再利用ウィジェットを表す。表示とユーザー操作の受付を担当する。
+- ViewModel相当: 各 `StatefulWidget` の `State` が、入力コントローラ、選択中フィルタ、送信中フラグ、ダイアログ起動などの画面状態を持つ。現時点では外部パッケージを追加せず、画面単位の状態に閉じる。
+- Repository: ViewからFirestoreの詳細を隠し、セッション、コマンド、CLI既定値、PCブリッジ状態の読み書きを担当する。
+- Service: Firebase初期化、匿名サインイン、FCM登録、ローカル通知、通知タップ遷移など、アプリ横断の外部I/Oを担当する。
+
+この構成により、#101 のようなFirebase接続先設定やペアリング画面を追加する場合も、Viewは設定入力に集中し、Firebase初期化・保存・検証はServiceまたはRepositoryへ分離できる。
+
+### Androidファイル構成
+
+`app/lib/main.dart` はアプリの公開入口と `part` 宣言だけを持つ。既存テストとprivate helperの互換性を保つため、初期分割では同一Dart library内の `part` ファイルとして責務別に分ける。将来、依存関係が安定した段階で通常の `import` / `export` へ移行してよい。
+
+```text
+app/lib/main.dart
+app/lib/src/core/constants.dart
+app/lib/src/l10n/app_strings.dart
+app/lib/src/bootstrap/bootstrap.dart
+app/lib/src/models/session_models.dart
+app/lib/src/repositories/session_repository.dart
+app/lib/src/app/remote_codex_app.dart
+app/lib/src/views/session_list_view.dart
+app/lib/src/views/session_detail_page.dart
+app/lib/src/views/session_drawer.dart
+app/lib/src/dialogs/session_options_dialog.dart
+app/lib/src/dialogs/text_value_dialogs.dart
+app/lib/src/widgets/connection_widgets.dart
+app/lib/src/widgets/session_tile.dart
+app/lib/src/widgets/command_widgets.dart
+```
+
+### Androidファイル責務
+
+- `main.dart`: Flutter、Firebase、Firestore、通知、localizationに必要なpackage importと `part` 宣言を集約する。
+- `src/core/constants.dart`: 既定PCブリッジID、Codexモデル候補、sandbox候補、通知channel、Navigator key、CLIオプションヘルプの定義を保持する。
+- `src/l10n/app_strings.dart`: アプリ内文字列、対応locale、localization delegate、`BuildContext` 拡張を保持する。
+- `src/bootstrap/bootstrap.dart`: `main()`、Firebase初期化、匿名認証、FCM token登録、通知初期化、通知payload解析、`NotificationService` を保持する。
+- `src/models/session_models.dart`: `AppBootstrap` 以外の画面・Repository間で共有する `SessionSummary`, `CommandSummary`, `PcBridgeStatus`, `SessionCreateOptions` を保持する。
+- `src/repositories/session_repository.dart`: `SessionRepository` インターフェースと `FirestoreSessionRepository` 実装、Firestore変換helperを保持する。
+- `src/app/remote_codex_app.dart`: `MaterialApp` と起動画面 `StartupView` を保持する。
+- `src/views/session_list_view.dart`: セッション一覧画面、検索、グループ絞り込み、セッション作成、一覧上のセッション操作を保持する。
+- `src/views/session_detail_page.dart`: セッション詳細画面、コマンド一覧購読、コマンド送信、詳細画面上の名前変更・お気に入り・グループ変更を保持する。
+- `src/views/session_drawer.dart`: セッション詳細画面のドロワー内セッション切替を保持する。
+- `src/dialogs/session_options_dialog.dart`: セッション作成/CLI既定値ダイアログ、CLIオプション要約、CLIヘルプ表示を保持する。
+- `src/dialogs/text_value_dialogs.dart`: セッション名入力、グループ選択/新規入力、グループ候補計算を保持する。
+- `src/widgets/connection_widgets.dart`: PC接続状態のコンパクト表示、接続設定モーダル、PC確認、CLI既定値導線、日時/期間表示helperを保持する。
+- `src/widgets/session_tile.dart`: セッション一覧カードの表示を保持する。
+- `src/widgets/command_widgets.dart`: コマンドカード、コマンド入力欄、空状態、起動/読み込みメッセージ、コマンド経過時間計算を保持する。
+
+### 主要クラス関係
+
+```text
+RemoteCodexApp
+  -> StartupView
+    -> SessionListView
+      -> SessionRepository
+      -> SessionDetailPage
+        -> SessionRepository
+        -> SessionDrawer
+        -> _CommandTile / _CommandComposer
+
+SessionRepository
+  <- FirestoreSessionRepository
+  -> SessionSummary / CommandSummary / PcBridgeStatus / SessionCreateOptions
+
+NotificationService
+  -> appNavigatorKey
+  -> SessionDetailPage
+```
+
+Viewは `SessionRepository` のstreamを購読し、Firestore document pathやtimestamp変換を直接扱わない。RepositoryはFirebase/Firestore SDKの型を受け持ち、Modelへ変換してViewへ渡す。
+
 ### Android表示言語
 
 Flutterの `MaterialApp.supportedLocales` と localization delegate で端末言語を解決する。
