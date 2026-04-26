@@ -19,6 +19,13 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      match /settings/{settingId} {
+        allow read: if ownsUser(userId);
+        allow create, update: if ownsUser(userId)
+          && settingId == "cliDefaults";
+        allow delete: if false;
+      }
+
       match /pcBridges/{pcBridgeId} {
         allow read: if ownsUser(userId);
         allow create: if ownsUser(userId)

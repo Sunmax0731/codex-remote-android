@@ -45,6 +45,7 @@ void main() {
     expect(find.text('Connected as anonymous user'), findsOneWidget);
     expect(find.text('PC bridge: home-main-pc (active)'), findsOneWidget);
     expect(find.text('Check PC now'), findsOneWidget);
+    expect(find.text('CLI defaults'), findsOneWidget);
     expect(find.text('UID: test-uid'), findsOneWidget);
     expect(find.text('No sessions yet'), findsOneWidget);
   });
@@ -77,6 +78,76 @@ void main() {
     await tester.pump();
 
     expect(repository.healthCheckCount, 1);
+  });
+
+  testWidgets('saves CLI defaults from the status panel', (tester) async {
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const <SessionSummary>[]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('CLI defaults'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pump();
+
+    expect(repository.savedDefaultsCount, 1);
+  });
+
+  testWidgets('shows session CLI options on long press', (tester) async {
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const [
+      SessionSummary(
+        id: 'session-1',
+        title: 'Session 1',
+        status: 'idle',
+        codexOptions: SessionCreateOptions(
+          codexModel: 'gpt-5.4-mini',
+          codexSandbox: 'read-only',
+          codexBypassSandbox: false,
+        ),
+      ),
+    ]);
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('Session 1'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Model: gpt-5.4-mini'), findsOneWidget);
+    expect(find.text('Sandbox: read-only'), findsOneWidget);
   });
 
   testWidgets('creates a session from the floating action button', (
@@ -165,8 +236,10 @@ class FakeSessionRepository implements SessionRepository {
       {};
   int createdSessionCount = 0;
   int healthCheckCount = 0;
+  int savedDefaultsCount = 0;
   String? createdCommandText;
   SessionCreateOptions? createdSessionOptions;
+  SessionCreateOptions cliDefaults = defaultSessionCreateOptions;
 
   void emit(List<SessionSummary> sessions) {
     controller.add(sessions);
@@ -204,6 +277,15 @@ class FakeSessionRepository implements SessionRepository {
     required String pcBridgeId,
   }) async {
     healthCheckCount++;
+  }
+
+  @override
+  Future<SessionCreateOptions> loadCliDefaults(String uid) async => cliDefaults;
+
+  @override
+  Future<void> saveCliDefaults(String uid, SessionCreateOptions options) async {
+    savedDefaultsCount++;
+    cliDefaults = options;
   }
 
   void emitCommands(String sessionId, List<CommandSummary> commands) {
