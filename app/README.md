@@ -9,6 +9,7 @@ Phase 5でFlutter Androidプロジェクトを生成済み。
 - Flutter project name: `remote_codex`
 - Android package/applicationId: `com.sunmax.remotecodex`
 - 対象platform: Android
+- launcher icon: `app-icon.png` から生成した `android/app/src/main/res/mipmap-*/ic_launcher.png`
 
 ```powershell
 flutter create --platforms android --org com.sunmax --project-name remote_codex app
