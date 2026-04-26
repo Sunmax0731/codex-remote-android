@@ -9,90 +9,100 @@
   <body>
     <header class="topbar">
       <div>
-        <h1>Codex Remote Setup</h1>
-        <p>Prepare Firebase, register local setup files, and generate the Android setup QR.</p>
+        <h1 data-i18n="appTitle">Codex Remote Setup</h1>
+        <p data-i18n="appSubtitle">Prepare Firebase, register local setup files, and generate the Android setup QR.</p>
       </div>
-      <a class="button secondary" href="https://console.firebase.google.com/" target="_blank" rel="noreferrer">Firebase Console</a>
+      <div class="top-actions">
+        <label class="language-label">
+          <span data-i18n="languageLabel">Language</span>
+          <select id="languageSelect">
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+            <option value="zh">中文</option>
+          </select>
+        </label>
+        <a class="button secondary" href="https://console.firebase.google.com/" target="_blank" rel="noreferrer">Firebase Console</a>
+      </div>
     </header>
 
     <main class="layout">
       <section class="panel span-2">
         <div class="section-heading">
-          <h2>Cloud Links</h2>
-          <p>Open the services needed for project creation and deployment.</p>
+          <h2 data-i18n="cloudLinksTitle">Cloud Links</h2>
+          <p data-i18n="cloudLinksSubtitle">Open the services needed for project creation and deployment.</p>
         </div>
         <div class="link-grid">
           <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer">
             <strong>Firebase Console</strong>
-            <span>Create the project and register the Android app.</span>
+            <span data-i18n="firebaseConsoleDesc">Create the project and register the Android app.</span>
           </a>
           <a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer">
             <strong>Google Cloud Console</strong>
-            <span>Check billing, APIs, IAM, and service accounts.</span>
+            <span data-i18n="gcpConsoleDesc">Check billing, APIs, IAM, and service accounts.</span>
           </a>
           <a href="https://console.cloud.google.com/apis/library/cloudfunctions.googleapis.com" target="_blank" rel="noreferrer">
             <strong>Cloud Functions API</strong>
-            <span>Enable APIs required by Firebase Functions.</span>
+            <span data-i18n="functionsApiDesc">Enable APIs required by Firebase Functions.</span>
           </a>
           <a href="https://firebase.google.com/docs/cli" target="_blank" rel="noreferrer">
             <strong>Firebase CLI Docs</strong>
-            <span>Install and authenticate the Firebase CLI.</span>
+            <span data-i18n="firebaseCliDesc">Install and authenticate the Firebase CLI.</span>
           </a>
         </div>
       </section>
 
       <section class="panel">
         <div class="section-heading">
-          <h2>Procedure</h2>
-          <p>Follow these steps before scanning the QR on Android.</p>
+          <h2 data-i18n="procedureTitle">Procedure</h2>
+          <p data-i18n="procedureSubtitle">Follow these steps before scanning the QR on Android.</p>
         </div>
         <ol class="steps">
-          <li>Create a dedicated Firebase project.</li>
-          <li>Enable Authentication and Anonymous sign-in.</li>
-          <li>Create Firestore Database.</li>
-          <li>Register Android app package <code>com.sunmax.remotecodex</code>.</li>
-          <li>Download <code>google-services.json</code>.</li>
-          <li>Create a PC bridge service account JSON and keep it local only.</li>
-          <li>Generate the QR and scan it from the Android setup screen.</li>
-          <li>Deploy Firestore rules, indexes, and Functions when needed.</li>
+          <li data-i18n="step1">Create a dedicated Firebase project.</li>
+          <li data-i18n="step2">Enable Authentication and Anonymous sign-in.</li>
+          <li data-i18n="step3">Create Firestore Database.</li>
+          <li><span data-i18n="step4Prefix">Register Android app package</span> <code>com.sunmax.remotecodex</code>.</li>
+          <li><span data-i18n="step5Prefix">Download</span> <code>google-services.json</code>.</li>
+          <li data-i18n="step6">Create a PC bridge service account JSON and keep it local only.</li>
+          <li data-i18n="step7">Generate the QR and scan it from the Android setup screen.</li>
+          <li data-i18n="step8">Deploy Firestore rules, indexes, and Functions when needed.</li>
         </ol>
       </section>
 
       <section class="panel">
         <div class="section-heading">
-          <h2>Project Inputs</h2>
-          <p>These values are saved only in this browser.</p>
+          <h2 data-i18n="projectInputsTitle">Project Inputs</h2>
+          <p data-i18n="projectInputsSubtitle">These values are saved only in this browser.</p>
         </div>
         <label>
-          App name
+          <span data-i18n="appNameLabel">App name</span>
           <input id="appName" autocomplete="off" value="RemoteCodex" />
         </label>
         <label>
-          Android package name
+          <span data-i18n="packageNameLabel">Android package name</span>
           <input id="packageName" autocomplete="off" value="com.sunmax.remotecodex" />
         </label>
-        <div class="status-line" id="localStatus">No local setup saved.</div>
+        <div class="status-line" id="localStatus" data-i18n="localStatusEmpty">No local setup saved.</div>
       </section>
 
       <section class="panel span-2">
         <div class="section-heading">
-          <h2>JSON Registration</h2>
-          <p>Use client config for the QR. Keep admin credentials on the PC side only.</p>
+          <h2 data-i18n="jsonRegistrationTitle">JSON Registration</h2>
+          <p data-i18n="jsonRegistrationSubtitle">Use client config for the QR. Keep admin credentials on the PC side only.</p>
         </div>
         <div class="two-column">
           <div>
             <h3>google-services.json</h3>
-            <p class="muted">This file is parsed to generate the Android QR payload.</p>
+            <p class="muted" data-i18n="googleServicesDesc">This file is parsed to generate the Android QR payload.</p>
             <input id="googleServicesFile" type="file" accept=".json,application/json" />
-            <textarea id="googleServicesText" spellcheck="false" placeholder="Paste google-services.json here"></textarea>
-            <div class="status-line" id="googleServicesStatus">Not loaded.</div>
+            <textarea id="googleServicesText" spellcheck="false" data-i18n-placeholder="googleServicesPlaceholder" placeholder="Paste google-services.json here"></textarea>
+            <div class="status-line" id="googleServicesStatus" data-i18n="notLoaded">Not loaded.</div>
           </div>
           <div>
-            <h3>Service account JSON</h3>
-            <p class="muted">This is checked locally for setup progress. It is not sent to the QR endpoint.</p>
+            <h3 data-i18n="serviceAccountTitle">Service account JSON</h3>
+            <p class="muted" data-i18n="serviceAccountDesc">This is checked locally for setup progress. It is not sent to the QR endpoint.</p>
             <input id="serviceAccountFile" type="file" accept=".json,application/json" />
-            <div class="status-line" id="serviceAccountStatus">Not registered.</div>
-            <div class="notice danger">
+            <div class="status-line" id="serviceAccountStatus" data-i18n="notRegistered">Not registered.</div>
+            <div class="notice danger" data-i18n="dangerNotice">
               Never scan or share service account JSON, private keys, or Admin SDK credentials.
             </div>
           </div>
@@ -101,21 +111,21 @@
 
       <section class="panel span-2">
         <div class="section-heading">
-          <h2>QR Generator</h2>
-          <p>Generate the same payload format used by the CLI QR command.</p>
+          <h2 data-i18n="qrGeneratorTitle">QR Generator</h2>
+          <p data-i18n="qrGeneratorSubtitle">Generate the same payload format used by the CLI QR command.</p>
         </div>
         <div class="actions">
-          <button id="generateQr" class="button primary">Generate QR</button>
-          <button id="saveLocal" class="button secondary">Save inputs locally</button>
-          <button id="clearLocal" class="button ghost">Clear local inputs</button>
+          <button id="generateQr" class="button primary" data-i18n="generateQr">Generate QR</button>
+          <button id="saveLocal" class="button secondary" data-i18n="saveLocal">Save inputs locally</button>
+          <button id="clearLocal" class="button ghost" data-i18n="clearLocal">Clear local inputs</button>
         </div>
         <div class="qr-area">
           <div class="qr-box" id="qrBox">
-            <span>QR output</span>
+            <span data-i18n="qrOutput">QR output</span>
           </div>
           <dl class="payload-list" id="payloadList"></dl>
         </div>
-        <div class="status-line" id="qrStatus">Ready.</div>
+        <div class="status-line" id="qrStatus" data-i18n="ready">Ready.</div>
       </section>
     </main>
 
