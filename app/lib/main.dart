@@ -9,17 +9,17 @@ const defaultPcBridgeId = 'home-main-pc';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  final firestore = FirebaseFirestore.instance;
   runApp(
     RemoteCodexApp(
-      bootstrap: bootstrapRemoteCodex(firestore),
-      sessionRepository: FirestoreSessionRepository(firestore),
+      bootstrap: bootstrapRemoteCodex(),
+      sessionRepository: FirestoreSessionRepository(),
     ),
   );
 }
 
-Future<AppBootstrap> bootstrapRemoteCodex(FirebaseFirestore firestore) async {
+Future<AppBootstrap> bootstrapRemoteCodex() async {
   await Firebase.initializeApp();
+  final firestore = FirebaseFirestore.instance;
 
   final credential = await FirebaseAuth.instance.signInAnonymously();
   final uid = credential.user?.uid;
@@ -90,9 +90,11 @@ abstract class SessionRepository {
 }
 
 class FirestoreSessionRepository implements SessionRepository {
-  FirestoreSessionRepository(this.firestore);
+  FirestoreSessionRepository([FirebaseFirestore? firestore]) : _firestore = firestore;
 
-  final FirebaseFirestore firestore;
+  final FirebaseFirestore? _firestore;
+
+  FirebaseFirestore get firestore => _firestore ?? FirebaseFirestore.instance;
 
   @override
   Stream<List<SessionSummary>> watchSessions(String uid) {

@@ -128,6 +128,29 @@ Phase 5開始前の再確認:
 SO 51B (mobile) • 192.168.0.4:44283 • android-arm64 • Android 13 (API 33)
 ```
 
+Phase 5実機確認:
+
+```text
+SO 51B (mobile) • 192.168.0.4:39757 • android-arm64 • Android 13 (API 33)
+```
+
+確認済み:
+
+- `flutter run -d 192.168.0.4:39757 --debug --no-resident` でXperia 1 IIIへDebug APKをインストール、起動。
+- アプリ起動時のFirebase初期化順序を修正し、`Firebase.initializeApp()` 後にFirestoreを参照する形へ変更。
+- Firestore rulesを `firebase deploy --only firestore:rules` で実プロジェクト `remotecodex-c52ae` へデプロイ。
+- Xperia 1 III画面で匿名認証後のセッション一覧初期画面を確認。
+- 画面に表示されたUIDをPCブリッジのローカル `ownerUserId` に設定し、PCブリッジがFirestore接続で `No queued command found.` まで到達することを確認。
+
+residentのhot reloadは次のように起動して、変更後に `r` を押して確認する。
+
+```powershell
+Set-Location app
+flutter run -d 192.168.0.4:39757 --debug
+```
+
+終了は `q`。ワイヤレスデバッグのポートは変わるため、接続できない場合はXperia側の現在のdebug-portを確認し直す。
+
 ### 前提
 
 - PCとXperia 1 IIIが同じ自宅WiFiルーター配下にいる。
