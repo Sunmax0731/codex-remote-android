@@ -22,7 +22,15 @@ Firebase SDK設定で、ユーザーが取得した `google-services.json` を `
 - `firebase_auth`
 - `cloud_firestore`
 
-起動時に `Firebase.initializeApp()` を実行し、初期化結果を表示する。匿名認証、セッション一覧、コマンド送信は後続Issueで実装する。
+起動時に次を実行する。
+
+1. `Firebase.initializeApp()`
+2. Firebase Anonymous Authの `signInAnonymously()`
+3. `/users/{uid}` へMVP接続先 `home-main-pc` を保存
+
+初回実機起動後、画面に表示される `User uid` をPCブリッジの `config.local.json` の `ownerUserId` に設定すると、PCブリッジのheartbeatを `/users/{uid}/pcBridges/home-main-pc` に保存できる。
+
+セッション一覧、コマンド送信は後続Issueで実装する。
 
 ## MVP責務
 
