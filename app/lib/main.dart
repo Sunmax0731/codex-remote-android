@@ -11,6 +11,18 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 const defaultPcBridgeId = 'home-main-pc';
 const defaultCodexModel = 'gpt-5.4';
 const defaultCodexSandbox = 'workspace-write';
+const codexModelOptions = [
+  'gpt-5.4',
+  'gpt-5.4-mini',
+  'gpt-5.3-codex',
+  'gpt-5.3-codex-spark',
+  'gpt-5.2',
+];
+const codexSandboxOptions = [
+  'read-only',
+  'workspace-write',
+  'danger-full-access',
+];
 const androidDeviceId = 'android-app';
 const notificationChannelId = 'remote_codex_completion';
 const notificationChannelName = 'RemoteCodex completion';
@@ -320,6 +332,7 @@ class SessionSummary {
     required this.id,
     required this.title,
     required this.status,
+    this.codexOptions,
     this.lastResultPreview,
     this.lastErrorPreview,
   });
@@ -327,6 +340,7 @@ class SessionSummary {
   final String id;
   final String title;
   final String status;
+  final SessionCreateOptions? codexOptions;
   final String? lastResultPreview;
   final String? lastErrorPreview;
 }
@@ -389,10 +403,18 @@ class SessionCreateOptions {
   final String? codexProfile;
 }
 
+const defaultSessionCreateOptions = SessionCreateOptions(
+  codexModel: defaultCodexModel,
+  codexSandbox: defaultCodexSandbox,
+  codexBypassSandbox: false,
+);
+
 abstract class SessionRepository {
   Stream<List<SessionSummary>> watchSessions(String uid);
   Stream<List<CommandSummary>> watchCommands(String uid, String sessionId);
   Stream<PcBridgeStatus> watchPcBridgeStatus(String uid, String pcBridgeId);
+  Future<SessionCreateOptions> loadCliDefaults(String uid);
+  Future<void> saveCliDefaults(String uid, SessionCreateOptions options);
   Future<void> requestPcBridgeHealthCheck({
     required String uid,
     required String pcBridgeId,
@@ -435,6 +457,7 @@ class FirestoreSessionRepository implements SessionRepository {
                   ? data['title'] as String
                   : 'Untitled session',
               status: data['status'] as String? ?? 'idle',
+              codexOptions: sessionOptionsFromData(data),
               lastResultPreview: data['lastResultPreview'] as String?,
               lastErrorPreview: data['lastErrorPreview'] as String?,
             );
@@ -499,6 +522,29 @@ class FirestoreSessionRepository implements SessionRepository {
   }
 
   @override
+  Future<SessionCreateOptions> loadCliDefaults(String uid) async {
+    final snapshot = await firestore
+        .collection('users')
+        .doc(uid)
+        .collection('settings')
+        .doc('cliDefaults')
+        .get();
+
+    return sessionOptionsFromData(snapshot.data()) ??
+        defaultSessionCreateOptions;
+  }
+
+  @override
+  Future<void> saveCliDefaults(String uid, SessionCreateOptions options) async {
+    await firestore
+        .collection('users')
+        .doc(uid)
+        .collection('settings')
+        .doc('cliDefaults')
+        .set(sessionOptionsToData(options), SetOptions(merge: true));
+  }
+
+  @override
   Future<void> requestPcBridgeHealthCheck({
     required String uid,
     required String pcBridgeId,
@@ -545,16 +591,17 @@ class FirestoreSessionRepository implements SessionRepository {
           'title': title,
           'status': 'idle',
           'targetPcBridgeId': pcBridgeId,
-          'codexModel': options.codexModel,
-          'codexSandbox': options.codexSandbox,
-          'codexBypassSandbox': options.codexBypassSandbox,
-          if (options.codexProfile != null)
-            'codexProfile': options.codexProfile,
+          ...sessionOptionsToData(options),
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
 
-    return SessionSummary(id: ref.id, title: title, status: 'idle');
+    return SessionSummary(
+      id: ref.id,
+      title: title,
+      status: 'idle',
+      codexOptions: options,
+    );
   }
 
   @override
@@ -589,6 +636,45 @@ class FirestoreSessionRepository implements SessionRepository {
 
     await batch.commit();
   }
+}
+
+SessionCreateOptions? sessionOptionsFromData(Map<String, dynamic>? data) {
+  if (data == null) {
+    return null;
+  }
+
+  return SessionCreateOptions(
+    codexModel: optionString(data['codexModel']) ?? defaultCodexModel,
+    codexSandbox: normalizedSandbox(data['codexSandbox']),
+    codexBypassSandbox: data['codexBypassSandbox'] as bool? ?? false,
+    codexProfile: optionString(data['codexProfile']),
+  );
+}
+
+Map<String, Object> sessionOptionsToData(SessionCreateOptions options) {
+  return {
+    'codexModel': options.codexModel,
+    'codexSandbox': options.codexSandbox,
+    'codexBypassSandbox': options.codexBypassSandbox,
+    if (options.codexProfile != null) 'codexProfile': options.codexProfile!,
+  };
+}
+
+String? optionString(Object? value) {
+  if (value is! String) {
+    return null;
+  }
+
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
+}
+
+String normalizedSandbox(Object? value) {
+  if (value is String && codexSandboxOptions.contains(value)) {
+    return value;
+  }
+
+  return defaultCodexSandbox;
 }
 
 String two(int value) => value.toString().padLeft(2, '0');
@@ -713,7 +799,28 @@ class _SessionListViewState extends State<SessionListView> {
       return;
     }
 
-    final options = await showSessionCreateOptionsDialog(context);
+    setState(() => isCreating = true);
+    SessionCreateOptions defaults;
+    try {
+      defaults = await widget.sessionRepository.loadCliDefaults(
+        widget.bootstrap.uid,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isCreating = false);
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    final options = await showSessionOptionsDialog(
+      context,
+      title: 'New session',
+      initialOptions: defaults,
+      primaryLabel: 'Create',
+    );
     if (options == null) {
       return;
     }
@@ -802,6 +909,12 @@ class _SessionListViewState extends State<SessionListView> {
                               ),
                             );
                           },
+                          onLongPress: () {
+                            showSessionOptionsSummaryDialog(
+                              context,
+                              sessions[index],
+                            );
+                          },
                         );
                       },
                     ),
@@ -830,13 +943,22 @@ class _SessionListViewState extends State<SessionListView> {
   }
 }
 
-Future<SessionCreateOptions?> showSessionCreateOptionsDialog(
-  BuildContext context,
-) {
-  final modelController = TextEditingController(text: defaultCodexModel);
-  final profileController = TextEditingController();
-  var sandbox = defaultCodexSandbox;
-  var bypassSandbox = false;
+Future<SessionCreateOptions?> showSessionOptionsDialog(
+  BuildContext context, {
+  required String title,
+  required SessionCreateOptions initialOptions,
+  required String primaryLabel,
+}) {
+  final profileController = TextEditingController(
+    text: initialOptions.codexProfile ?? '',
+  );
+  var model = codexModelOptions.contains(initialOptions.codexModel)
+      ? initialOptions.codexModel
+      : defaultCodexModel;
+  var sandbox = codexSandboxOptions.contains(initialOptions.codexSandbox)
+      ? initialOptions.codexSandbox
+      : defaultCodexSandbox;
+  var bypassSandbox = initialOptions.codexBypassSandbox;
 
   return showDialog<SessionCreateOptions>(
     context: context,
@@ -844,32 +966,31 @@ Future<SessionCreateOptions?> showSessionCreateOptionsDialog(
       return StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            title: const Text('New session'),
+            title: Text(title),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(
-                    controller: modelController,
+                  DropdownButtonFormField<String>(
+                    initialValue: model,
                     decoration: const InputDecoration(labelText: 'Model'),
+                    items: [
+                      for (final option in codexModelOptions)
+                        DropdownMenuItem(value: option, child: Text(option)),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => model = value);
+                      }
+                    },
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: sandbox,
                     decoration: const InputDecoration(labelText: 'Sandbox'),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'read-only',
-                        child: Text('read-only'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'workspace-write',
-                        child: Text('workspace-write'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'danger-full-access',
-                        child: Text('danger-full-access'),
-                      ),
+                    items: [
+                      for (final option in codexSandboxOptions)
+                        DropdownMenuItem(value: option, child: Text(option)),
                     ],
                     onChanged: bypassSandbox
                         ? null
@@ -905,18 +1026,17 @@ Future<SessionCreateOptions?> showSessionCreateOptionsDialog(
               ),
               FilledButton(
                 onPressed: () {
-                  final model = modelController.text.trim();
                   final profile = profileController.text.trim();
                   Navigator.of(context).pop(
                     SessionCreateOptions(
-                      codexModel: model.isEmpty ? defaultCodexModel : model,
+                      codexModel: model,
                       codexSandbox: sandbox,
                       codexBypassSandbox: bypassSandbox,
                       codexProfile: profile.isEmpty ? null : profile,
                     ),
                   );
                 },
-                child: const Text('Create'),
+                child: Text(primaryLabel),
               ),
             ],
           );
@@ -924,9 +1044,41 @@ Future<SessionCreateOptions?> showSessionCreateOptionsDialog(
       );
     },
   ).whenComplete(() {
-    modelController.dispose();
     profileController.dispose();
   });
+}
+
+Future<void> showSessionOptionsSummaryDialog(
+  BuildContext context,
+  SessionSummary session,
+) {
+  final options = session.codexOptions ?? defaultSessionCreateOptions;
+
+  return showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(session.title),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Model: ${options.codexModel}'),
+          const SizedBox(height: 6),
+          Text('Sandbox: ${options.codexSandbox}'),
+          const SizedBox(height: 6),
+          Text('Bypass sandbox: ${options.codexBypassSandbox ? 'on' : 'off'}'),
+          const SizedBox(height: 6),
+          Text('Profile: ${options.codexProfile ?? 'None'}'),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _ConnectionSummary extends StatefulWidget {
@@ -944,6 +1096,7 @@ class _ConnectionSummary extends StatefulWidget {
 
 class _ConnectionSummaryState extends State<_ConnectionSummary> {
   bool isCheckingBridge = false;
+  bool isOpeningDefaults = false;
   String? checkError;
 
   Future<void> requestHealthCheck() async {
@@ -966,6 +1119,44 @@ class _ConnectionSummaryState extends State<_ConnectionSummary> {
         });
       }
     }
+  }
+
+  Future<void> openCliDefaults() async {
+    if (isOpeningDefaults) {
+      return;
+    }
+
+    setState(() => isOpeningDefaults = true);
+    SessionCreateOptions defaults;
+    try {
+      defaults = await widget.sessionRepository.loadCliDefaults(
+        widget.bootstrap.uid,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isOpeningDefaults = false);
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    final updated = await showSessionOptionsDialog(
+      context,
+      title: 'CLI defaults',
+      initialOptions: defaults,
+      primaryLabel: 'Save',
+    );
+
+    if (updated == null) {
+      return;
+    }
+
+    await widget.sessionRepository.saveCliDefaults(
+      widget.bootstrap.uid,
+      updated,
+    );
   }
 
   @override
@@ -1022,16 +1213,41 @@ class _ConnectionSummaryState extends State<_ConnectionSummary> {
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: FilledButton.icon(
-                    onPressed: isCheckingBridge ? null : requestHealthCheck,
-                    icon: isCheckingBridge
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.sensors),
-                    label: Text(isCheckingBridge ? 'Checking' : 'Check PC now'),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: isCheckingBridge ? null : requestHealthCheck,
+                        icon: isCheckingBridge
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.sensors),
+                        label: Text(
+                          isCheckingBridge ? 'Checking' : 'Check PC now',
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: isOpeningDefaults ? null : openCliDefaults,
+                        icon: isOpeningDefaults
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.tune),
+                        label: Text(
+                          isOpeningDefaults ? 'Loading' : 'CLI defaults',
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1153,10 +1369,15 @@ class SessionDrawer extends StatelessWidget {
 }
 
 class _SessionTile extends StatelessWidget {
-  const _SessionTile({required this.session, required this.onTap});
+  const _SessionTile({
+    required this.session,
+    required this.onTap,
+    required this.onLongPress,
+  });
 
   final SessionSummary session;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -1168,6 +1389,7 @@ class _SessionTile extends StatelessWidget {
       child: Card(
         child: ListTile(
           onTap: onTap,
+          onLongPress: onLongPress,
           title: Text(session.title),
           subtitle: Text(subtitle),
           trailing: const Icon(Icons.chevron_right),
