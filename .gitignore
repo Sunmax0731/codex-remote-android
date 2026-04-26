@@ -30,6 +30,7 @@ pc-bridge/config.local.json
 pc-bridge/*.local.json
 pc-bridge/dist/
 pc-bridge/coverage/
+pc-bridge/logs/
 
 # IDE
 .idea/

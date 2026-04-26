@@ -38,6 +38,77 @@ npm.cmd run start:watch
 
 `start:watch` は `pollIntervalSeconds` 間隔でFirestoreを確認し、1回のtickで最大 `maxCommandsPerTick` 件の `queued` commandを処理する。停止する場合は `Ctrl+C` を押す。
 
+## Windows常駐起動
+
+手動ターミナル依存を避けるため、Windows用のバッチファイルを `scripts/` に用意している。
+
+### フォアグラウンドで起動
+
+ログを残しながら現在のコマンドプロンプト内でwatcherを実行する。
+
+```powershell
+Set-Location D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+.\scripts\run-watch.bat
+```
+
+停止は `Ctrl+C`。ログは次に出力される。ログは起動ごとに別ファイルになる。
+
+```text
+pc-bridge\logs\pc-bridge-watch-<random>.log
+```
+
+### バックグラウンドで起動
+
+最小化された別ウィンドウでwatcherを起動する。
+
+```powershell
+Set-Location D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+.\scripts\start-watch-background.bat
+```
+
+起動確認:
+
+```powershell
+Get-CimInstance Win32_Process |
+  Where-Object { $_.CommandLine -match 'dist[\\/]+src[\\/]+watch.js|start:watch|run-watch.bat' } |
+  Select-Object ProcessId,Name,CommandLine
+```
+
+停止する場合は、起動した最小化ウィンドウで `Ctrl+C` を押す。ウィンドウが見つからない場合は、上記の `ProcessId` を確認して終了する。
+
+```powershell
+Stop-Process -Id <ProcessId>
+```
+
+### タスクスケジューラ登録
+
+ログオン時に自動起動するタスクを登録する。
+
+```powershell
+Set-Location D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+.\scripts\register-watch-task.bat
+```
+
+登録後すぐに起動する場合:
+
+```powershell
+schtasks /Run /TN "CodexRemotePcBridge"
+```
+
+登録状態の確認:
+
+```powershell
+schtasks /Query /TN "CodexRemotePcBridge" /V /FO LIST
+```
+
+登録を削除する場合:
+
+```powershell
+schtasks /Delete /TN "CodexRemotePcBridge" /F
+```
+
+タスクスケジューラ起動では画面に常駐ログが出ないため、動作確認は `pc-bridge\logs\pc-bridge-watch-<random>.log` とFirestore上のcommand状態で行う。
+
 ## ローカルrelay検証
 
 Firebase実接続前に、ローカルJSON relayでコマンドライフサイクルを検証できる。
