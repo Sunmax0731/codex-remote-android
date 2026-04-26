@@ -147,3 +147,5 @@ QRに含めてはいけないもの:
 - #129 配布前セキュリティレビューを実施する
 
 配布前セキュリティレビューの結果は [配布前セキュリティレビュー](security-review-distribution.md) に記録する。
+
+release APK作成手順と署名方針は [release APK作成手順](release-apk.md) に記録する。
