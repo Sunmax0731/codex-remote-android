@@ -180,6 +180,7 @@ firebase deploy --only functions
 - [Cloud Functions手順](firebase/functions/README.md)
 - [Androidアプリ手順](app/README.md)
 - [配布準備](docs/distribution-prep.md)
+- [利用者向けクイックスタート](docs/user-quickstart.md)
 
 ## ライセンス
 
