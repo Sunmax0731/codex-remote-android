@@ -5,6 +5,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:remote_codex/main.dart';
 
 void main() {
+  test('parses notification routing payloads', () {
+    final payload = notificationPayloadFromMessageData({
+      'sessionId': 'session-1',
+      'commandId': 'command-1',
+      'status': 'completed',
+    });
+
+    expect(sessionIdFromPayload(payload), 'session-1');
+    expect(sessionIdFromPayload('legacy-session'), 'legacy-session');
+    expect(sessionIdFromPayload(''), isNull);
+    expect(sessionIdFromMessageData({'sessionId': 'session-2'}), 'session-2');
+  });
+
   testWidgets('shows empty session list after anonymous auth baseline', (tester) async {
     final repository = FakeSessionRepository();
 

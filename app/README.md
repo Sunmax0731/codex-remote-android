@@ -21,6 +21,8 @@ Firebase SDK設定で、ユーザーが取得した `google-services.json` を `
 - `firebase_core`
 - `firebase_auth`
 - `cloud_firestore`
+- `firebase_messaging`
+- `flutter_local_notifications`
 
 起動時に次を実行する。
 
@@ -41,6 +43,7 @@ Firebase SDK設定で、ユーザーが取得した `google-services.json` を `
 - FCM tokenを起動時とtoken refresh時に保存。
 - Android notification channel `remote_codex_completion` を作成。
 - foregroundでFCMを受けた場合はlocal notificationとして表示する。
+- foreground local notificationまたはbackground/terminated状態のFCM通知をタップした場合、payloadの `sessionId` に対応するセッション詳細へ遷移する。
 
 ## MVP責務
 
