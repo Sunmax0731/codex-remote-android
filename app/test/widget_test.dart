@@ -478,6 +478,114 @@ void main() {
     expect(repository.deletedSessionCount, 1);
   });
 
+  testWidgets(
+    'selects existing group and creates new group from group dialog',
+    (tester) async {
+      final repository = FakeSessionRepository();
+
+      await tester.pumpWidget(
+        RemoteCodexApp(
+          bootstrap: Future<AppBootstrap>.value(
+            const AppBootstrap(
+              uid: 'test-uid',
+              pcBridgeId: defaultPcBridgeId,
+              notificationState: NotificationState(
+                permissionStatus: 'authorized',
+                hasToken: true,
+              ),
+            ),
+          ),
+          sessionRepository: repository,
+        ),
+      );
+      await tester.pump();
+      repository.emit(const [
+        SessionSummary(id: 'session-1', title: 'Target', status: 'idle'),
+        SessionSummary(
+          id: 'session-2',
+          title: 'Existing',
+          status: 'idle',
+          groupName: 'Work',
+        ),
+      ]);
+      await pumpFrames(tester);
+      await tester.ensureVisible(find.text('Target'));
+
+      await tester.longPress(find.text('Target'));
+      await pumpFrames(tester);
+      await tester.tap(find.text('Change group'));
+      await pumpFrames(tester);
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await pumpFrames(tester);
+      await tester.tap(find.text('Work').last);
+      await pumpFrames(tester);
+      await tester.tap(find.text('Save'));
+      await pumpFrames(tester);
+
+      expect(repository.updatedGroupName, 'Work');
+      expect(find.text('Work / idle'), findsWidgets);
+
+      await tester.longPress(find.text('Target'));
+      await pumpFrames(tester);
+      await tester.tap(find.text('Change group'));
+      await pumpFrames(tester);
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Group name'),
+        'Lab',
+      );
+      await tester.tap(find.text('Save'));
+      await pumpFrames(tester);
+
+      expect(repository.updatedGroupName, 'Lab');
+      expect(find.text('Lab'), findsOneWidget);
+    },
+  );
+
+  testWidgets('removes empty group from filter choices after regrouping', (
+    tester,
+  ) async {
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const [
+      SessionSummary(
+        id: 'session-1',
+        title: 'Only old',
+        status: 'idle',
+        groupName: 'Old',
+      ),
+    ]);
+    await pumpFrames(tester);
+
+    expect(find.text('Old'), findsOneWidget);
+
+    await tester.longPress(find.text('Only old'));
+    await pumpFrames(tester);
+    await tester.tap(find.text('Change group'));
+    await pumpFrames(tester);
+    await tester.enterText(find.widgetWithText(TextField, 'Group name'), 'New');
+    await tester.tap(find.text('Save'));
+    await pumpFrames(tester);
+
+    expect(find.text('Old'), findsNothing);
+    expect(find.text('New'), findsWidgets);
+  });
+
   testWidgets('creates a session from the floating action button', (
     tester,
   ) async {
