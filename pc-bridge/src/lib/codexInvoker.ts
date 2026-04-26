@@ -65,6 +65,7 @@ export class CliCodexInvoker implements CodexInvoker {
       const result = await runCodexExec({
         commandPath: this.config.codexCommandPath,
         model: this.config.codexModel,
+        bypassSandbox: this.config.codexBypassSandbox,
         workspacePath: this.config.workspacePath,
         sandbox: this.config.codexSandbox,
         timeoutSeconds: this.config.codexTimeoutSeconds,
@@ -102,6 +103,7 @@ export class CliCodexInvoker implements CodexInvoker {
 type RunCodexExecInput = {
   commandPath: string;
   model?: string;
+  bypassSandbox: boolean;
   workspacePath: string;
   sandbox: string;
   timeoutSeconds: number;
@@ -116,16 +118,15 @@ type RunCodexExecResult = {
 };
 
 function runCodexExec(input: RunCodexExecInput): Promise<RunCodexExecResult> {
-  const codexArgs = [
-    "exec",
-    "--cd",
-    input.workspacePath,
-    "--sandbox",
-    input.sandbox,
-    "--output-last-message",
-    input.outputPath,
-    "-",
-  ];
+  const codexArgs = ["exec", "--cd", input.workspacePath];
+
+  if (input.bypassSandbox) {
+    codexArgs.push("--dangerously-bypass-approvals-and-sandbox");
+  } else {
+    codexArgs.push("--sandbox", input.sandbox);
+  }
+
+  codexArgs.push("--output-last-message", input.outputPath, "-");
 
   if (input.model) {
     codexArgs.splice(1, 0, "-m", input.model);

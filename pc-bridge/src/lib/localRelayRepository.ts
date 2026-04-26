@@ -100,6 +100,20 @@ export class LocalRelayRepository implements CommandRepository {
     await this.writeState(state);
   }
 
+  async updateQueueCheck(pcBridgeId: string, now: Date): Promise<void> {
+    const state = await this.readState();
+
+    for (const user of Object.values(state.users)) {
+      const bridge = user.pcBridges?.[pcBridgeId];
+      if (bridge) {
+        bridge.lastQueueCheckedAt = now.toISOString();
+        bridge.status = "active";
+      }
+    }
+
+    await this.writeState(state);
+  }
+
   private async updateClaimedCommand(
     claim: CommandClaim,
     now: Date,

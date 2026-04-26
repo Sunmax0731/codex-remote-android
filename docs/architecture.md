@@ -397,6 +397,7 @@ Phase 4時点の実装:
 - `cli` modeではPCブリッジのローカル設定で固定したCodex CLIを起動する。Windowsの `.cmd` は `cmd.exe /d /s /c` 経由で起動し、スマホ入力はshell引数にしない。
 - スマホ入力はCLI引数ではなくstdin promptとして渡す。
 - 実行ファイル、作業ディレクトリ、sandbox、timeoutはFirestore値ではなくローカル設定で決める。
+- GitHub CLIなどVS Code通常シェル相当のネットワークアクセスが必要な場合だけ、ローカル設定の明示的なopt-inで `--dangerously-bypass-approvals-and-sandbox` を使う。スマホ入力をshell commandとして扱わない境界は維持する。
 
 ### Relay adapter境界
 

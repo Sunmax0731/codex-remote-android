@@ -37,7 +37,7 @@ This avoids opening inbound ports on the home network and allows cellular access
 
 Phase 6 push notification integration is technically complete. Android FCM setup, device token storage, notification tap routing, and the Cloud Functions completion notification trigger are implemented. `notifyCommandCompletion` is deployed to `asia-northeast1` and has sent a completion notification successfully in Firebase-side validation.
 
-Issue #29 is validating real Codex CLI execution from the PC bridge. The bridge now supports a fixed `codexModel` setting, handles Windows `.cmd` launch through `cmd.exe` without passing phone text as shell input, and treats empty Codex final messages as failures instead of completed commands. Firestore relay smoke validation has completed with `resultText: CLI_FIRESTORE_OK` and one successful push notification send.
+Pre-QA work is in progress before Phase 7. The PC bridge can run Codex CLI with an explicit local `codexBypassSandbox` opt-in when VS Code shell parity is needed for commands such as `gh issue list`, and the Android app is being updated with session navigation and bridge timing status.
 
 ## Documents
 

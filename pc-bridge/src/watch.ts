@@ -38,6 +38,8 @@ async function main(): Promise<void> {
 
   while (!shuttingDown) {
     try {
+      await repository.updateQueueCheck(config.pcBridgeId, new Date());
+
       let processedCount = 0;
 
       for (let index = 0; index < maxCommandsPerTick && !shuttingDown; index += 1) {

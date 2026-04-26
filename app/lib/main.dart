@@ -88,7 +88,8 @@ class NotificationService {
   NotificationService._();
 
   static final NotificationService _instance = NotificationService._();
-  static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  static final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
   static bool _messageHandlersRegistered = false;
   AppBootstrap? _bootstrap;
@@ -164,12 +165,15 @@ class NotificationService {
     const channel = AndroidNotificationChannel(
       notificationChannelId,
       notificationChannelName,
-      description: 'Notifications for completed or failed remote Codex commands.',
+      description:
+          'Notifications for completed or failed remote Codex commands.',
       importance: Importance.high,
     );
 
     await _localNotifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
 
     _initialized = true;
@@ -189,7 +193,9 @@ class NotificationService {
     });
 
     FirebaseMessaging.instance.getInitialMessage().then((message) {
-      final sessionId = message == null ? null : sessionIdFromMessageData(message.data);
+      final sessionId = message == null
+          ? null
+          : sessionIdFromMessageData(message.data);
       if (sessionId != null) {
         _openSession(sessionId);
       }
@@ -204,13 +210,18 @@ class NotificationService {
     required String? token,
     required String permissionStatus,
   }) async {
-    await firestore.collection('users').doc(uid).collection('devices').doc(androidDeviceId).set({
-      'deviceId': androidDeviceId,
-      'platform': 'android',
-      'fcmToken': token,
-      'notificationPermission': permissionStatus,
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    await firestore
+        .collection('users')
+        .doc(uid)
+        .collection('devices')
+        .doc(androidDeviceId)
+        .set({
+          'deviceId': androidDeviceId,
+          'platform': 'android',
+          'fcmToken': token,
+          'notificationPermission': permissionStatus,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
   }
 
   Future<void> _showForegroundNotification(RemoteMessage message) async {
@@ -222,7 +233,8 @@ class NotificationService {
       android: AndroidNotificationDetails(
         notificationChannelId,
         notificationChannelName,
-        channelDescription: 'Notifications for completed or failed remote Codex commands.',
+        channelDescription:
+            'Notifications for completed or failed remote Codex commands.',
         importance: Importance.high,
         priority: Priority.high,
       ),
@@ -322,6 +334,9 @@ class CommandSummary {
     required this.id,
     required this.text,
     required this.status,
+    this.createdAt,
+    this.startedAt,
+    this.completedAt,
     this.resultText,
     this.errorText,
   });
@@ -329,14 +344,29 @@ class CommandSummary {
   final String id;
   final String text;
   final String status;
+  final DateTime? createdAt;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
   final String? resultText;
   final String? errorText;
+}
+
+class PcBridgeStatus {
+  const PcBridgeStatus({this.lastSeenAt, this.lastQueueCheckedAt, this.status});
+
+  final DateTime? lastSeenAt;
+  final DateTime? lastQueueCheckedAt;
+  final String? status;
 }
 
 abstract class SessionRepository {
   Stream<List<SessionSummary>> watchSessions(String uid);
   Stream<List<CommandSummary>> watchCommands(String uid, String sessionId);
-  Future<void> createSession({required String uid, required String pcBridgeId});
+  Stream<PcBridgeStatus> watchPcBridgeStatus(String uid, String pcBridgeId);
+  Future<SessionSummary> createSession({
+    required String uid,
+    required String pcBridgeId,
+  });
   Future<void> createCommand({
     required String uid,
     required String sessionId,
@@ -346,7 +376,8 @@ abstract class SessionRepository {
 }
 
 class FirestoreSessionRepository implements SessionRepository {
-  FirestoreSessionRepository([FirebaseFirestore? firestore]) : _firestore = firestore;
+  FirestoreSessionRepository([FirebaseFirestore? firestore])
+    : _firestore = firestore;
 
   final FirebaseFirestore? _firestore;
 
@@ -360,16 +391,20 @@ class FirestoreSessionRepository implements SessionRepository {
         .collection('sessions')
         .orderBy('updatedAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data();
-              return SessionSummary(
-                id: doc.id,
-                title: (data['title'] as String?)?.trim().isNotEmpty == true ? data['title'] as String : 'Untitled session',
-                status: data['status'] as String? ?? 'idle',
-                lastResultPreview: data['lastResultPreview'] as String?,
-                lastErrorPreview: data['lastErrorPreview'] as String?,
-              );
-            }).toList());
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            return SessionSummary(
+              id: doc.id,
+              title: (data['title'] as String?)?.trim().isNotEmpty == true
+                  ? data['title'] as String
+                  : 'Untitled session',
+              status: data['status'] as String? ?? 'idle',
+              lastResultPreview: data['lastResultPreview'] as String?,
+              lastErrorPreview: data['lastErrorPreview'] as String?,
+            );
+          }).toList(),
+        );
   }
 
   @override
@@ -382,30 +417,65 @@ class FirestoreSessionRepository implements SessionRepository {
         .collection('commands')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data();
-              return CommandSummary(
-                id: doc.id,
-                text: data['text'] as String? ?? '',
-                status: data['status'] as String? ?? 'queued',
-                resultText: data['resultText'] as String?,
-                errorText: data['errorText'] as String?,
-              );
-            }).toList());
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            return CommandSummary(
+              id: doc.id,
+              text: data['text'] as String? ?? '',
+              status: data['status'] as String? ?? 'queued',
+              createdAt: timestampToDateTime(data['createdAt']),
+              startedAt: timestampToDateTime(data['startedAt']),
+              completedAt: timestampToDateTime(data['completedAt']),
+              resultText: data['resultText'] as String?,
+              errorText: data['errorText'] as String?,
+            );
+          }).toList(),
+        );
   }
 
   @override
-  Future<void> createSession({required String uid, required String pcBridgeId}) async {
-    final now = DateTime.now();
-    final title = 'Session ${now.year}-${two(now.month)}-${two(now.day)} ${two(now.hour)}:${two(now.minute)}';
+  Stream<PcBridgeStatus> watchPcBridgeStatus(String uid, String pcBridgeId) {
+    return firestore
+        .collection('users')
+        .doc(uid)
+        .collection('pcBridges')
+        .doc(pcBridgeId)
+        .snapshots()
+        .map((snapshot) {
+          final data = snapshot.data();
+          return PcBridgeStatus(
+            lastSeenAt: timestampToDateTime(data?['lastSeenAt']),
+            lastQueueCheckedAt: timestampToDateTime(
+              data?['lastQueueCheckedAt'],
+            ),
+            status: data?['status'] as String?,
+          );
+        });
+  }
 
-    await firestore.collection('users').doc(uid).collection('sessions').add({
-      'title': title,
-      'status': 'idle',
-      'targetPcBridgeId': pcBridgeId,
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+  @override
+  Future<SessionSummary> createSession({
+    required String uid,
+    required String pcBridgeId,
+  }) async {
+    final now = DateTime.now();
+    final title =
+        'Session ${now.year}-${two(now.month)}-${two(now.day)} ${two(now.hour)}:${two(now.minute)}';
+
+    final ref = await firestore
+        .collection('users')
+        .doc(uid)
+        .collection('sessions')
+        .add({
+          'title': title,
+          'status': 'idle',
+          'targetPcBridgeId': pcBridgeId,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+    return SessionSummary(id: ref.id, title: title, status: 'idle');
   }
 
   @override
@@ -415,7 +485,11 @@ class FirestoreSessionRepository implements SessionRepository {
     required String pcBridgeId,
     required String text,
   }) async {
-    final sessionRef = firestore.collection('users').doc(uid).collection('sessions').doc(sessionId);
+    final sessionRef = firestore
+        .collection('users')
+        .doc(uid)
+        .collection('sessions')
+        .doc(sessionId);
     final commandRef = sessionRef.collection('commands').doc();
     final batch = firestore.batch();
 
@@ -439,6 +513,18 @@ class FirestoreSessionRepository implements SessionRepository {
 }
 
 String two(int value) => value.toString().padLeft(2, '0');
+
+DateTime? timestampToDateTime(Object? value) {
+  if (value is Timestamp) {
+    return value.toDate();
+  }
+
+  if (value is String) {
+    return DateTime.tryParse(value)?.toLocal();
+  }
+
+  return null;
+}
 
 String preview(String value) {
   final trimmed = value.trim();
@@ -550,9 +636,22 @@ class _SessionListViewState extends State<SessionListView> {
 
     setState(() => isCreating = true);
     try {
-      await widget.sessionRepository.createSession(
+      final session = await widget.sessionRepository.createSession(
         uid: widget.bootstrap.uid,
         pcBridgeId: widget.bootstrap.pcBridgeId,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => SessionDetailPage(
+            bootstrap: widget.bootstrap,
+            session: session,
+            sessionRepository: widget.sessionRepository,
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -578,7 +677,10 @@ class _SessionListViewState extends State<SessionListView> {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                      child: _ConnectionSummary(bootstrap: widget.bootstrap),
+                      child: _ConnectionSummary(
+                        bootstrap: widget.bootstrap,
+                        sessionRepository: widget.sessionRepository,
+                      ),
                     ),
                   ),
                   if (snapshot.connectionState == ConnectionState.waiting)
@@ -644,30 +746,160 @@ class _SessionListViewState extends State<SessionListView> {
 }
 
 class _ConnectionSummary extends StatelessWidget {
-  const _ConnectionSummary({required this.bootstrap});
+  const _ConnectionSummary({
+    required this.bootstrap,
+    required this.sessionRepository,
+  });
 
   final AppBootstrap bootstrap;
+  final SessionRepository sessionRepository;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+    return StreamBuilder<PcBridgeStatus>(
+      stream: sessionRepository.watchPcBridgeStatus(
+        bootstrap.uid,
+        bootstrap.pcBridgeId,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Connected as anonymous user', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text('PC bridge: ${bootstrap.pcBridgeId}'),
-            const SizedBox(height: 4),
-            Text('Notifications: ${bootstrap.notificationState.permissionStatus}'),
-            const SizedBox(height: 4),
-            SelectableText('UID: ${bootstrap.uid}'),
-          ],
+      builder: (context, snapshot) {
+        final bridge = snapshot.data ?? const PcBridgeStatus();
+
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Connected as anonymous user',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'PC bridge: ${bootstrap.pcBridgeId}${bridge.status == null ? '' : ' (${bridge.status})'}',
+                ),
+                const SizedBox(height: 4),
+                Text('Last heartbeat: ${formatDateTime(bridge.lastSeenAt)}'),
+                const SizedBox(height: 4),
+                Text(
+                  'Last queue check: ${formatDateTime(bridge.lastQueueCheckedAt)}',
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Notifications: ${bootstrap.notificationState.permissionStatus}',
+                ),
+                const SizedBox(height: 4),
+                SelectableText('UID: ${bootstrap.uid}'),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+String formatDateTime(DateTime? value) {
+  if (value == null) {
+    return 'Not seen yet';
+  }
+
+  final local = value.toLocal();
+  return '${local.year}-${two(local.month)}-${two(local.day)} ${two(local.hour)}:${two(local.minute)}:${two(local.second)}';
+}
+
+String formatDuration(Duration duration) {
+  final totalSeconds = duration.inSeconds;
+  final minutes = totalSeconds ~/ 60;
+  final seconds = totalSeconds % 60;
+
+  if (minutes <= 0) {
+    return '${seconds}s';
+  }
+
+  final hours = minutes ~/ 60;
+  final remainingMinutes = minutes % 60;
+  if (hours <= 0) {
+    return '${minutes}m ${seconds}s';
+  }
+
+  return '${hours}h ${remainingMinutes}m ${seconds}s';
+}
+
+class SessionDrawer extends StatelessWidget {
+  const SessionDrawer({
+    super.key,
+    required this.bootstrap,
+    required this.sessionRepository,
+    required this.currentSessionId,
+  });
+
+  final AppBootstrap bootstrap;
+  final SessionRepository sessionRepository;
+  final String currentSessionId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: SafeArea(
+        child: StreamBuilder<List<SessionSummary>>(
+          stream: sessionRepository.watchSessions(bootstrap.uid),
+          builder: (context, snapshot) {
+            final sessions = snapshot.data ?? const <SessionSummary>[];
+
+            return ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                ListTile(
+                  title: Text(
+                    'Sessions',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  subtitle: Text('${sessions.length} session(s)'),
+                ),
+                const Divider(height: 1),
+                if (snapshot.connectionState == ConnectionState.waiting)
+                  const ListTile(title: Text('Loading sessions...'))
+                else if (snapshot.hasError)
+                  ListTile(
+                    title: const Text('Session load failed'),
+                    subtitle: Text(snapshot.error.toString()),
+                  )
+                else if (sessions.isEmpty)
+                  const ListTile(title: Text('No sessions yet'))
+                else
+                  for (final session in sessions)
+                    ListTile(
+                      selected: session.id == currentSessionId,
+                      title: Text(
+                        session.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(session.status),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        if (session.id == currentSessionId) {
+                          return;
+                        }
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute<void>(
+                            builder: (_) => SessionDetailPage(
+                              bootstrap: bootstrap,
+                              session: session,
+                              sessionRepository: sessionRepository,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -682,7 +914,8 @@ class _SessionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtitle = session.lastErrorPreview ?? session.lastResultPreview ?? session.status;
+    final subtitle =
+        session.lastErrorPreview ?? session.lastResultPreview ?? session.status;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -750,12 +983,20 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.session.title)),
+      drawer: SessionDrawer(
+        bootstrap: widget.bootstrap,
+        sessionRepository: widget.sessionRepository,
+        currentSessionId: widget.session.id,
+      ),
       body: SafeArea(
         child: Column(
           children: [
             Expanded(
               child: StreamBuilder<List<CommandSummary>>(
-                stream: widget.sessionRepository.watchCommands(widget.bootstrap.uid, widget.session.id),
+                stream: widget.sessionRepository.watchCommands(
+                  widget.bootstrap.uid,
+                  widget.session.id,
+                ),
                 builder: (context, snapshot) {
                   final commands = snapshot.data ?? const <CommandSummary>[];
 
@@ -778,7 +1019,8 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                   return ListView.builder(
                     padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                     itemCount: commands.length,
-                    itemBuilder: (context, index) => _CommandTile(command: commands[index]),
+                    itemBuilder: (context, index) =>
+                        _CommandTile(command: commands[index]),
                   );
                 },
               ),
@@ -795,15 +1037,62 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
   }
 }
 
-class _CommandTile extends StatelessWidget {
+class _CommandTile extends StatefulWidget {
   const _CommandTile({required this.command});
 
   final CommandSummary command;
 
   @override
+  State<_CommandTile> createState() => _CommandTileState();
+}
+
+class _CommandTileState extends State<_CommandTile> {
+  Timer? timer;
+
+  @override
+  void initState() {
+    super.initState();
+    updateTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CommandTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.command.status != widget.command.status ||
+        oldWidget.command.completedAt != widget.command.completedAt ||
+        oldWidget.command.createdAt != widget.command.createdAt) {
+      updateTimer();
+    }
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
+
+  void updateTimer() {
+    timer?.cancel();
+    if (isTerminalStatus(widget.command.status) ||
+        widget.command.createdAt == null) {
+      timer = null;
+      return;
+    }
+
+    timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final command = widget.command;
     final status = command.status;
-    final detail = command.errorText ?? command.resultText ?? 'Waiting for final result.';
+    final detail =
+        command.errorText ?? command.resultText ?? 'Waiting for final result.';
+    final elapsed = commandElapsed(command);
 
     return Card(
       child: Padding(
@@ -823,6 +1112,13 @@ class _CommandTile extends StatelessWidget {
                 Chip(label: Text(status)),
               ],
             ),
+            if (elapsed != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Elapsed: ${formatDuration(elapsed)}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: 8),
             SelectableText(detail),
           ],
@@ -830,6 +1126,27 @@ class _CommandTile extends StatelessWidget {
       ),
     );
   }
+}
+
+bool isTerminalStatus(String status) {
+  return status == 'completed' || status == 'failed' || status == 'canceled';
+}
+
+Duration? commandElapsed(CommandSummary command) {
+  final started = command.createdAt;
+  if (started == null) {
+    return null;
+  }
+
+  final ended = command.completedAt;
+  final end = ended ?? DateTime.now();
+  final elapsed = end.difference(started);
+
+  if (elapsed.isNegative) {
+    return Duration.zero;
+  }
+
+  return elapsed;
 }
 
 class _CommandComposer extends StatelessWidget {
@@ -896,7 +1213,10 @@ class _NoCommands extends StatelessWidget {
           children: [
             const Icon(Icons.chat_bubble_outline, size: 40),
             const SizedBox(height: 16),
-            Text('No commands yet', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'No commands yet',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
           ],
         ),
       ),
@@ -917,7 +1237,10 @@ class _EmptySessions extends StatelessWidget {
           children: [
             const Icon(Icons.forum_outlined, size: 40),
             const SizedBox(height: 16),
-            Text('No sessions yet', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'No sessions yet',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
           ],
         ),
       ),

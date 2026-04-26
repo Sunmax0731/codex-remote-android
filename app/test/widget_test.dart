@@ -18,7 +18,9 @@ void main() {
     expect(sessionIdFromMessageData({'sessionId': 'session-2'}), 'session-2');
   });
 
-  testWidgets('shows empty session list after anonymous auth baseline', (tester) async {
+  testWidgets('shows empty session list after anonymous auth baseline', (
+    tester,
+  ) async {
     final repository = FakeSessionRepository();
 
     await tester.pumpWidget(
@@ -27,7 +29,10 @@ void main() {
           const AppBootstrap(
             uid: 'test-uid',
             pcBridgeId: defaultPcBridgeId,
-            notificationState: NotificationState(permissionStatus: 'authorized', hasToken: true),
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
           ),
         ),
         sessionRepository: repository,
@@ -35,15 +40,17 @@ void main() {
     );
     await tester.pump();
     repository.emit(const <SessionSummary>[]);
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('Connected as anonymous user'), findsOneWidget);
-    expect(find.text('PC bridge: home-main-pc'), findsOneWidget);
+    expect(find.text('PC bridge: home-main-pc (active)'), findsOneWidget);
     expect(find.text('UID: test-uid'), findsOneWidget);
     expect(find.text('No sessions yet'), findsOneWidget);
   });
 
-  testWidgets('creates a session from the floating action button', (tester) async {
+  testWidgets('creates a session from the floating action button', (
+    tester,
+  ) async {
     final repository = FakeSessionRepository();
 
     await tester.pumpWidget(
@@ -52,7 +59,10 @@ void main() {
           const AppBootstrap(
             uid: 'test-uid',
             pcBridgeId: defaultPcBridgeId,
-            notificationState: NotificationState(permissionStatus: 'authorized', hasToken: true),
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
           ),
         ),
         sessionRepository: repository,
@@ -64,9 +74,11 @@ void main() {
 
     await tester.tap(find.text('New session'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(repository.createdSessionCount, 1);
-    expect(find.text('Session 1'), findsOneWidget);
+    expect(find.text('Session 1'), findsWidgets);
+    expect(find.byType(TextField), findsOneWidget);
   });
 
   testWidgets('opens session detail and sends a command', (tester) async {
@@ -78,7 +90,10 @@ void main() {
           const AppBootstrap(
             uid: 'test-uid',
             pcBridgeId: defaultPcBridgeId,
-            notificationState: NotificationState(permissionStatus: 'authorized', hasToken: true),
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
           ),
         ),
         sessionRepository: repository,
@@ -109,8 +124,10 @@ void main() {
 }
 
 class FakeSessionRepository implements SessionRepository {
-  final StreamController<List<SessionSummary>> controller = StreamController<List<SessionSummary>>.broadcast();
-  final Map<String, StreamController<List<CommandSummary>>> commandControllers = {};
+  final StreamController<List<SessionSummary>> controller =
+      StreamController<List<SessionSummary>>.broadcast();
+  final Map<String, StreamController<List<CommandSummary>>> commandControllers =
+      {};
   int createdSessionCount = 0;
   String? createdCommandText;
 
@@ -123,29 +140,46 @@ class FakeSessionRepository implements SessionRepository {
 
   @override
   Stream<List<CommandSummary>> watchCommands(String uid, String sessionId) {
-    return commandControllers.putIfAbsent(
-      sessionId,
-      () => StreamController<List<CommandSummary>>.broadcast(),
-    ).stream;
-  }
-
-  void emitCommands(String sessionId, List<CommandSummary> commands) {
-    commandControllers.putIfAbsent(
-      sessionId,
-      () => StreamController<List<CommandSummary>>.broadcast(),
-    ).add(commands);
+    return commandControllers
+        .putIfAbsent(
+          sessionId,
+          () => StreamController<List<CommandSummary>>.broadcast(),
+        )
+        .stream;
   }
 
   @override
-  Future<void> createSession({required String uid, required String pcBridgeId}) async {
+  Stream<PcBridgeStatus> watchPcBridgeStatus(String uid, String pcBridgeId) =>
+      Stream.value(
+        PcBridgeStatus(
+          lastSeenAt: DateTime(2026, 4, 26, 12),
+          lastQueueCheckedAt: DateTime(2026, 4, 26, 12, 1),
+          status: 'active',
+        ),
+      );
+
+  void emitCommands(String sessionId, List<CommandSummary> commands) {
+    commandControllers
+        .putIfAbsent(
+          sessionId,
+          () => StreamController<List<CommandSummary>>.broadcast(),
+        )
+        .add(commands);
+  }
+
+  @override
+  Future<SessionSummary> createSession({
+    required String uid,
+    required String pcBridgeId,
+  }) async {
     createdSessionCount++;
-    controller.add([
-      SessionSummary(
-        id: 'session-$createdSessionCount',
-        title: 'Session $createdSessionCount',
-        status: 'idle',
-      ),
-    ]);
+    final session = SessionSummary(
+      id: 'session-$createdSessionCount',
+      title: 'Session $createdSessionCount',
+      status: 'idle',
+    );
+    controller.add([session]);
+    return session;
   }
 
   @override
@@ -157,11 +191,7 @@ class FakeSessionRepository implements SessionRepository {
   }) async {
     createdCommandText = text;
     emitCommands(sessionId, [
-      CommandSummary(
-        id: 'command-1',
-        text: text,
-        status: 'queued',
-      ),
+      CommandSummary(id: 'command-1', text: text, status: 'queued'),
     ]);
   }
 }
