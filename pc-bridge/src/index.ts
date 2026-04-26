@@ -14,6 +14,7 @@ async function main(): Promise<void> {
   console.log(`PC bridge: ${config.pcBridgeId}`);
 
   await repository.updateHeartbeat(config.pcBridgeId, new Date());
+  await repository.updateQueueCheck(config.pcBridgeId, new Date());
 
   const result = await processNextCommand({
     config,

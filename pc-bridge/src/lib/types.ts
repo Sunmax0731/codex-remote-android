@@ -21,6 +21,7 @@ export type BridgeConfig = {
   codexMode: CodexMode;
   codexCommandPath: string;
   codexModel?: string;
+  codexBypassSandbox: boolean;
   codexSandbox: CodexSandbox;
   codexTimeoutSeconds: number;
 };
@@ -57,6 +58,7 @@ export type CommandRepository = {
   markCompleted(claim: CommandClaim, resultText: string, now: Date): Promise<void>;
   markFailed(claim: CommandClaim, errorText: string, now: Date): Promise<void>;
   updateHeartbeat(pcBridgeId: string, now: Date): Promise<void>;
+  updateQueueCheck(pcBridgeId: string, now: Date): Promise<void>;
 };
 
 export type CodexInvocation = {

@@ -46,6 +46,7 @@ export function normalizeConfig(raw: RawConfig): BridgeConfig {
     codexMode,
     codexCommandPath: raw.codexCommandPath ?? "codex.cmd",
     codexModel: normalizeOptionalString(raw.codexModel),
+    codexBypassSandbox: raw.codexBypassSandbox ?? false,
     codexSandbox,
     codexTimeoutSeconds: raw.codexTimeoutSeconds ?? 900,
   };

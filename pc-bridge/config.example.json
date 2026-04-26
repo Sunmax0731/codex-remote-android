@@ -15,6 +15,7 @@
   "codexMode": "stub",
   "codexCommandPath": "codex.cmd",
   "codexModel": "gpt-5.2",
+  "codexBypassSandbox": false,
   "codexSandbox": "workspace-write",
   "codexTimeoutSeconds": 900
 }

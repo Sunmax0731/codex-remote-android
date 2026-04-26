@@ -158,6 +158,22 @@ export class FirestoreRelayRepository implements CommandRepository {
     }, { merge: true });
   }
 
+  async updateQueueCheck(pcBridgeId: string, now: Date): Promise<void> {
+    if (!this.config.ownerUserId) {
+      return;
+    }
+
+    const firestore = await this.getFirestore();
+    await firestore.doc(`users/${this.config.ownerUserId}/pcBridges/${pcBridgeId}`).set({
+      pcBridgeId,
+      displayName: this.config.displayName,
+      workspaceName: this.config.workspaceName,
+      lastQueueCheckedAt: Timestamp.fromDate(now),
+      status: "active",
+      version: "0.1.0",
+    }, { merge: true });
+  }
+
   private async getFirestore(): Promise<Firestore> {
     if (this.firestorePromise) {
       return this.firestorePromise;
