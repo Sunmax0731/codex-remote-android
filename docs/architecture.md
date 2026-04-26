@@ -273,6 +273,18 @@ NotificationService
 
 Viewは `SessionRepository` のstreamを購読し、Firestore document pathやtimestamp変換を直接扱わない。RepositoryはFirebase/Firestore SDKの型を受け持ち、Modelへ変換してViewへ渡す。
 
+## Android Firebase接続先セットアップ
+
+#101では、APK単体配布へ近づけるため、提案Bの「アプリ内セットアップ画面でFirebase接続先を登録する」方式を採用する。
+
+初回起動時、端末内にFirebase接続情報が保存されていない場合は、Firebase初期化より前にセットアップ画面を表示する。利用者は自分のFirebase project ID、API key、app ID、messaging sender IDを入力し、アプリはそれを端末内の `SharedPreferences` に保存する。保存済み設定がある場合は、その値からruntime `FirebaseOptions` を組み立てて `Firebase.initializeApp(options: ...)` を実行する。
+
+AndroidアプリにはFirebase Admin SDK credentialやservice account JSONを入力・保存しない。セットアップ画面でも、service account JSONやAdmin SDK credentialを貼り付けない注意書きを表示する。PCブリッジ側のservice account JSONと `ownerUserId` は、引き続きPC側ローカル設定だけで管理する。
+
+開発者ビルドでは、既存の `google-services.json` を使うための「bundled Firebase config」起動も残す。この経路は開発・検証用であり、利用者ごとのAPK単体配布ではruntime設定入力を使う。
+
+接続設定モーダルでは、現在のFirebase project IDを表示し、保存済みFirebase設定をクリアする導線を提供する。Firebase SDKは既定アプリ初期化後に接続先を安全に差し替えられないため、クリア後はアプリ再起動時にセットアップ画面へ戻る。
+
 ### Android表示言語
 
 Flutterの `MaterialApp.supportedLocales` と localization delegate で端末言語を解決する。

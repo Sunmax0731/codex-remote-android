@@ -4,10 +4,12 @@ class _ConnectionSummary extends StatefulWidget {
   const _ConnectionSummary({
     required this.bootstrap,
     required this.sessionRepository,
+    this.firebaseConfigStore,
   });
 
   final AppBootstrap bootstrap;
   final SessionRepository sessionRepository;
+  final FirebaseConfigStore? firebaseConfigStore;
 
   @override
   State<_ConnectionSummary> createState() => _ConnectionSummaryState();
@@ -22,6 +24,7 @@ class _ConnectionSummaryState extends State<_ConnectionSummary> {
       builder: (context) => _ConnectionSettingsSheet(
         bootstrap: widget.bootstrap,
         sessionRepository: widget.sessionRepository,
+        firebaseConfigStore: widget.firebaseConfigStore,
       ),
     );
   }
@@ -89,10 +92,12 @@ class _ConnectionSettingsSheet extends StatefulWidget {
   const _ConnectionSettingsSheet({
     required this.bootstrap,
     required this.sessionRepository,
+    this.firebaseConfigStore,
   });
 
   final AppBootstrap bootstrap;
   final SessionRepository sessionRepository;
+  final FirebaseConfigStore? firebaseConfigStore;
 
   @override
   State<_ConnectionSettingsSheet> createState() =>
@@ -102,6 +107,7 @@ class _ConnectionSettingsSheet extends StatefulWidget {
 class _ConnectionSettingsSheetState extends State<_ConnectionSettingsSheet> {
   bool isCheckingBridge = false;
   bool isOpeningDefaults = false;
+  bool isResettingFirebase = false;
   String? checkError;
 
   Future<void> requestHealthCheck() async {
@@ -165,6 +171,32 @@ class _ConnectionSettingsSheetState extends State<_ConnectionSettingsSheet> {
     );
   }
 
+  Future<void> resetFirebaseSetup() async {
+    final store = widget.firebaseConfigStore;
+    if (store == null || isResettingFirebase) {
+      return;
+    }
+
+    setState(() => isResettingFirebase = true);
+    try {
+      await store.clear();
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Firebase setup was cleared. Restart the app to set it up again.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isResettingFirebase = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -199,6 +231,10 @@ class _ConnectionSettingsSheetState extends State<_ConnectionSettingsSheet> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
+                Text(
+                  'Firebase project: ${widget.bootstrap.firebaseConfig?.projectId ?? 'bundled'}',
+                ),
+                const SizedBox(height: 4),
                 Text(
                   '${l10n.t('pcBridge')}: ${widget.bootstrap.pcBridgeId}${bridge.status == null ? '' : ' (${bridge.status})'}',
                 ),
@@ -268,6 +304,22 @@ class _ConnectionSettingsSheetState extends State<_ConnectionSettingsSheet> {
                               : l10n.t('cliDefaults'),
                         ),
                       ),
+                      if (widget.firebaseConfigStore != null)
+                        OutlinedButton.icon(
+                          onPressed: isResettingFirebase
+                              ? null
+                              : resetFirebaseSetup,
+                          icon: isResettingFirebase
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.restart_alt),
+                          label: const Text('Reset Firebase setup'),
+                        ),
                     ],
                   ),
                 ),

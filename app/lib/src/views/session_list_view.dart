@@ -5,10 +5,12 @@ class SessionListView extends StatefulWidget {
     super.key,
     required this.bootstrap,
     required this.sessionRepository,
+    this.firebaseConfigStore,
   });
 
   final AppBootstrap bootstrap;
   final SessionRepository sessionRepository;
+  final FirebaseConfigStore? firebaseConfigStore;
 
   @override
   State<SessionListView> createState() => _SessionListViewState();
@@ -269,6 +271,7 @@ class _SessionListViewState extends State<SessionListView> {
                       child: _ConnectionSummary(
                         bootstrap: widget.bootstrap,
                         sessionRepository: widget.sessionRepository,
+                        firebaseConfigStore: widget.firebaseConfigStore,
                       ),
                     ),
                   ),
