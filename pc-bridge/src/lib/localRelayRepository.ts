@@ -74,6 +74,19 @@ export class LocalRelayRepository implements CommandRepository {
     });
   }
 
+  async updateProgress(
+    claim: CommandClaim,
+    progressText: string,
+    now: Date,
+    claimTtlSeconds: number,
+  ): Promise<void> {
+    await this.updateClaimedCommand(claim, now, (_session, command, nowIso) => {
+      command.progressText = progressText;
+      command.progressUpdatedAt = nowIso;
+      command.claimExpiresAt = new Date(now.getTime() + claimTtlSeconds * 1000).toISOString();
+    });
+  }
+
   async markFailed(claim: CommandClaim, errorText: string, now: Date): Promise<void> {
     await this.updateClaimedCommand(claim, now, (session, command, nowIso) => {
       command.status = "failed";

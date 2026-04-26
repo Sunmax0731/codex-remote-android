@@ -28,8 +28,8 @@ This avoids opening inbound ports on the home network and allows cellular access
 
 ## Current Setup Status
 
-- `app/`: Flutter Android project generated for package `com.sunmax.remotecodex`. Startup initializes Firebase, signs in anonymously, stores FCM tokens, shows sessions, queues text commands for the PC bridge, routes notification taps to the target session, and uses the custom RemoteCodex launcher icon.
-- `pc-bridge/`: Node.js/TypeScript bridge with local relay and Firestore relay support. Current local config can run `codexMode: cli` with a fixed Codex model, and `start:watch` can keep polling queued commands. Windows batch files under `pc-bridge/scripts/` can run the watcher in the background or register it with Task Scheduler.
+- `app/`: Flutter Android project generated for package `com.sunmax.remotecodex`. Startup initializes Firebase, signs in anonymously, stores FCM tokens, shows sessions, queues text commands for the PC bridge, shows running progress logs, routes notification taps to the target session, and uses the custom RemoteCodex launcher icon.
+- `pc-bridge/`: Node.js/TypeScript bridge with local relay and Firestore relay support. Current local config can run `codexMode: cli` with a fixed Codex model, return 1-minute progress logs while Codex CLI is running, and `start:watch` can keep polling queued commands. Windows batch files under `pc-bridge/scripts/` can run the watcher in the background or register it with Task Scheduler.
 - `firebase/`: Firebase relay scaffold linked to project `remotecodex-c52ae`, with Firestore rules, command query index, and a Cloud Function that sends FCM completion notifications.
 - `docs/development-setup.md`: Local toolchain status, wireless debugging workflow, and Firebase/Flutter setup handoff.
 
@@ -37,7 +37,7 @@ This avoids opening inbound ports on the home network and allows cellular access
 
 Phase 6 push notification integration is technically complete. Android FCM setup, device token storage, notification tap routing, and the Cloud Functions completion notification trigger are implemented. `notifyCommandCompletion` is deployed to `asia-northeast1` and has sent a completion notification successfully in Firebase-side validation.
 
-Pre-QA work is in progress before Phase 7. The PC bridge can run Codex CLI with an explicit local `codexBypassSandbox` opt-in when VS Code shell parity is needed for commands such as `gh issue list`, and the Android app is being updated with session navigation and bridge timing status.
+Pre-QA work is in progress before Phase 7. The PC bridge can run Codex CLI with an explicit local `codexBypassSandbox` opt-in when VS Code shell parity is needed for commands such as `gh issue list`, and the Android app shows session navigation, bridge timing status, and 1-minute running progress logs.
 
 ## Documents
 

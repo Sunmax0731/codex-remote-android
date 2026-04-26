@@ -39,6 +39,8 @@ export async function processNextCommand(input: ProcessNextCommandInput): Promis
   const result = await input.invoker.invoke({
     command,
     workspacePath: input.config.workspacePath,
+    onProgress: (progressText, progressAt) =>
+      input.repository.updateProgress(claim, progressText, progressAt, input.config.claimTtlSeconds),
   });
 
   const completedAt = new Date();

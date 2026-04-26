@@ -17,6 +17,7 @@
   "codexModel": "gpt-5.2",
   "codexBypassSandbox": false,
   "codexSandbox": "workspace-write",
-  "codexTimeoutSeconds": 900
+  "codexTimeoutSeconds": 900,
+  "codexProgressIntervalSeconds": 60
 }
 

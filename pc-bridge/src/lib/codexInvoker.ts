@@ -69,8 +69,10 @@ export class CliCodexInvoker implements CodexInvoker {
         workspacePath: this.config.workspacePath,
         sandbox: this.config.codexSandbox,
         timeoutSeconds: this.config.codexTimeoutSeconds,
+        progressIntervalSeconds: this.config.codexProgressIntervalSeconds,
         outputPath,
         prompt,
+        onProgress: input.onProgress,
       });
 
       if (result.exitCode !== 0) {
@@ -107,8 +109,10 @@ type RunCodexExecInput = {
   workspacePath: string;
   sandbox: string;
   timeoutSeconds: number;
+  progressIntervalSeconds: number;
   outputPath: string;
   prompt: string;
+  onProgress?: (progressText: string, now: Date) => Promise<void>;
 };
 
 type RunCodexExecResult = {
@@ -155,6 +159,8 @@ function runCodexExec(input: RunCodexExecInput): Promise<RunCodexExecResult> {
     let stdout = "";
     let stderr = "";
     let settled = false;
+    let progressInFlight = false;
+    const startedAt = new Date();
 
     const timeout = setTimeout(() => {
       if (!settled) {
@@ -165,6 +171,24 @@ function runCodexExec(input: RunCodexExecInput): Promise<RunCodexExecResult> {
 
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
+
+    const progressInterval = input.onProgress
+      ? setInterval(() => {
+          if (settled || progressInFlight || !input.onProgress) {
+            return;
+          }
+
+          progressInFlight = true;
+          input
+            .onProgress(buildProgressText(startedAt, stdout, stderr), new Date())
+            .catch((error: unknown) => {
+              stderr += `\nProgress update failed: ${error instanceof Error ? error.message : String(error)}`;
+            })
+            .finally(() => {
+              progressInFlight = false;
+            });
+        }, Math.max(1, input.progressIntervalSeconds) * 1000)
+      : null;
 
     child.stdout.on("data", (chunk: string) => {
       stdout += chunk;
@@ -177,6 +201,9 @@ function runCodexExec(input: RunCodexExecInput): Promise<RunCodexExecResult> {
     child.on("error", (error) => {
       settled = true;
       clearTimeout(timeout);
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
       resolve({
         exitCode: 1,
         stdout,
@@ -187,6 +214,9 @@ function runCodexExec(input: RunCodexExecInput): Promise<RunCodexExecResult> {
     child.on("close", (exitCode) => {
       settled = true;
       clearTimeout(timeout);
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
       resolve({
         exitCode,
         stdout,
@@ -196,6 +226,42 @@ function runCodexExec(input: RunCodexExecInput): Promise<RunCodexExecResult> {
 
     child.stdin.end(input.prompt, "utf8");
   });
+}
+
+function buildProgressText(startedAt: Date, stdout: string, stderr: string): string {
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt.getTime()) / 1000));
+  const sections = [
+    `Codex CLI is still running.`,
+    `Elapsed: ${formatElapsed(elapsedSeconds)}`,
+    tailSection("Recent stdout", stdout),
+    tailSection("Recent stderr", stderr),
+  ].filter((value) => value.length > 0);
+
+  return sections.join("\n\n");
+}
+
+function tailSection(label: string, value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  return `${label}:\n${tail(trimmed, 3000)}`;
+}
+
+function tail(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `...${value.slice(value.length - maxLength + 3)}`;
+}
+
+function formatElapsed(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${minutes}m ${seconds}s`;
 }
 
 function resolveLaunchCommand(commandPath: string, args: string[]): { command: string; args: string[] } {

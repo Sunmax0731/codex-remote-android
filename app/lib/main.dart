@@ -337,6 +337,8 @@ class CommandSummary {
     this.createdAt,
     this.startedAt,
     this.completedAt,
+    this.progressText,
+    this.progressUpdatedAt,
     this.resultText,
     this.errorText,
   });
@@ -347,6 +349,8 @@ class CommandSummary {
   final DateTime? createdAt;
   final DateTime? startedAt;
   final DateTime? completedAt;
+  final String? progressText;
+  final DateTime? progressUpdatedAt;
   final String? resultText;
   final String? errorText;
 }
@@ -427,6 +431,8 @@ class FirestoreSessionRepository implements SessionRepository {
               createdAt: timestampToDateTime(data['createdAt']),
               startedAt: timestampToDateTime(data['startedAt']),
               completedAt: timestampToDateTime(data['completedAt']),
+              progressText: data['progressText'] as String?,
+              progressUpdatedAt: timestampToDateTime(data['progressUpdatedAt']),
               resultText: data['resultText'] as String?,
               errorText: data['errorText'] as String?,
             );
@@ -1091,7 +1097,10 @@ class _CommandTileState extends State<_CommandTile> {
     final command = widget.command;
     final status = command.status;
     final detail =
-        command.errorText ?? command.resultText ?? 'Waiting for final result.';
+        command.errorText ??
+        command.resultText ??
+        command.progressText ??
+        'Waiting for final result.';
     final elapsed = commandElapsed(command);
 
     return Card(
@@ -1116,6 +1125,14 @@ class _CommandTileState extends State<_CommandTile> {
               const SizedBox(height: 6),
               Text(
                 'Elapsed: ${formatDuration(elapsed)}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+            if (command.progressUpdatedAt != null &&
+                !isTerminalStatus(status)) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Last progress: ${formatDateTime(command.progressUpdatedAt)}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
