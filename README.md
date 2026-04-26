@@ -35,7 +35,7 @@ This avoids opening inbound ports on the home network and allows cellular access
 
 ## Current Phase
 
-Phase 5 Android app MVP is in progress. Flutter scaffold, Firebase initialization, anonymous-auth baseline, session list/create, and command submission/result display are in place; Xperia 1 III validation remains.
+Phase 5 Android app MVP is in progress. Flutter scaffold, Firebase initialization, anonymous-auth baseline, session list/create, command submission/result display, and Xperia 1 III wireless debug launch are in place.
 
 ## Documents
 
