@@ -70,6 +70,14 @@ Issueの種類に応じて、最小十分な検証を行う。
 
 Flutter SDKなどのローカルツールが未導入の場合は、失敗を隠さずIssueまたは最終報告に残す。
 
+### Flutter Androidでつまずきやすい点
+
+- `flutter_localizations` を追加した後は、widget testでホストOSの言語に引っ張られないよう `localeTestValue` と `localesTestValue` を明示する。
+- stream購読画面のテストで `pumpAndSettle()` が終わらない場合は、アプリ不具合と決めつけず、長寿命のdelegate/animation/stream待ちを疑い、短い固定pumpに置き換える。
+- broadcast streamを使うFake repositoryは、購読開始直前のemitを取りこぼしやすい。最新値を保持してwatch開始時に再送する。
+- ワイヤレスデバッグの接続ポートは変わるため、実機インストール前に `flutter devices` で現在のdevice idを確認する。
+- debug APKを実機へ反映する場合は `flutter build apk --debug` の後、`flutter install -d <device-id> --debug` を使う。
+
 ### 5. コミット、push、統合
 
 ```powershell
@@ -110,8 +118,9 @@ Issueを閉じるのは、変更がリモートへ反映され、検証結果が
 - PC is normally powered on.
 - VS Code is normally running for MVP.
 - Later design may include a PC-side service that starts VS Code.
-- Intermediate Codex progress is not required in the app.
+- Current MVP may show periodic progress summaries while commands are running; full terminal streaming remains out of scope.
 - Completion must trigger a push notification.
+- Android UI follows device language for Japanese, English, Chinese, and Korean; unsupported locales fall back to English.
 - MVP assumes one user, one primary PC bridge, and one fixed workspace.
 
 ## Preferred MVP Stack

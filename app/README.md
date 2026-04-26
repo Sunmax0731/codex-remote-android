@@ -25,6 +25,11 @@ Firebase SDK設定で、ユーザーが取得した `google-services.json` を `
 - `firebase_messaging`
 - `flutter_local_notifications`
 
+その他の主要package:
+
+- `file_picker`: `--image` 用の画像ファイル選択。
+- `flutter_localizations`: 端末言語に応じたMaterial/Cupertino標準文言とアプリ文言の切替。
+
 起動時に次を実行する。
 
 1. `Firebase.initializeApp()`
@@ -36,7 +41,14 @@ Firebase SDK設定で、ユーザーが取得した `google-services.json` を `
 
 セッション一覧では `/users/{uid}/sessions` を `updatedAt` 降順で購読し、`New session` から新規セッションを作成する。作成時はMVP接続先として `targetPcBridgeId: home-main-pc` を保存する。
 
-セッション詳細では `/users/{uid}/sessions/{sessionId}/commands` を `createdAt` 降順で購読し、入力したテキストを `queued` コマンドとして作成する。処理中の逐次ログは表示せず、Firestoreに保存された `resultText` または `errorText` を最終結果として表示する。
+セッション詳細では `/users/{uid}/sessions/{sessionId}/commands` を `createdAt` 降順で購読し、入力したテキストを `queued` コマンドとして作成する。`running` 中はPCブリッジがFirestoreに保存した進捗概要と経過時間を表示し、完了後は `resultText` または `errorText` を最終結果として表示する。
+
+表示言語:
+
+- 端末の言語設定から `ja`, `en`, `zh`, `ko` を自動選択する。
+- 未対応言語は英語へフォールバックする。
+- CLIオプション名、model名、status、ファイルパスなどの技術識別子は翻訳せず固定表示する。
+- 現在は `lib/main.dart` 内の軽量な文字列テーブルで管理する。翻訳量が増えた場合はARBベースへの移行を検討する。
 
 通知設定:
 
@@ -52,7 +64,8 @@ Firebase SDK設定で、ユーザーが取得した `google-services.json` を `
 - セッション一覧を表示する。
 - セッションを作成する。
 - 選択中セッションへテキスト指示を送信する。
-- コマンドの最終結果または失敗状態を表示する。
+- コマンドの進捗概要、最終結果、失敗状態を表示する。
 - FCM tokenを登録・更新する。
 - 完了通知タップ時に該当セッションへ遷移する。
+- 端末言語に応じて主要UIを日本語、英語、中国語、韓国語で表示する。
 

@@ -225,6 +225,32 @@ flutter run -d <device-id>
 
 hot reloadはDebug実行中だけ有効。Release APKとしてインストールしたアプリはhot reload対象外。
 
+Debug APKを明示的に再インストールする場合:
+
+```powershell
+Set-Location app
+flutter devices
+flutter build apk --debug
+flutter install -d <device-id> --debug
+```
+
+2026-04-27時点の実機確認では `SO 51B` が `192.168.0.3:38441` として認識された。ワイヤレスデバッグのポートは変わるため、この値を固定値として扱わず、毎回 `flutter devices` で確認する。
+
+### Flutter widget testと端末言語
+
+アプリは端末言語に応じて日本語、英語、中国語、韓国語へ表示を切り替える。Flutter widget testでは、実行PCのlocaleに依存して期待文言が変わらないよう、テスト内で `localeTestValue` と `localesTestValue` を明示する。
+
+stream-backed UIやlocalization delegate追加後は、`pumpAndSettle()` が長寿命の処理を待ち続けてタイムアウトする場合がある。Firestore stream相当の表示更新を待つだけなら、短い固定pumpを使う。
+
+```dart
+Future<void> pumpFrames(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 300));
+}
+```
+
+Fake repositoryで `StreamController.broadcast()` を使う場合、購読開始直前にemitした値を取りこぼすことがある。最新値を保持し、watch開始時に再送できる形にする。
+
 ### 再接続
 
 ワイヤレスデバッグのポートは変わることがある。接続できない場合は、Xperia 1 IIIのワイヤレスデバッグ画面で現在の `IPアドレスとポート` を確認し直す。

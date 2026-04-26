@@ -15,7 +15,7 @@ The MVP is complete when an Android APK is installed on the user's Xperia 1 III 
 5. The app shows the final result after processing completes.
 6. The phone receives a completion push notification.
 
-The MVP does not need streaming progress, direct phone-to-PC networking, or Google Play publication.
+The MVP does not need full streaming terminal output, direct phone-to-PC networking, or Google Play publication. The current MVP may show periodic PC bridge progress summaries while Codex is running.
 
 ## Primary User
 
@@ -29,11 +29,12 @@ The MVP does not need streaming progress, direct phone-to-PC networking, or Goog
 - The home PC is assumed to be powered on.
 - VS Code is assumed to be running for the first MVP.
 - Starting VS Code from the PC bridge is a post-MVP enhancement unless it is cheap to add after the bridge exists.
-- The Android app displays final results only; intermediate Codex output is intentionally omitted.
+- The Android app displays final results and may show periodic progress summaries while running; full intermediate Codex output streaming is intentionally omitted.
 - One user and one primary PC are enough for MVP.
 - MVP authentication uses a simple single-user pairing flow built on Firebase identity. Exact implementation is owned by the architecture phase.
 - MVP targets one fixed PC workspace configured on the PC bridge. Multi-workspace selection is post-MVP.
 - MVP may store command text and final result text in the cloud relay as plain text, protected by authentication and security rules. Client-side encryption is post-MVP unless the architecture phase finds a low-cost approach.
+- The Android app should follow the device language automatically for Japanese, English, Chinese, and Korean. Unsupported languages fall back to English.
 
 ## Functional Requirements
 
@@ -81,6 +82,18 @@ Acceptance criteria:
 - The app shows the final response text.
 - The app shows failure state if the PC bridge reports an error.
 - The app preserves the final result after app restart.
+
+### FR-014 Device Language Localization
+
+The Android app must automatically select its display language from the phone language settings.
+
+Acceptance criteria:
+
+- Japanese, English, Chinese, and Korean are supported.
+- Unsupported phone languages fall back to English.
+- Core session, command, PC bridge status, settings, and CLI option help labels are localized.
+- CLI option names, model names, API names, file paths, and other technical identifiers remain unchanged.
+- Widget tests cover at least one non-English locale.
 
 ### FR-005 Completion Push Notification
 
@@ -259,6 +272,7 @@ Then:
 | WiFi and cellular | FR-009 |
 | Safe phone and PC access | FR-010, NFR-001 |
 | PC/workspace target clarity | FR-011 |
+| Device language support | FR-014 |
 
 ## Out of Scope for MVP
 
@@ -271,6 +285,7 @@ Then:
 - Rich Codex session transcript browsing.
 - Multi-PC routing beyond one registered primary PC.
 - Full remote desktop or VS Code UI mirroring.
+- Full professional translation management through ARB files or a translation service. The MVP may use a lightweight in-app string table.
 
 ## Architecture Follow-Up Decisions
 
