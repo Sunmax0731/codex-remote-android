@@ -1,41 +1,42 @@
-# Release Plan
+# リリース計画
 
-## Release Target
+## リリース対象
 
-Installable Android app on Xperia 1 III.
+Xperia 1 IIIにインストールできるAndroidアプリをMVPのRelease対象とする。
 
-The first release may be a debug APK or internal signed APK. Google Play publication is not required for MVP.
+最初のReleaseはdebug署名または内部配布用署名のAPKでよい。Google Play公開はMVP範囲外とする。
 
-## Release Readiness Checklist
+## Release準備チェックリスト
 
-- Android app can authenticate.
-- Android app can create a session.
-- Android app can select a session.
-- Android app can send a text command.
-- PC bridge receives and processes the command.
-- Final result is visible in the app.
-- Running progress summary is visible when the PC bridge reports progress.
-- Completion push notification is delivered.
-- App follows the device language for Japanese, English, Chinese, and Korean, with English fallback for unsupported languages.
-- App works over cellular network.
-- App layout is usable on Xperia 1 III portrait display.
-- Secrets are excluded from Git.
-- Release notes describe setup requirements for the PC bridge.
+- Androidアプリで認証できる。
+- Androidアプリでセッションを作成できる。
+- Androidアプリで既存セッションを選択できる。
+- Androidアプリからテキスト指示を送信できる。
+- PCブリッジが指示を受信し、Codex CLIで処理できる。
+- 最終結果をアプリで確認できる。
+- PCブリッジが進捗を返した場合、running中の進捗概要をアプリで確認できる。
+- 完了プッシュ通知が届く。
+- 日本語、英語、中国語、韓国語で端末言語追従を確認できる。
+- 未対応言語では英語にフォールバックする。
+- 携帯電話回線でも利用できる。
+- Xperia 1 IIIの縦画面で主要操作ができる。
+- 秘密情報がGitに含まれていない。
+- Release notesにPCブリッジのセットアップ要件と既知制限を記載する。
 
-## Installation Definition
+## インストール完了定義
 
-Release is complete when:
+Releaseは次を満たした時点で完了とする。
 
-1. APK is built.
-2. APK is installed on the Xperia 1 III.
-3. The installed app completes one end-to-end command cycle with the home PC.
+1. APKがビルドされている。
+2. APKがXperia 1 IIIにインストールされている。
+3. インストール済みアプリで、自宅PCとの1回以上のend-to-endコマンドサイクルが完了している。
 
-## Post-MVP Release Candidates
+## Post-MVP候補
 
-- Start VS Code automatically from the PC bridge.
-- Local LAN discovery mode.
-- Command cancellation.
-- Session search.
-- Encrypted session payloads.
-- Multiple PC bridge registration.
-- ARB-based translation workflow or professional translation management.
+- PCブリッジからVS Codeを自動起動する。
+- LAN内探索モードを追加する。
+- コマンドキャンセルを追加する。
+- セッション検索を追加する。
+- セッションpayloadを暗号化する。
+- 複数PCブリッジ登録に対応する。
+- ARBベースの翻訳管理または専門翻訳ワークフローを導入する。
