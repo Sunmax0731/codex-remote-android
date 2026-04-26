@@ -45,6 +45,8 @@ flutter install -d 192.168.0.3:37329 --debug
 
 `npm audit fix --force` は `firebase-admin@10.1.0` へのbreaking changeを示すため、即時force修正は行わない。Release前評価は #97 で扱う。
 
+#97 の評価結果は [npm audit Release前評価](qa-npm-audit-review.md) に記録する。
+
 ## 切り出したIssue
 
 - #96 Phase 7 手動E2E・通知・携帯回線確認を実施する
