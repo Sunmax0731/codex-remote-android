@@ -1,54 +1,220 @@
 # Codex Remote Android
 
-Android app and PC-side bridge for sending instructions from a phone to Codex running on a home PC.
+Androidスマホから自宅PC上のCodexへ指示を送り、PC側で処理した結果をスマホで確認するためのFlutter AndroidアプリとPCブリッジです。
 
-## Goal
+## 概要
 
-Build a Flutter Android app that can:
-
-- Start a new remote Codex session.
-- Choose per-session Codex CLI options when starting a session and keep stable execution options in app defaults.
-- Select an existing remote Codex session.
-- Send text instructions to a selected session.
-- Show only the final result in the app.
-- Notify the phone with a push notification when remote processing completes.
-- Work from both WiFi and cellular networks while the home PC is online.
-- Automatically follow the phone language for Japanese, English, Chinese, and Korean.
-- Target Xperia 1 III and equivalent Android devices.
-
-## Proposed Architecture
-
-The MVP should use a cloud relay instead of direct phone-to-PC networking:
+Codex Remote Androidは、外出先や別室からスマホでCodex作業を開始し、自宅PC側で処理を進めるためのリモート操作基盤です。スマホとPCはFirebaseを介して通信するため、自宅ルーターのポート開放なしでWiFiと携帯電話回線の両方から利用できます。
 
 ```text
-Android app -> Firebase Auth/Firestore -> PC bridge -> VS Code/Codex
-Android app <- Firestore final result <- PC bridge <- VS Code/Codex
+Android app -> Firebase Auth / Firestore -> PC bridge -> Codex CLI
+Android app <- Firestore result/progress <- PC bridge <- Codex CLI
 Android app <- Firebase Cloud Messaging completion notification
 ```
 
-This avoids opening inbound ports on the home network and allows cellular access.
+## 目的
 
-## Current Setup Status
+- AndroidスマホからCodexセッションを作成または選択できるようにする。
+- スマホから送信した指示を、自宅PC上の固定ワークスペースでCodexに処理させる。
+- 処理中の状態、進捗概要、完了結果、失敗理由をスマホで確認できるようにする。
+- 完了時にスマホへプッシュ通知を送る。
+- PCとスマホの直接接続に依存せず、WiFiと携帯電話回線の両方で使える構成にする。
 
-- `app/`: Flutter Android project generated for package `com.sunmax.remotecodex`. Startup initializes Firebase, signs in anonymously, stores FCM tokens, shows sessions, stores CLI option defaults, lets new sessions choose Codex CLI model/profile values and advanced CLI options, exposes per-option help inside the settings dialog, supports image file selection for `--image`, shows session options on long press, queues text commands for the PC bridge, shows running progress logs, can request an on-demand PC bridge health check, routes notification taps to the target session, follows the phone language for Japanese/English/Chinese/Korean, and uses the custom RemoteCodex launcher icon.
-- `pc-bridge/`: Node.js/TypeScript bridge with local relay and Firestore relay support. Current local config can run `codexMode: cli` with a fixed Codex model, reflect session-level Codex CLI options into `codex exec`, return 1-minute progress logs while Codex CLI is running, respond to on-demand health checks, follow Android anonymous UID changes for bridge status, and `start:watch` can keep polling queued commands. Windows batch files under `pc-bridge/scripts/` can run the watcher in the background or register it with Task Scheduler.
-- `firebase/`: Firebase relay scaffold linked to project `remotecodex-c52ae`, with Firestore rules, command query index, and a Cloud Function that sends FCM completion notifications.
-- `docs/development-setup.md`: Local toolchain status, wireless debugging workflow, and Firebase/Flutter setup handoff.
+## 主な機能
 
-## Current Phase
+- Firebase Anonymous Authによるスマホ側ユーザー識別。
+- セッション作成、セッション一覧、既存セッション選択。
+- セッションごとのCodex CLIオプション指定。
+- CLI既定値の保存。
+- `gpt-5.5`、`gpt-5.4` などのモデル選択。
+- `--config`、`--enable`、`--disable`、`--image`、`--add-dir` などの詳細CLIオプション入力。
+- 画像ファイルブラウザによる `--image` ファイル選択。
+- 設定項目ごとのヘルプ表示。
+- PCブリッジのheartbeat、queue確認時刻、手動ヘルスチェック時刻の表示。
+- スマホ操作によるPCブリッジ稼働確認リクエスト。
+- queued / running / completed / failed の状態表示。
+- running中の経過時間と1分ごとの進捗概要表示。
+- 最終結果またはエラー表示。
+- Firebase Cloud Messagingによる完了通知。
+- 通知タップから対象セッションへの遷移。
+- 日本語、英語、中国語、韓国語の端末言語追従。
+- 未対応言語の英語フォールバック。
+- Xperia 1 IIIでの実機確認を前提にしたAndroid debug APKインストール。
+- Windows用PCブリッジ常駐起動バッチとタスクスケジューラ登録。
 
-Phase 6 push notification integration is technically complete. Android FCM setup, device token storage, notification tap routing, and the Cloud Functions completion notification trigger are implemented. `notifyCommandCompletion` is deployed to `asia-northeast1` and has sent a completion notification successfully in Firebase-side validation.
+## 環境構築
 
-Pre-QA work is in progress before Phase 7. The PC bridge can run Codex CLI with an explicit local `codexBypassSandbox` opt-in when VS Code shell parity is needed for commands such as `gh issue list`, and the Android app shows session navigation, bridge timing status, and 1-minute running progress logs.
+### PC
 
-## Documents
+対象PCはWindows環境を想定しています。
 
-- [Requirements](docs/requirements.md)
-- [Architecture](docs/architecture.md)
-- [Development Setup](docs/development-setup.md)
-- [Release Plan](docs/release-plan.md)
-- [Phase Workflows](process/README.md)
+必要なもの:
 
-## Release Definition
+- Windows PC
+- VS Code
+- Codex CLI
+- Node.js / npm
+- Flutter SDK
+- Android SDK platform-tools
+- Firebase CLI
+- Git / GitHub CLI
 
-Release is complete when a signed or debug Android APK can be installed on the Xperia 1 III, the app can send a command to the home PC, Codex processing runs on the PC, the final result is visible in the app, and a completion push notification is delivered.
+確認コマンド例:
+
+```powershell
+node --version
+npm.cmd --version
+flutter doctor
+firebase --version
+gh --version
+adb devices
+```
+
+PCブリッジの初期セットアップ:
+
+```powershell
+cd D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+npm.cmd install
+npm.cmd run build
+Copy-Item config.example.json config.local.json
+```
+
+`pc-bridge/config.local.json` にFirebase service account JSONのパス、対象UID、固定ワークスペース、Codex CLI設定を記入します。`config.local.json` とservice account JSONはGitに含めません。
+
+常駐起動:
+
+```powershell
+cd D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+.\scripts\start-watch-background.bat
+```
+
+ログオン時に自動起動する場合:
+
+```powershell
+cd D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+.\scripts\register-watch-task.bat
+schtasks /Run /TN "CodexRemotePcBridge"
+```
+
+詳細は [PCブリッジ手順](pc-bridge/README.md) を参照してください。
+
+### Androidスマホ
+
+主ターゲットはXperia 1 IIIです。Android 13のXperia 1 IIIでワイヤレスデバッグを使った実機確認を行っています。
+
+必要なもの:
+
+- Androidスマホ
+- 開発者向けオプション
+- ワイヤレスデバッグまたはUSBデバッグ
+- Firebaseプロジェクトに登録したAndroidアプリ設定
+- `app/android/app/google-services.json`
+
+ワイヤレスデバッグ確認:
+
+```powershell
+flutter devices
+```
+
+debug APKのビルドとインストール:
+
+```powershell
+cd D:\Claude\FlutterApp\codex-remote-android\app
+flutter build apk --debug
+flutter install -d <device-id> --debug
+```
+
+`<device-id>` は `flutter devices` で表示された現在の値を使います。ワイヤレスデバッグのポートは変わるため、固定値として扱わないでください。
+
+詳細は [開発環境セットアップ](docs/development-setup.md) を参照してください。
+
+### クラウドサービス
+
+Firebaseをクラウドリレーとして使います。
+
+利用機能:
+
+- Firebase Authentication
+- Cloud Firestore
+- Firebase Cloud Messaging
+- Cloud Functions
+- Firebase Emulator Suite
+
+現在のFirebase scaffoldは `firebase/` にあります。Firestore Rules、Indexes、Cloud Functionsを更新した場合は次を実行します。
+
+```powershell
+cd D:\Claude\FlutterApp\codex-remote-android\firebase
+firebase use
+firebase deploy --only firestore:rules,firestore:indexes
+firebase deploy --only functions
+```
+
+Cloud Functionsの初回デプロイにはBlazeプランとGoogle Cloud APIの有効化が必要です。詳細は [Firebase手順](firebase/README.md) と [Cloud Functions手順](firebase/functions/README.md) を参照してください。
+
+## 手順書
+
+- [要件定義](docs/requirements.md)
+- [アーキテクチャ](docs/architecture.md)
+- [開発環境セットアップ](docs/development-setup.md)
+- [リリース計画](docs/release-plan.md)
+- [工程別ワークフロー](process/README.md)
+- [Androidアプリ手順](app/README.md)
+- [PCブリッジ手順](pc-bridge/README.md)
+- [Firebase手順](firebase/README.md)
+- [Cloud Functions手順](firebase/functions/README.md)
+
+## リリース定義
+
+リリースは、APKをXperia 1 IIIへインストールし、次の一連の流れを確認できた状態とします。
+
+1. Androidアプリを起動する。
+2. セッションを作成または選択する。
+3. スマホからテキスト指示を送信する。
+4. PCブリッジがqueued commandを取得する。
+5. 自宅PC上でCodex CLIが処理を実行する。
+6. アプリに進捗概要と最終結果またはエラーが表示される。
+7. 完了または失敗時にスマホへプッシュ通知が届く。
+
+## ライセンス
+
+このプロジェクトはMIT Licenseで公開します。詳細は [LICENSE](LICENSE) を参照してください。
+
+## プライバシーポリシー
+
+このアプリは、Codexへの指示、処理状態、進捗概要、最終結果、通知に必要な端末情報をFirebaseに保存します。通知payloadには完了状態とセッション識別情報を含め、ロック画面に表示される可能性がある通知本文には結果またはエラーの短い要約が含まれる場合があります。
+
+保存する主な情報:
+
+- Firebase AuthenticationのUID
+- FCM token
+- セッション情報
+- コマンド本文
+- コマンド状態
+- 進捗概要
+- 最終結果またはエラー
+- PCブリッジのheartbeatと稼働確認時刻
+
+保存しない方針の情報:
+
+- Firebase service account JSON
+- Android署名鍵
+- PCブリッジのローカル設定ファイル
+- CodexやGitHubなど外部サービスの認証token
+
+詳細は [プライバシーポリシー](PRIVACY.md) を参照してください。
+
+## サポート体制
+
+不具合報告、機能追加要望、その他質問はGitHub Issueで受け付けます。投稿時は目的に合うIssueテンプレートを選択してください。
+
+- 不具合報告: アプリやPCブリッジが想定通り動かない場合。
+- 機能追加要望: 新しい機能、改善、対応端末や対応サービスの追加を希望する場合。
+- 質問: セットアップ、運用、仕様、使い方について確認したい場合。
+
+Issue投稿時のテンプレート:
+
+- [不具合報告テンプレート](.github/ISSUE_TEMPLATE/bug_report.md)
+- [機能追加要望テンプレート](.github/ISSUE_TEMPLATE/feature_request.md)
+- [質問テンプレート](.github/ISSUE_TEMPLATE/question.md)
+
+Issueには、再現手順、期待する動作、実際の動作、実行環境、関連ログを可能な範囲で記載してください。秘密情報、token、service account JSON、個人情報、非公開コード全文は投稿しないでください。
