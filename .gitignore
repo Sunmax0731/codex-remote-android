@@ -16,12 +16,19 @@ local.properties
 firebase/.runtimeconfig.json
 firebase/serviceAccount*.json
 firebase/firebase-debug.log
+firebase/.env
+firebase/functions/.env
+firebase/functions/lib/
 
 # Node / bridge
 node_modules/
 npm-debug.log*
 .env
 .env.*
+pc-bridge/config.local.json
+pc-bridge/*.local.json
+pc-bridge/dist/
+pc-bridge/coverage/
 
 # IDE
 .idea/
@@ -31,4 +38,3 @@ npm-debug.log*
 # OS
 Thumbs.db
 Desktop.ini
-

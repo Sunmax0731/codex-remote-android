@@ -1,0 +1,9 @@
+{
+  "pcBridgeId": "home-main-pc",
+  "displayName": "Home PC",
+  "workspaceName": "codex-remote-android",
+  "workspacePath": "D:\\Claude\\FlutterApp\\codex-remote-android",
+  "firebaseProjectId": "your-firebase-project-id",
+  "serviceAccountPath": "D:\\secure\\codex-remote-service-account.json"
+}
+

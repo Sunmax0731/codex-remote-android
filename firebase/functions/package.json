@@ -1,0 +1,23 @@
+{
+  "name": "codex-remote-functions",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Firebase Cloud Functions for Codex Remote Android.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": "22"
+  }
+}
+

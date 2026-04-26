@@ -1,0 +1,23 @@
+{
+  "name": "codex-remote-pc-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PC-side bridge for Codex Remote Android MVP.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "start": "node src/index.js",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
+
