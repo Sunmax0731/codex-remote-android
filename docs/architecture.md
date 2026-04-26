@@ -394,7 +394,7 @@ Phase 4時点の実装:
 
 - `CodexInvoker` interfaceでCodex呼び出し境界を分離する。
 - デフォルトは `stub` modeで、raw shell実行を行わずに成功/失敗を検証する。
-- `cli` modeではPCブリッジのローカル設定で固定した `codex.cmd exec` を `shell: false` で起動する。
+- `cli` modeではPCブリッジのローカル設定で固定したCodex CLIを起動する。Windowsの `.cmd` は `cmd.exe /d /s /c` 経由で起動し、スマホ入力はshell引数にしない。
 - スマホ入力はCLI引数ではなくstdin promptとして渡す。
 - 実行ファイル、作業ディレクトリ、sandbox、timeoutはFirestore値ではなくローカル設定で決める。
 

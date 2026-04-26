@@ -44,6 +44,7 @@ export function normalizeConfig(raw: RawConfig): BridgeConfig {
     maxCommandsPerTick: raw.maxCommandsPerTick ?? 5,
     codexMode,
     codexCommandPath: raw.codexCommandPath ?? "codex.cmd",
+    codexModel: normalizeOptionalString(raw.codexModel),
     codexSandbox,
     codexTimeoutSeconds: raw.codexTimeoutSeconds ?? 900,
   };
@@ -55,6 +56,15 @@ function required(value: string | undefined, field: string): string {
   }
 
   return value;
+}
+
+function normalizeOptionalString(value: string | undefined): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
 }
 
 function isRelayMode(value: unknown): value is RelayMode {
