@@ -28,14 +28,14 @@ This avoids opening inbound ports on the home network and allows cellular access
 
 ## Current Setup Status
 
-- `app/`: Flutter Android project generated for package `com.sunmax.remotecodex`. Startup initializes Firebase, signs in anonymously, shows sessions, and can queue text commands for the PC bridge.
+- `app/`: Flutter Android project generated for package `com.sunmax.remotecodex`. Startup initializes Firebase, signs in anonymously, stores FCM tokens, shows sessions, and can queue text commands for the PC bridge.
 - `pc-bridge/`: Node.js/TypeScript bridge with local relay and Firestore relay support. Current local config can reach Firebase in `stub` mode.
 - `firebase/`: Firebase relay scaffold linked to project `remotecodex-c52ae`, with Firestore rules and command query index.
 - `docs/development-setup.md`: Local toolchain status, wireless debugging workflow, and Firebase/Flutter setup handoff.
 
 ## Current Phase
 
-Phase 5 Android app MVP is in progress. Flutter scaffold, Firebase initialization, anonymous-auth baseline, session list/create, command submission/result display, Xperia 1 III wireless debug launch, and manual hot reload validation are in place.
+Phase 6 push notification integration is in progress. Android FCM setup and device token storage are being added before the Cloud Functions notification trigger.
 
 ## Documents
 

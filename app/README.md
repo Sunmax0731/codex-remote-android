@@ -27,12 +27,20 @@ Firebase SDK設定で、ユーザーが取得した `google-services.json` を `
 1. `Firebase.initializeApp()`
 2. Firebase Anonymous Authの `signInAnonymously()`
 3. `/users/{uid}` へMVP接続先 `home-main-pc` を保存
+4. FCM通知権限を要求し、`/users/{uid}/devices/android-app` へFCM tokenを保存
 
 初回実機起動後、画面に表示される `User uid` をPCブリッジの `config.local.json` の `ownerUserId` に設定すると、PCブリッジのheartbeatを `/users/{uid}/pcBridges/home-main-pc` に保存できる。
 
 セッション一覧では `/users/{uid}/sessions` を `updatedAt` 降順で購読し、`New session` から新規セッションを作成する。作成時はMVP接続先として `targetPcBridgeId: home-main-pc` を保存する。
 
 セッション詳細では `/users/{uid}/sessions/{sessionId}/commands` を `createdAt` 降順で購読し、入力したテキストを `queued` コマンドとして作成する。処理中の逐次ログは表示せず、Firestoreに保存された `resultText` または `errorText` を最終結果として表示する。
+
+通知設定:
+
+- Android 13+向けに `POST_NOTIFICATIONS` 権限を宣言。
+- FCM tokenを起動時とtoken refresh時に保存。
+- Android notification channel `remote_codex_completion` を作成。
+- foregroundでFCMを受けた場合はlocal notificationとして表示する。
 
 ## MVP責務
 

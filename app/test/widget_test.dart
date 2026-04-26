@@ -11,7 +11,11 @@ void main() {
     await tester.pumpWidget(
       RemoteCodexApp(
         bootstrap: Future<AppBootstrap>.value(
-          const AppBootstrap(uid: 'test-uid', pcBridgeId: defaultPcBridgeId),
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(permissionStatus: 'authorized', hasToken: true),
+          ),
         ),
         sessionRepository: repository,
       ),
@@ -32,7 +36,11 @@ void main() {
     await tester.pumpWidget(
       RemoteCodexApp(
         bootstrap: Future<AppBootstrap>.value(
-          const AppBootstrap(uid: 'test-uid', pcBridgeId: defaultPcBridgeId),
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(permissionStatus: 'authorized', hasToken: true),
+          ),
         ),
         sessionRepository: repository,
       ),
@@ -54,7 +62,11 @@ void main() {
     await tester.pumpWidget(
       RemoteCodexApp(
         bootstrap: Future<AppBootstrap>.value(
-          const AppBootstrap(uid: 'test-uid', pcBridgeId: defaultPcBridgeId),
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(permissionStatus: 'authorized', hasToken: true),
+          ),
         ),
         sessionRepository: repository,
       ),
