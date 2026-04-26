@@ -1596,21 +1596,10 @@ class _SessionListViewState extends State<SessionListView> {
         .toList(growable: false);
   }
 
-  List<String> sessionGroups(List<SessionSummary> sessions) {
-    final groups = sessions.map(sessionGroupKey).toSet().toList();
-    groups.sort((a, b) {
-      if (a == '') {
-        return -1;
-      }
-      if (b == '') {
-        return 1;
-      }
-      return a.compareTo(b);
-    });
-    return groups;
-  }
-
-  Future<void> openSessionActions(SessionSummary session) async {
+  Future<void> openSessionActions(
+    SessionSummary session,
+    List<SessionSummary> sessions,
+  ) async {
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -1647,7 +1636,7 @@ class _SessionListViewState extends State<SessionListView> {
               title: Text(context.l10n.t('changeGroup')),
               onTap: () async {
                 Navigator.of(context).pop();
-                await changeSessionGroup(session);
+                await changeSessionGroup(session, sessionGroups(sessions));
               },
             ),
             ListTile(
@@ -1696,12 +1685,16 @@ class _SessionListViewState extends State<SessionListView> {
     );
   }
 
-  Future<void> changeSessionGroup(SessionSummary session) async {
-    final groupName = await showTextValueDialog(
+  Future<void> changeSessionGroup(
+    SessionSummary session,
+    List<String> groups,
+  ) async {
+    final groupName = await showGroupValueDialog(
       context,
       title: context.l10n.t('changeGroup'),
       label: context.l10n.t('groupName'),
       initialValue: session.groupName ?? '',
+      groups: groups,
     );
     if (groupName == null) {
       return;
@@ -1926,8 +1919,9 @@ class _SessionListViewState extends State<SessionListView> {
                               ),
                             );
                           },
-                          onLongPress: () => openSessionActions(session),
-                          onMore: () => openSessionActions(session),
+                          onLongPress: () =>
+                              openSessionActions(session, sessions),
+                          onMore: () => openSessionActions(session, sessions),
                         );
                       },
                     ),
@@ -2627,6 +2621,20 @@ String summaryList(BuildContext context, List<String> values) {
 
 String sessionGroupKey(SessionSummary session) => session.groupName ?? '';
 
+List<String> sessionGroups(List<SessionSummary> sessions) {
+  final groups = sessions.map(sessionGroupKey).toSet().toList();
+  groups.sort((a, b) {
+    if (a == '') {
+      return -1;
+    }
+    if (b == '') {
+      return 1;
+    }
+    return a.compareTo(b);
+  });
+  return groups;
+}
+
 Future<String?> showTextValueDialog(
   BuildContext context, {
   required String title,
@@ -2657,6 +2665,82 @@ Future<String?> showTextValueDialog(
           child: Text(context.l10n.t('save')),
         ),
       ],
+    ),
+  );
+}
+
+Future<String?> showGroupValueDialog(
+  BuildContext context, {
+  required String title,
+  required String label,
+  required String initialValue,
+  required List<String> groups,
+}) {
+  final controller = TextEditingController(text: initialValue);
+  final selectableGroups =
+      groups.where((group) => group.trim().isNotEmpty).toSet().toList()..sort();
+  String? selectedGroup = selectableGroups.contains(initialValue)
+      ? initialValue
+      : null;
+
+  return showDialog<String>(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        title: Text(title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (selectableGroups.isNotEmpty) ...[
+              DropdownButtonFormField<String>(
+                initialValue: selectedGroup,
+                decoration: InputDecoration(
+                  labelText: context.l10n.t('group'),
+                  border: const OutlineInputBorder(),
+                ),
+                items: [
+                  for (final group in selectableGroups)
+                    DropdownMenuItem(value: group, child: Text(group)),
+                ],
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  setState(() => selectedGroup = value);
+                  controller.text = value;
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+            TextField(
+              controller: controller,
+              autofocus: selectableGroups.isEmpty,
+              decoration: InputDecoration(
+                labelText: label,
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                final trimmed = value.trim();
+                setState(() {
+                  selectedGroup = selectableGroups.contains(trimmed)
+                      ? trimmed
+                      : null;
+                });
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(context.l10n.t('cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            child: Text(context.l10n.t('save')),
+          ),
+        ],
+      ),
     ),
   );
 }
@@ -3174,12 +3258,13 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
     );
   }
 
-  Future<void> updateGroup(SessionSummary session) async {
-    final groupName = await showTextValueDialog(
+  Future<void> updateGroup(SessionSummary session, List<String> groups) async {
+    final groupName = await showGroupValueDialog(
       context,
       title: context.l10n.t('changeGroup'),
       label: context.l10n.t('groupName'),
       initialValue: session.groupName ?? '',
+      groups: groups,
     );
     if (groupName == null) {
       return;
@@ -3232,6 +3317,9 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
         final currentSession = currentSessionFrom(
           sessionSnapshot.data ?? const <SessionSummary>[],
         );
+        final groups = sessionGroups(
+          sessionSnapshot.data ?? const <SessionSummary>[],
+        );
 
         return Scaffold(
           appBar: AppBar(
@@ -3257,7 +3345,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                     case 'rename':
                       renameSession(currentSession);
                     case 'group':
-                      updateGroup(currentSession);
+                      updateGroup(currentSession, groups);
                     case 'delete':
                       deleteSession(currentSession);
                     case 'options':
