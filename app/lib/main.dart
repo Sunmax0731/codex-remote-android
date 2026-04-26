@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -29,87 +30,104 @@ const cliOptionHelpItems = [
   CliOptionHelp(
     name: 'Model',
     location: 'New Session / CLI defaults',
-    description: 'セッションで使用するCodexモデルを選びます。',
+    description: 'Selects the Codex model used for the session.',
+    example: 'gpt-5.5',
   ),
   CliOptionHelp(
     name: 'Profile',
     location: 'New Session / CLI defaults',
-    description: 'PC側のCodex設定にある名前付きprofileを使用します。',
+    description: 'Uses a named profile from the PC-side Codex config.',
+    example: 'work',
   ),
   CliOptionHelp(
     name: 'Sandbox',
     location: 'CLI defaults',
-    description: 'CodexがPC上のファイルへどこまでアクセスできるかを制御します。',
+    description: 'Controls how much filesystem access Codex receives.',
+    example: 'workspace-write',
   ),
   CliOptionHelp(
     name: 'Bypass sandbox',
     location: 'CLI defaults',
-    description: 'PCブリッジでsandbox制限を迂回してCodexを実行します。',
+    description: 'Runs Codex with sandbox bypass enabled on the PC bridge.',
+    example: 'on',
   ),
   CliOptionHelp(
     name: '--config key=value',
-    location: 'Advanced / future',
-    description: '1回の実行だけCodex設定値を上書きします。',
+    location: 'Advanced',
+    description: 'Overrides a Codex config value for one run.',
+    example: 'model="gpt-5.5"',
   ),
   CliOptionHelp(
     name: '--enable / --disable',
-    location: 'Advanced / future',
-    description: 'Codexの機能フラグを有効化または無効化します。',
+    location: 'Advanced',
+    description: 'Turns a named Codex feature flag on or off.',
+    example: 'feature-name',
   ),
   CliOptionHelp(
     name: '--image',
-    location: 'Advanced / future',
-    description: '画像を使う依頼で、入力画像のパスを追加します。',
+    location: 'Advanced',
+    description: 'Adds one or more image files to the initial prompt.',
+    example: r'C:\path\image.png',
   ),
   CliOptionHelp(
     name: '--oss',
-    location: 'Advanced / future',
-    description: '設定済みの場合にローカルOSS providerモードを使います。',
+    location: 'Advanced',
+    description: 'Uses open-source provider mode when configured.',
+    example: 'on',
   ),
   CliOptionHelp(
     name: '--local-provider',
-    location: 'Advanced / future',
-    description: 'OSSモードで使うローカルproviderを選びます。',
+    location: 'Advanced',
+    description: 'Selects the local provider used with OSS mode.',
+    example: 'ollama',
   ),
   CliOptionHelp(
     name: '--full-auto',
-    location: 'Advanced / future',
-    description: '確認を減らして自動実行寄りで進めます。',
+    location: 'Advanced',
+    description: 'Allows automated execution with fewer confirmations.',
+    example: 'on',
   ),
   CliOptionHelp(
     name: '--add-dir',
-    location: 'Advanced / future',
-    description: 'Codexセッションに追加の作業ディレクトリを渡します。',
+    location: 'Advanced',
+    description: 'Adds another working directory to the Codex session.',
+    example: r'D:\another-workspace',
   ),
   CliOptionHelp(
     name: '--skip-git-repo-check',
-    location: 'Advanced / future',
-    description: '対象がGitリポジトリでなくても実行できるようにします。',
+    location: 'Advanced',
+    description: 'Allows running even when the target is not a Git repo.',
+    example: 'on',
   ),
   CliOptionHelp(
     name: '--ephemeral',
-    location: 'Advanced / future',
-    description: '後から再開するためのセッション状態を保存せずに開始します。',
+    location: 'Advanced',
+    description: 'Starts without saving session state for later resume.',
+    example: 'on',
   ),
   CliOptionHelp(
     name: '--ignore-user-config',
-    location: 'Advanced / future',
-    description: 'PCユーザー単位のCodex設定を無視します。',
+    location: 'Advanced',
+    description: 'Ignores the PC user-level Codex configuration.',
+    example: 'on',
   ),
   CliOptionHelp(
     name: '--ignore-rules',
-    location: 'Advanced / future',
-    description: 'リポジトリまたはユーザーの指示ファイルを無視します。',
+    location: 'Advanced',
+    description: 'Ignores repository or user instruction files.',
+    example: 'on',
   ),
   CliOptionHelp(
     name: '--output-schema',
-    location: 'Advanced / future',
-    description: 'JSON schemaに沿った出力を要求します。',
+    location: 'Advanced',
+    description: 'Requests output matching a JSON schema file.',
+    example: r'C:\path\schema.json',
   ),
   CliOptionHelp(
     name: '--json',
     location: 'PC bridge internal',
-    description: 'PCブリッジが扱いやすい機械可読イベントを出力します。',
+    description: 'Streams machine-readable CLI events for the bridge.',
+    example: 'on',
   ),
 ];
 const androidDeviceId = 'android-app';
@@ -1122,6 +1140,7 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
   required String primaryLabel,
   required bool showExecutionDefaults,
 }) {
+  final dialogContext = context;
   final profileController = TextEditingController(
     text: initialOptions.codexProfile ?? '',
   );
@@ -1159,6 +1178,36 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
   var ignoreRules = initialOptions.codexIgnoreRules;
   var jsonOutput = initialOptions.codexJson;
 
+  void dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  Future<void> pickImageFiles(StateSetter setDialogState) async {
+    dismissKeyboard();
+    final result = await FilePicker.pickFiles(
+      allowMultiple: true,
+      type: FileType.image,
+    );
+    if (result == null) {
+      return;
+    }
+
+    final selectedPaths = result.files
+        .map((file) => file.path)
+        .whereType<String>()
+        .map((path) => path.trim())
+        .where((path) => path.isNotEmpty)
+        .toList();
+    if (selectedPaths.isEmpty) {
+      return;
+    }
+
+    final merged = [...lines(imagesController.text), ...selectedPaths];
+    setDialogState(() {
+      imagesController.text = linesText(merged);
+    });
+  }
+
   return showDialog<SessionCreateOptions>(
     context: context,
     builder: (context) {
@@ -1172,7 +1221,11 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                 children: [
                   DropdownButtonFormField<String>(
                     initialValue: model,
-                    decoration: const InputDecoration(labelText: 'Model'),
+                    decoration: optionInputDecoration(
+                      context,
+                      label: 'Model',
+                      helpName: 'Model',
+                    ),
                     items: [
                       for (final option in codexModelOptions)
                         DropdownMenuItem(value: option, child: Text(option)),
@@ -1186,16 +1239,22 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                   const SizedBox(height: 12),
                   TextField(
                     controller: profileController,
-                    decoration: const InputDecoration(
-                      labelText: 'Profile',
-                      hintText: 'Optional config profile',
+                    decoration: optionInputDecoration(
+                      context,
+                      label: 'Profile',
+                      hint: 'Optional config profile',
+                      helpName: 'Profile',
                     ),
                   ),
                   if (showExecutionDefaults) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       initialValue: sandbox,
-                      decoration: const InputDecoration(labelText: 'Sandbox'),
+                      decoration: optionInputDecoration(
+                        context,
+                        label: 'Sandbox',
+                        helpName: 'Sandbox',
+                      ),
                       items: [
                         for (final option in codexSandboxOptions)
                           DropdownMenuItem(value: option, child: Text(option)),
@@ -1208,10 +1267,10 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                               }
                             },
                     ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Bypass sandbox'),
-                      subtitle: const Text('Overrides the sandbox selection'),
+                    _OptionSwitchTile(
+                      title: 'Bypass sandbox',
+                      subtitle: 'Overrides the sandbox selection',
+                      helpName: 'Bypass sandbox',
                       value: bypassSandbox,
                       onChanged: (value) {
                         setDialogState(() => bypassSandbox = value);
@@ -1237,25 +1296,27 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                         controller: configOverridesController,
                         label: '--config key=value',
                         hint: 'model="gpt-5.5"',
+                        helpName: '--config key=value',
                       ),
                       _MultiLineOptionField(
                         controller: enableFeaturesController,
                         label: '--enable',
                         hint: 'feature-name',
+                        helpName: '--enable / --disable',
                       ),
                       _MultiLineOptionField(
                         controller: disableFeaturesController,
                         label: '--disable',
                         hint: 'feature-name',
+                        helpName: '--enable / --disable',
                       ),
-                      _MultiLineOptionField(
+                      _ImageOptionField(
                         controller: imagesController,
-                        label: '--image',
-                        hint: r'C:\path\image.png',
+                        onPick: () => pickImageFiles(setDialogState),
                       ),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('--oss'),
+                      _OptionSwitchTile(
+                        title: '--oss',
+                        helpName: '--oss',
                         value: useOss,
                         onChanged: (value) {
                           setDialogState(() => useOss = value);
@@ -1263,8 +1324,10 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                       ),
                       DropdownButtonFormField<String>(
                         initialValue: localProvider,
-                        decoration: const InputDecoration(
-                          labelText: '--local-provider',
+                        decoration: optionInputDecoration(
+                          context,
+                          label: '--local-provider',
+                          helpName: '--local-provider',
                         ),
                         items: [
                           for (final option in codexLocalProviderOptions)
@@ -1279,9 +1342,9 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                           }
                         },
                       ),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('--full-auto'),
+                      _OptionSwitchTile(
+                        title: '--full-auto',
+                        helpName: '--full-auto',
                         value: fullAuto,
                         onChanged: bypassSandbox
                             ? null
@@ -1293,34 +1356,35 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                         controller: addDirsController,
                         label: '--add-dir',
                         hint: r'D:\another-workspace',
+                        helpName: '--add-dir',
                       ),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('--skip-git-repo-check'),
+                      _OptionSwitchTile(
+                        title: '--skip-git-repo-check',
+                        helpName: '--skip-git-repo-check',
                         value: skipGitRepoCheck,
                         onChanged: (value) {
                           setDialogState(() => skipGitRepoCheck = value);
                         },
                       ),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('--ephemeral'),
+                      _OptionSwitchTile(
+                        title: '--ephemeral',
+                        helpName: '--ephemeral',
                         value: ephemeral,
                         onChanged: (value) {
                           setDialogState(() => ephemeral = value);
                         },
                       ),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('--ignore-user-config'),
+                      _OptionSwitchTile(
+                        title: '--ignore-user-config',
+                        helpName: '--ignore-user-config',
                         value: ignoreUserConfig,
                         onChanged: (value) {
                           setDialogState(() => ignoreUserConfig = value);
                         },
                       ),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('--ignore-rules'),
+                      _OptionSwitchTile(
+                        title: '--ignore-rules',
+                        helpName: '--ignore-rules',
                         value: ignoreRules,
                         onChanged: (value) {
                           setDialogState(() => ignoreRules = value);
@@ -1328,17 +1392,17 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                       ),
                       TextField(
                         controller: outputSchemaController,
-                        decoration: const InputDecoration(
-                          labelText: '--output-schema',
-                          hintText: r'C:\path\schema.json',
+                        decoration: optionInputDecoration(
+                          context,
+                          label: '--output-schema',
+                          hint: r'C:\path\schema.json',
+                          helpName: '--output-schema',
                         ),
                       ),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('--json'),
-                        subtitle: const Text(
-                          'Bridge still reads final output from file',
-                        ),
+                      _OptionSwitchTile(
+                        title: '--json',
+                        subtitle: 'Bridge still reads final output from file',
+                        helpName: '--json',
                         value: jsonOutput,
                         onChanged: (value) {
                           setDialogState(() => jsonOutput = value);
@@ -1351,15 +1415,22 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
             ),
             actions: [
               TextButton(
-                onPressed: () => showCliOptionHelpDialog(context),
+                onPressed: () {
+                  dismissKeyboard();
+                  showCliOptionHelpDialog(dialogContext);
+                },
                 child: const Text('Help'),
               ),
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  dismissKeyboard();
+                  Navigator.of(context).pop();
+                },
                 child: const Text('Cancel'),
               ),
               FilledButton(
                 onPressed: () {
+                  dismissKeyboard();
                   final profile = profileController.text.trim();
                   final outputSchema = outputSchemaController.text.trim();
                   Navigator.of(context).pop(
@@ -1400,15 +1471,7 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
         },
       );
     },
-  ).whenComplete(() {
-    profileController.dispose();
-    configOverridesController.dispose();
-    enableFeaturesController.dispose();
-    disableFeaturesController.dispose();
-    imagesController.dispose();
-    addDirsController.dispose();
-    outputSchemaController.dispose();
-  });
+  );
 }
 
 class _MultiLineOptionField extends StatelessWidget {
@@ -1416,11 +1479,13 @@ class _MultiLineOptionField extends StatelessWidget {
     required this.controller,
     required this.label,
     required this.hint,
+    required this.helpName,
   });
 
   final TextEditingController controller;
   final String label;
   final String hint;
+  final String helpName;
 
   @override
   Widget build(BuildContext context) {
@@ -1428,9 +1493,107 @@ class _MultiLineOptionField extends StatelessWidget {
       controller: controller,
       minLines: 1,
       maxLines: 4,
-      decoration: InputDecoration(labelText: label, hintText: hint),
+      decoration: optionInputDecoration(
+        context,
+        label: label,
+        hint: hint,
+        helpName: helpName,
+      ),
     );
   }
+}
+
+class _ImageOptionField extends StatelessWidget {
+  const _ImageOptionField({required this.controller, required this.onPick});
+
+  final TextEditingController controller;
+  final VoidCallback onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: _MultiLineOptionField(
+            controller: controller,
+            label: '--image',
+            hint: r'C:\path\image.png',
+            helpName: '--image',
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton.filledTonal(
+          tooltip: 'Select image file',
+          onPressed: onPick,
+          icon: const Icon(Icons.attach_file),
+        ),
+      ],
+    );
+  }
+}
+
+class _OptionSwitchTile extends StatelessWidget {
+  const _OptionSwitchTile({
+    required this.title,
+    required this.helpName,
+    required this.value,
+    required this.onChanged,
+    this.subtitle,
+  });
+
+  final String title;
+  final String helpName;
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Row(
+        children: [
+          Expanded(child: Text(title)),
+          _OptionHelpButton(helpName: helpName),
+        ],
+      ),
+      subtitle: subtitle == null ? null : Text(subtitle!),
+      value: value,
+      onChanged: onChanged,
+    );
+  }
+}
+
+class _OptionHelpButton extends StatelessWidget {
+  const _OptionHelpButton({required this.helpName});
+
+  final String helpName;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Show help for $helpName',
+      onPressed: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        showCliOptionHelpDialog(context, optionName: helpName);
+      },
+      icon: const Icon(Icons.help_outline),
+    );
+  }
+}
+
+InputDecoration optionInputDecoration(
+  BuildContext context, {
+  required String label,
+  required String helpName,
+  String? hint,
+}) {
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    suffixIcon: _OptionHelpButton(helpName: helpName),
+  );
 }
 
 String linesText(List<String> values) => values.join('\n');
@@ -1441,39 +1604,55 @@ List<String> lines(String value) => value
     .where((entry) => entry.isNotEmpty)
     .toList(growable: false);
 
-Future<void> showCliOptionHelpDialog(BuildContext context) {
+Future<void> showCliOptionHelpDialog(
+  BuildContext context, {
+  String? optionName,
+}) {
+  final items = optionName == null
+      ? cliOptionHelpItems
+      : cliOptionHelpItems
+            .where((item) => item.name == optionName)
+            .toList(growable: false);
+
   return showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('CLI option help'),
+      title: Text(optionName ?? 'CLI option help'),
       content: SizedBox(
         width: double.maxFinite,
-        child: ListView.separated(
-          shrinkWrap: true,
-          itemCount: cliOptionHelpItems.length,
-          separatorBuilder: (context, index) => const Divider(height: 18),
-          itemBuilder: (context, index) {
-            final option = cliOptionHelpItems[index];
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  option.name,
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                const SizedBox(height: 2),
-                Text('表示場所: ${option.location}'),
-                const SizedBox(height: 2),
-                Text(option.description),
-              ],
-            );
-          },
-        ),
+        child: items.isEmpty
+            ? const Text('No help is available for this option.')
+            : ListView.separated(
+                shrinkWrap: true,
+                itemCount: items.length,
+                separatorBuilder: (context, index) => const Divider(height: 18),
+                itemBuilder: (context, index) {
+                  final option = items[index];
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        option.name,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 2),
+                      Text('Where: ${option.location}'),
+                      const SizedBox(height: 6),
+                      Text(option.description),
+                      const SizedBox(height: 6),
+                      Text('Example: ${option.example}'),
+                    ],
+                  );
+                },
+              ),
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            FocusManager.instance.primaryFocus?.unfocus();
+            Navigator.of(context).pop();
+          },
           child: const Text('Close'),
         ),
       ],
@@ -1486,11 +1665,13 @@ class CliOptionHelp {
     required this.name,
     required this.location,
     required this.description,
+    required this.example,
   });
 
   final String name;
   final String location;
   final String description;
+  final String example;
 }
 
 Future<void> showSessionOptionsSummaryDialog(
@@ -1736,11 +1917,6 @@ class _ConnectionSummaryState extends State<_ConnectionSummary> {
                         label: Text(
                           isOpeningDefaults ? 'Loading' : 'CLI defaults',
                         ),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () => showCliOptionHelpDialog(context),
-                        icon: const Icon(Icons.help_outline),
-                        label: const Text('CLI option help'),
                       ),
                     ],
                   ),

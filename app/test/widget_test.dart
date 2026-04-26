@@ -46,7 +46,7 @@ void main() {
     expect(find.text('PC bridge: home-main-pc (active)'), findsOneWidget);
     expect(find.text('Check PC now'), findsOneWidget);
     expect(find.text('CLI defaults'), findsOneWidget);
-    expect(find.text('CLI option help'), findsOneWidget);
+    expect(find.text('CLI option help'), findsNothing);
     expect(find.text('UID: test-uid'), findsOneWidget);
     expect(find.text('No sessions yet'), findsOneWidget);
   });
@@ -162,13 +162,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Sandbox'), findsOneWidget);
     expect(find.text('Bypass sandbox'), findsOneWidget);
+    await tester.tap(find.text('Advanced CLI options'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Select image file'), findsOneWidget);
     await tester.tap(find.text('Save'));
     await tester.pump();
 
     expect(repository.savedDefaultsCount, 1);
   });
 
-  testWidgets('shows CLI option help from the status panel', (tester) async {
+  testWidgets('cancels settings dialog while text field is focused', (
+    tester,
+  ) async {
     final repository = FakeSessionRepository();
 
     await tester.pumpWidget(
@@ -190,12 +195,44 @@ void main() {
     repository.emit(const <SessionSummary>[]);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('CLI option help'));
+    await tester.tap(find.text('CLI defaults'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'focused-profile');
+    await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
-    expect(find.text('CLI option help'), findsWidgets);
-    expect(find.text('Model'), findsOneWidget);
-    expect(find.text('Profile'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    expect(repository.savedDefaultsCount, 0);
+  });
+
+  testWidgets('shows option help from the settings dialog', (tester) async {
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const <SessionSummary>[]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('CLI defaults'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Show help for Model'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Example: gpt-5.5'), findsOneWidget);
   });
 
   testWidgets('shows session CLI options on long press', (tester) async {
