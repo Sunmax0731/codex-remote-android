@@ -18,6 +18,20 @@ type SessionState = {
   codexSandbox?: RemoteCommand["codexSandbox"];
   codexBypassSandbox?: boolean;
   codexProfile?: string;
+  codexConfigOverrides?: string[];
+  codexEnableFeatures?: string[];
+  codexDisableFeatures?: string[];
+  codexImages?: string[];
+  codexOss?: boolean;
+  codexLocalProvider?: string;
+  codexFullAuto?: boolean;
+  codexAddDirs?: string[];
+  codexSkipGitRepoCheck?: boolean;
+  codexEphemeral?: boolean;
+  codexIgnoreUserConfig?: boolean;
+  codexIgnoreRules?: boolean;
+  codexOutputSchema?: string;
+  codexJson?: boolean;
   updatedAt?: string;
   lastCommandId?: string;
   lastResultPreview?: string;
@@ -203,6 +217,20 @@ function toRemoteCommand(
     codexSandbox: session.codexSandbox,
     codexBypassSandbox: session.codexBypassSandbox,
     codexProfile: session.codexProfile,
+    codexConfigOverrides: session.codexConfigOverrides,
+    codexEnableFeatures: session.codexEnableFeatures,
+    codexDisableFeatures: session.codexDisableFeatures,
+    codexImages: session.codexImages,
+    codexOss: session.codexOss,
+    codexLocalProvider: session.codexLocalProvider,
+    codexFullAuto: session.codexFullAuto,
+    codexAddDirs: session.codexAddDirs,
+    codexSkipGitRepoCheck: session.codexSkipGitRepoCheck,
+    codexEphemeral: session.codexEphemeral,
+    codexIgnoreUserConfig: session.codexIgnoreUserConfig,
+    codexIgnoreRules: session.codexIgnoreRules,
+    codexOutputSchema: session.codexOutputSchema,
+    codexJson: session.codexJson,
     ...command,
   };
 }

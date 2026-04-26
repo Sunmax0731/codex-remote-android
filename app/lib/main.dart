@@ -24,6 +24,7 @@ const codexSandboxOptions = [
   'workspace-write',
   'danger-full-access',
 ];
+const codexLocalProviderOptions = ['', 'lmstudio', 'ollama'];
 const cliOptionHelpItems = [
   CliOptionHelp(
     name: 'Model',
@@ -483,12 +484,40 @@ class SessionCreateOptions {
     required this.codexSandbox,
     required this.codexBypassSandbox,
     this.codexProfile,
+    this.codexConfigOverrides = const <String>[],
+    this.codexEnableFeatures = const <String>[],
+    this.codexDisableFeatures = const <String>[],
+    this.codexImages = const <String>[],
+    this.codexOss = false,
+    this.codexLocalProvider,
+    this.codexFullAuto = false,
+    this.codexAddDirs = const <String>[],
+    this.codexSkipGitRepoCheck = false,
+    this.codexEphemeral = false,
+    this.codexIgnoreUserConfig = false,
+    this.codexIgnoreRules = false,
+    this.codexOutputSchema,
+    this.codexJson = false,
   });
 
   final String codexModel;
   final String codexSandbox;
   final bool codexBypassSandbox;
   final String? codexProfile;
+  final List<String> codexConfigOverrides;
+  final List<String> codexEnableFeatures;
+  final List<String> codexDisableFeatures;
+  final List<String> codexImages;
+  final bool codexOss;
+  final String? codexLocalProvider;
+  final bool codexFullAuto;
+  final List<String> codexAddDirs;
+  final bool codexSkipGitRepoCheck;
+  final bool codexEphemeral;
+  final bool codexIgnoreUserConfig;
+  final bool codexIgnoreRules;
+  final String? codexOutputSchema;
+  final bool codexJson;
 }
 
 const defaultSessionCreateOptions = SessionCreateOptions(
@@ -629,7 +658,7 @@ class FirestoreSessionRepository implements SessionRepository {
         .doc(uid)
         .collection('settings')
         .doc('cliDefaults')
-        .set(sessionOptionsToData(options), SetOptions(merge: true));
+        .set(sessionOptionsToData(options));
   }
 
   @override
@@ -736,6 +765,20 @@ SessionCreateOptions? sessionOptionsFromData(Map<String, dynamic>? data) {
     codexSandbox: normalizedSandbox(data['codexSandbox']),
     codexBypassSandbox: data['codexBypassSandbox'] as bool? ?? false,
     codexProfile: optionString(data['codexProfile']),
+    codexConfigOverrides: stringList(data['codexConfigOverrides']),
+    codexEnableFeatures: stringList(data['codexEnableFeatures']),
+    codexDisableFeatures: stringList(data['codexDisableFeatures']),
+    codexImages: stringList(data['codexImages']),
+    codexOss: data['codexOss'] as bool? ?? false,
+    codexLocalProvider: normalizedLocalProvider(data['codexLocalProvider']),
+    codexFullAuto: data['codexFullAuto'] as bool? ?? false,
+    codexAddDirs: stringList(data['codexAddDirs']),
+    codexSkipGitRepoCheck: data['codexSkipGitRepoCheck'] as bool? ?? false,
+    codexEphemeral: data['codexEphemeral'] as bool? ?? false,
+    codexIgnoreUserConfig: data['codexIgnoreUserConfig'] as bool? ?? false,
+    codexIgnoreRules: data['codexIgnoreRules'] as bool? ?? false,
+    codexOutputSchema: optionString(data['codexOutputSchema']),
+    codexJson: data['codexJson'] as bool? ?? false,
   );
 }
 
@@ -745,7 +788,38 @@ Map<String, Object> sessionOptionsToData(SessionCreateOptions options) {
     'codexSandbox': options.codexSandbox,
     'codexBypassSandbox': options.codexBypassSandbox,
     if (options.codexProfile != null) 'codexProfile': options.codexProfile!,
+    if (options.codexConfigOverrides.isNotEmpty)
+      'codexConfigOverrides': options.codexConfigOverrides,
+    if (options.codexEnableFeatures.isNotEmpty)
+      'codexEnableFeatures': options.codexEnableFeatures,
+    if (options.codexDisableFeatures.isNotEmpty)
+      'codexDisableFeatures': options.codexDisableFeatures,
+    if (options.codexImages.isNotEmpty) 'codexImages': options.codexImages,
+    'codexOss': options.codexOss,
+    if (options.codexLocalProvider != null)
+      'codexLocalProvider': options.codexLocalProvider!,
+    'codexFullAuto': options.codexFullAuto,
+    if (options.codexAddDirs.isNotEmpty) 'codexAddDirs': options.codexAddDirs,
+    'codexSkipGitRepoCheck': options.codexSkipGitRepoCheck,
+    'codexEphemeral': options.codexEphemeral,
+    'codexIgnoreUserConfig': options.codexIgnoreUserConfig,
+    'codexIgnoreRules': options.codexIgnoreRules,
+    if (options.codexOutputSchema != null)
+      'codexOutputSchema': options.codexOutputSchema!,
+    'codexJson': options.codexJson,
   };
+}
+
+List<String> stringList(Object? value) {
+  if (value is! Iterable) {
+    return const <String>[];
+  }
+
+  return value
+      .whereType<String>()
+      .map((entry) => entry.trim())
+      .where((entry) => entry.isNotEmpty)
+      .toList(growable: false);
 }
 
 String? optionString(Object? value) {
@@ -763,6 +837,15 @@ String normalizedSandbox(Object? value) {
   }
 
   return defaultCodexSandbox;
+}
+
+String? normalizedLocalProvider(Object? value) {
+  final provider = optionString(value);
+  if (provider == null || !codexLocalProviderOptions.contains(provider)) {
+    return null;
+  }
+
+  return provider;
 }
 
 String two(int value) => value.toString().padLeft(2, '0');
@@ -1042,6 +1125,24 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
   final profileController = TextEditingController(
     text: initialOptions.codexProfile ?? '',
   );
+  final configOverridesController = TextEditingController(
+    text: linesText(initialOptions.codexConfigOverrides),
+  );
+  final enableFeaturesController = TextEditingController(
+    text: linesText(initialOptions.codexEnableFeatures),
+  );
+  final disableFeaturesController = TextEditingController(
+    text: linesText(initialOptions.codexDisableFeatures),
+  );
+  final imagesController = TextEditingController(
+    text: linesText(initialOptions.codexImages),
+  );
+  final addDirsController = TextEditingController(
+    text: linesText(initialOptions.codexAddDirs),
+  );
+  final outputSchemaController = TextEditingController(
+    text: initialOptions.codexOutputSchema ?? '',
+  );
   var model = codexModelOptions.contains(initialOptions.codexModel)
       ? initialOptions.codexModel
       : defaultCodexModel;
@@ -1049,6 +1150,14 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
       ? initialOptions.codexSandbox
       : defaultCodexSandbox;
   var bypassSandbox = initialOptions.codexBypassSandbox;
+  var useOss = initialOptions.codexOss;
+  var localProvider = initialOptions.codexLocalProvider ?? '';
+  var fullAuto = initialOptions.codexFullAuto;
+  var skipGitRepoCheck = initialOptions.codexSkipGitRepoCheck;
+  var ephemeral = initialOptions.codexEphemeral;
+  var ignoreUserConfig = initialOptions.codexIgnoreUserConfig;
+  var ignoreRules = initialOptions.codexIgnoreRules;
+  var jsonOutput = initialOptions.codexJson;
 
   return showDialog<SessionCreateOptions>(
     context: context,
@@ -1118,6 +1227,125 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                       ),
                     ),
                   ],
+                  const SizedBox(height: 8),
+                  ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    title: const Text('Advanced CLI options'),
+                    childrenPadding: const EdgeInsets.only(bottom: 8),
+                    children: [
+                      _MultiLineOptionField(
+                        controller: configOverridesController,
+                        label: '--config key=value',
+                        hint: 'model="gpt-5.5"',
+                      ),
+                      _MultiLineOptionField(
+                        controller: enableFeaturesController,
+                        label: '--enable',
+                        hint: 'feature-name',
+                      ),
+                      _MultiLineOptionField(
+                        controller: disableFeaturesController,
+                        label: '--disable',
+                        hint: 'feature-name',
+                      ),
+                      _MultiLineOptionField(
+                        controller: imagesController,
+                        label: '--image',
+                        hint: r'C:\path\image.png',
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('--oss'),
+                        value: useOss,
+                        onChanged: (value) {
+                          setDialogState(() => useOss = value);
+                        },
+                      ),
+                      DropdownButtonFormField<String>(
+                        initialValue: localProvider,
+                        decoration: const InputDecoration(
+                          labelText: '--local-provider',
+                        ),
+                        items: [
+                          for (final option in codexLocalProviderOptions)
+                            DropdownMenuItem(
+                              value: option,
+                              child: Text(option.isEmpty ? 'Default' : option),
+                            ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => localProvider = value);
+                          }
+                        },
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('--full-auto'),
+                        value: fullAuto,
+                        onChanged: bypassSandbox
+                            ? null
+                            : (value) {
+                                setDialogState(() => fullAuto = value);
+                              },
+                      ),
+                      _MultiLineOptionField(
+                        controller: addDirsController,
+                        label: '--add-dir',
+                        hint: r'D:\another-workspace',
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('--skip-git-repo-check'),
+                        value: skipGitRepoCheck,
+                        onChanged: (value) {
+                          setDialogState(() => skipGitRepoCheck = value);
+                        },
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('--ephemeral'),
+                        value: ephemeral,
+                        onChanged: (value) {
+                          setDialogState(() => ephemeral = value);
+                        },
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('--ignore-user-config'),
+                        value: ignoreUserConfig,
+                        onChanged: (value) {
+                          setDialogState(() => ignoreUserConfig = value);
+                        },
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('--ignore-rules'),
+                        value: ignoreRules,
+                        onChanged: (value) {
+                          setDialogState(() => ignoreRules = value);
+                        },
+                      ),
+                      TextField(
+                        controller: outputSchemaController,
+                        decoration: const InputDecoration(
+                          labelText: '--output-schema',
+                          hintText: r'C:\path\schema.json',
+                        ),
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('--json'),
+                        subtitle: const Text(
+                          'Bridge still reads final output from file',
+                        ),
+                        value: jsonOutput,
+                        onChanged: (value) {
+                          setDialogState(() => jsonOutput = value);
+                        },
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -1133,12 +1361,35 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
               FilledButton(
                 onPressed: () {
                   final profile = profileController.text.trim();
+                  final outputSchema = outputSchemaController.text.trim();
                   Navigator.of(context).pop(
                     SessionCreateOptions(
                       codexModel: model,
                       codexSandbox: sandbox,
                       codexBypassSandbox: bypassSandbox,
                       codexProfile: profile.isEmpty ? null : profile,
+                      codexConfigOverrides: lines(
+                        configOverridesController.text,
+                      ),
+                      codexEnableFeatures: lines(enableFeaturesController.text),
+                      codexDisableFeatures: lines(
+                        disableFeaturesController.text,
+                      ),
+                      codexImages: lines(imagesController.text),
+                      codexOss: useOss,
+                      codexLocalProvider: localProvider.isEmpty
+                          ? null
+                          : localProvider,
+                      codexFullAuto: fullAuto,
+                      codexAddDirs: lines(addDirsController.text),
+                      codexSkipGitRepoCheck: skipGitRepoCheck,
+                      codexEphemeral: ephemeral,
+                      codexIgnoreUserConfig: ignoreUserConfig,
+                      codexIgnoreRules: ignoreRules,
+                      codexOutputSchema: outputSchema.isEmpty
+                          ? null
+                          : outputSchema,
+                      codexJson: jsonOutput,
                     ),
                   );
                 },
@@ -1151,8 +1402,44 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
     },
   ).whenComplete(() {
     profileController.dispose();
+    configOverridesController.dispose();
+    enableFeaturesController.dispose();
+    disableFeaturesController.dispose();
+    imagesController.dispose();
+    addDirsController.dispose();
+    outputSchemaController.dispose();
   });
 }
+
+class _MultiLineOptionField extends StatelessWidget {
+  const _MultiLineOptionField({
+    required this.controller,
+    required this.label,
+    required this.hint,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      minLines: 1,
+      maxLines: 4,
+      decoration: InputDecoration(labelText: label, hintText: hint),
+    );
+  }
+}
+
+String linesText(List<String> values) => values.join('\n');
+
+List<String> lines(String value) => value
+    .split(RegExp(r'\r?\n'))
+    .map((entry) => entry.trim())
+    .where((entry) => entry.isNotEmpty)
+    .toList(growable: false);
 
 Future<void> showCliOptionHelpDialog(BuildContext context) {
   return showDialog<void>(
@@ -1216,18 +1503,54 @@ Future<void> showSessionOptionsSummaryDialog(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(session.title),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Model: ${options.codexModel}'),
-          const SizedBox(height: 6),
-          Text('Sandbox: ${options.codexSandbox}'),
-          const SizedBox(height: 6),
-          Text('Bypass sandbox: ${options.codexBypassSandbox ? 'on' : 'off'}'),
-          const SizedBox(height: 6),
-          Text('Profile: ${options.codexProfile ?? 'None'}'),
-        ],
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Model: ${options.codexModel}'),
+            const SizedBox(height: 6),
+            Text('Sandbox: ${options.codexSandbox}'),
+            const SizedBox(height: 6),
+            Text(
+              'Bypass sandbox: ${options.codexBypassSandbox ? 'on' : 'off'}',
+            ),
+            const SizedBox(height: 6),
+            Text('Profile: ${options.codexProfile ?? 'None'}'),
+            const SizedBox(height: 6),
+            Text('Config: ${summaryList(options.codexConfigOverrides)}'),
+            const SizedBox(height: 6),
+            Text('Enable: ${summaryList(options.codexEnableFeatures)}'),
+            const SizedBox(height: 6),
+            Text('Disable: ${summaryList(options.codexDisableFeatures)}'),
+            const SizedBox(height: 6),
+            Text('Images: ${summaryList(options.codexImages)}'),
+            const SizedBox(height: 6),
+            Text('OSS: ${options.codexOss ? 'on' : 'off'}'),
+            const SizedBox(height: 6),
+            Text('Local provider: ${options.codexLocalProvider ?? 'Default'}'),
+            const SizedBox(height: 6),
+            Text('Full auto: ${options.codexFullAuto ? 'on' : 'off'}'),
+            const SizedBox(height: 6),
+            Text('Add dirs: ${summaryList(options.codexAddDirs)}'),
+            const SizedBox(height: 6),
+            Text(
+              'Skip git repo check: ${options.codexSkipGitRepoCheck ? 'on' : 'off'}',
+            ),
+            const SizedBox(height: 6),
+            Text('Ephemeral: ${options.codexEphemeral ? 'on' : 'off'}'),
+            const SizedBox(height: 6),
+            Text(
+              'Ignore user config: ${options.codexIgnoreUserConfig ? 'on' : 'off'}',
+            ),
+            const SizedBox(height: 6),
+            Text('Ignore rules: ${options.codexIgnoreRules ? 'on' : 'off'}'),
+            const SizedBox(height: 6),
+            Text('Output schema: ${options.codexOutputSchema ?? 'None'}'),
+            const SizedBox(height: 6),
+            Text('JSON events: ${options.codexJson ? 'on' : 'off'}'),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -1237,6 +1560,14 @@ Future<void> showSessionOptionsSummaryDialog(
       ],
     ),
   );
+}
+
+String summaryList(List<String> values) {
+  if (values.isEmpty) {
+    return 'None';
+  }
+
+  return values.join(', ');
 }
 
 class _ConnectionSummary extends StatefulWidget {

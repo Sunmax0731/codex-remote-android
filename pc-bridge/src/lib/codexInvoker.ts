@@ -66,9 +66,23 @@ export class CliCodexInvoker implements CodexInvoker {
         commandPath: this.config.codexCommandPath,
         model: input.command.codexModel ?? this.config.codexModel,
         profile: input.command.codexProfile,
+        configOverrides: input.command.codexConfigOverrides ?? [],
+        enableFeatures: input.command.codexEnableFeatures ?? [],
+        disableFeatures: input.command.codexDisableFeatures ?? [],
+        images: input.command.codexImages ?? [],
+        oss: input.command.codexOss ?? false,
+        localProvider: input.command.codexLocalProvider,
         bypassSandbox: input.command.codexBypassSandbox ?? this.config.codexBypassSandbox,
+        fullAuto: input.command.codexFullAuto ?? false,
         workspacePath: this.config.workspacePath,
+        addDirs: input.command.codexAddDirs ?? [],
         sandbox: input.command.codexSandbox ?? this.config.codexSandbox,
+        skipGitRepoCheck: input.command.codexSkipGitRepoCheck ?? false,
+        ephemeral: input.command.codexEphemeral ?? false,
+        ignoreUserConfig: input.command.codexIgnoreUserConfig ?? false,
+        ignoreRules: input.command.codexIgnoreRules ?? false,
+        outputSchema: input.command.codexOutputSchema,
+        json: input.command.codexJson ?? false,
         timeoutSeconds: this.config.codexTimeoutSeconds,
         progressIntervalSeconds: this.config.codexProgressIntervalSeconds,
         outputPath,
@@ -107,9 +121,23 @@ type RunCodexExecInput = {
   commandPath: string;
   model?: string;
   profile?: string;
+  configOverrides: string[];
+  enableFeatures: string[];
+  disableFeatures: string[];
+  images: string[];
+  oss: boolean;
+  localProvider?: string;
   bypassSandbox: boolean;
+  fullAuto: boolean;
   workspacePath: string;
+  addDirs: string[];
   sandbox: string;
+  skipGitRepoCheck: boolean;
+  ephemeral: boolean;
+  ignoreUserConfig: boolean;
+  ignoreRules: boolean;
+  outputSchema?: string;
+  json: boolean;
   timeoutSeconds: number;
   progressIntervalSeconds: number;
   outputPath: string;
@@ -126,10 +154,64 @@ type RunCodexExecResult = {
 function runCodexExec(input: RunCodexExecInput): Promise<RunCodexExecResult> {
   const codexArgs = ["exec", "--cd", input.workspacePath];
 
+  if (input.ignoreUserConfig) {
+    codexArgs.push("--ignore-user-config");
+  }
+
+  for (const value of input.configOverrides) {
+    codexArgs.push("--config", value);
+  }
+
+  for (const feature of input.enableFeatures) {
+    codexArgs.push("--enable", feature);
+  }
+
+  for (const feature of input.disableFeatures) {
+    codexArgs.push("--disable", feature);
+  }
+
+  for (const image of input.images) {
+    codexArgs.push("--image", image);
+  }
+
   if (input.bypassSandbox) {
     codexArgs.push("--dangerously-bypass-approvals-and-sandbox");
+  } else if (input.fullAuto) {
+    codexArgs.push("--full-auto");
   } else {
     codexArgs.push("--sandbox", input.sandbox);
+  }
+
+  if (input.oss) {
+    codexArgs.push("--oss");
+  }
+
+  if (input.localProvider) {
+    codexArgs.push("--local-provider", input.localProvider);
+  }
+
+  for (const addDir of input.addDirs) {
+    codexArgs.push("--add-dir", addDir);
+  }
+
+  if (input.skipGitRepoCheck) {
+    codexArgs.push("--skip-git-repo-check");
+  }
+
+  if (input.ephemeral) {
+    codexArgs.push("--ephemeral");
+  }
+
+  if (input.ignoreRules) {
+    codexArgs.push("--ignore-rules");
+  }
+
+  if (input.outputSchema) {
+    codexArgs.push("--output-schema", input.outputSchema);
+  }
+
+  if (input.json) {
+    codexArgs.push("--json");
   }
 
   codexArgs.push("--output-last-message", input.outputPath, "-");
