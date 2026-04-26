@@ -61,9 +61,32 @@ class SessionSummary {
   final String? lastErrorPreview;
 }
 
+class CommandSummary {
+  const CommandSummary({
+    required this.id,
+    required this.text,
+    required this.status,
+    this.resultText,
+    this.errorText,
+  });
+
+  final String id;
+  final String text;
+  final String status;
+  final String? resultText;
+  final String? errorText;
+}
+
 abstract class SessionRepository {
   Stream<List<SessionSummary>> watchSessions(String uid);
+  Stream<List<CommandSummary>> watchCommands(String uid, String sessionId);
   Future<void> createSession({required String uid, required String pcBridgeId});
+  Future<void> createCommand({
+    required String uid,
+    required String sessionId,
+    required String pcBridgeId,
+    required String text,
+  });
 }
 
 class FirestoreSessionRepository implements SessionRepository {
@@ -92,6 +115,28 @@ class FirestoreSessionRepository implements SessionRepository {
   }
 
   @override
+  Stream<List<CommandSummary>> watchCommands(String uid, String sessionId) {
+    return firestore
+        .collection('users')
+        .doc(uid)
+        .collection('sessions')
+        .doc(sessionId)
+        .collection('commands')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              return CommandSummary(
+                id: doc.id,
+                text: data['text'] as String? ?? '',
+                status: data['status'] as String? ?? 'queued',
+                resultText: data['resultText'] as String?,
+                errorText: data['errorText'] as String?,
+              );
+            }).toList());
+  }
+
+  @override
   Future<void> createSession({required String uid, required String pcBridgeId}) async {
     final now = DateTime.now();
     final title = 'Session ${now.year}-${two(now.month)}-${two(now.day)} ${two(now.hour)}:${two(now.minute)}';
@@ -104,9 +149,43 @@ class FirestoreSessionRepository implements SessionRepository {
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
+
+  @override
+  Future<void> createCommand({
+    required String uid,
+    required String sessionId,
+    required String pcBridgeId,
+    required String text,
+  }) async {
+    final sessionRef = firestore.collection('users').doc(uid).collection('sessions').doc(sessionId);
+    final commandRef = sessionRef.collection('commands').doc();
+    final batch = firestore.batch();
+
+    batch.set(commandRef, {
+      'text': text,
+      'status': 'queued',
+      'targetPcBridgeId': pcBridgeId,
+      'createdByDeviceId': 'android-app',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    batch.set(sessionRef, {
+      'status': 'queued',
+      'updatedAt': FieldValue.serverTimestamp(),
+      'lastCommandId': commandRef.id,
+      'lastCommandPreview': preview(text),
+    }, SetOptions(merge: true));
+
+    await batch.commit();
+  }
 }
 
 String two(int value) => value.toString().padLeft(2, '0');
+
+String preview(String value) {
+  final trimmed = value.trim();
+  return trimmed.length <= 120 ? trimmed : '${trimmed.substring(0, 117)}...';
+}
 
 class RemoteCodexApp extends StatelessWidget {
   const RemoteCodexApp({
@@ -255,7 +334,20 @@ class _SessionListViewState extends State<SessionListView> {
                     SliverList.builder(
                       itemCount: sessions.length,
                       itemBuilder: (context, index) {
-                        return _SessionTile(session: sessions[index]);
+                        return _SessionTile(
+                          session: sessions[index],
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => SessionDetailPage(
+                                  bootstrap: widget.bootstrap,
+                                  session: sessions[index],
+                                  sessionRepository: widget.sessionRepository,
+                                ),
+                              ),
+                            );
+                          },
+                        );
                       },
                     ),
                 ],
@@ -313,9 +405,10 @@ class _ConnectionSummary extends StatelessWidget {
 }
 
 class _SessionTile extends StatelessWidget {
-  const _SessionTile({required this.session});
+  const _SessionTile({required this.session, required this.onTap});
 
   final SessionSummary session;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -325,9 +418,216 @@ class _SessionTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Card(
         child: ListTile(
+          onTap: onTap,
           title: Text(session.title),
           subtitle: Text(subtitle),
           trailing: const Icon(Icons.chevron_right),
+        ),
+      ),
+    );
+  }
+}
+
+class SessionDetailPage extends StatefulWidget {
+  const SessionDetailPage({
+    super.key,
+    required this.bootstrap,
+    required this.session,
+    required this.sessionRepository,
+  });
+
+  final AppBootstrap bootstrap;
+  final SessionSummary session;
+  final SessionRepository sessionRepository;
+
+  @override
+  State<SessionDetailPage> createState() => _SessionDetailPageState();
+}
+
+class _SessionDetailPageState extends State<SessionDetailPage> {
+  final TextEditingController controller = TextEditingController();
+  bool isSending = false;
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> sendCommand() async {
+    final text = controller.text.trim();
+    if (text.isEmpty || isSending) {
+      return;
+    }
+
+    setState(() => isSending = true);
+    try {
+      await widget.sessionRepository.createCommand(
+        uid: widget.bootstrap.uid,
+        sessionId: widget.session.id,
+        pcBridgeId: widget.bootstrap.pcBridgeId,
+        text: text,
+      );
+      controller.clear();
+    } finally {
+      if (mounted) {
+        setState(() => isSending = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.session.title)),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: StreamBuilder<List<CommandSummary>>(
+                stream: widget.sessionRepository.watchCommands(widget.bootstrap.uid, widget.session.id),
+                builder: (context, snapshot) {
+                  final commands = snapshot.data ?? const <CommandSummary>[];
+
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    return _StartupMessage(
+                      title: 'Command load failed',
+                      message: snapshot.error.toString(),
+                      child: const Icon(Icons.error_outline, size: 36),
+                    );
+                  }
+
+                  if (commands.isEmpty) {
+                    return const _NoCommands();
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                    itemCount: commands.length,
+                    itemBuilder: (context, index) => _CommandTile(command: commands[index]),
+                  );
+                },
+              ),
+            ),
+            _CommandComposer(
+              controller: controller,
+              isSending: isSending,
+              onSend: sendCommand,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CommandTile extends StatelessWidget {
+  const _CommandTile({required this.command});
+
+  final CommandSummary command;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = command.status;
+    final detail = command.errorText ?? command.resultText ?? 'Waiting for final result.';
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    command.text,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Chip(label: Text(status)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SelectableText(detail),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CommandComposer extends StatelessWidget {
+  const _CommandComposer({
+    required this.controller,
+    required this.isSending,
+    required this.onSend,
+  });
+
+  final TextEditingController controller;
+  final bool isSending;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: controller,
+                minLines: 1,
+                maxLines: 4,
+                textInputAction: TextInputAction.newline,
+                decoration: const InputDecoration(
+                  labelText: 'Instruction',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton.filled(
+              onPressed: isSending ? null : onSend,
+              tooltip: 'Send',
+              icon: isSending
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NoCommands extends StatelessWidget {
+  const _NoCommands();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.chat_bubble_outline, size: 40),
+            const SizedBox(height: 16),
+            Text('No commands yet', style: Theme.of(context).textTheme.titleLarge),
+          ],
         ),
       ),
     );

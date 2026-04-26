@@ -32,7 +32,7 @@ Firebase SDK設定で、ユーザーが取得した `google-services.json` を `
 
 セッション一覧では `/users/{uid}/sessions` を `updatedAt` 降順で購読し、`New session` から新規セッションを作成する。作成時はMVP接続先として `targetPcBridgeId: home-main-pc` を保存する。
 
-コマンド送信は後続Issueで実装する。
+セッション詳細では `/users/{uid}/sessions/{sessionId}/commands` を `createdAt` 降順で購読し、入力したテキストを `queued` コマンドとして作成する。処理中の逐次ログは表示せず、Firestoreに保存された `resultText` または `errorText` を最終結果として表示する。
 
 ## MVP責務
 
