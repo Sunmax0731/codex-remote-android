@@ -5,6 +5,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:remote_codex/main.dart';
 
 void main() {
+  final binding = TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    binding.platformDispatcher.localeTestValue = const Locale('en');
+    binding.platformDispatcher.localesTestValue = const [Locale('en')];
+  });
+
+  tearDown(() {
+    binding.platformDispatcher.clearLocaleTestValue();
+    binding.platformDispatcher.clearLocalesTestValue();
+  });
+
   test('parses notification routing payloads', () {
     final payload = notificationPayloadFromMessageData({
       'sessionId': 'session-1',
@@ -40,7 +52,7 @@ void main() {
     );
     await tester.pump();
     repository.emit(const <SessionSummary>[]);
-    await tester.pumpAndSettle();
+    await pumpFrames(tester);
 
     expect(find.text('Connected as anonymous user'), findsOneWidget);
     expect(find.text('PC bridge: home-main-pc (active)'), findsOneWidget);
@@ -49,6 +61,39 @@ void main() {
     expect(find.text('CLI option help'), findsNothing);
     expect(find.text('UID: test-uid'), findsOneWidget);
     expect(find.text('No sessions yet'), findsOneWidget);
+  });
+
+  testWidgets('uses Japanese strings when device locale is Japanese', (
+    tester,
+  ) async {
+    tester.platformDispatcher.localeTestValue = const Locale('ja');
+    tester.platformDispatcher.localesTestValue = const [Locale('ja')];
+    addTearDown(tester.platformDispatcher.clearLocaleTestValue);
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const <SessionSummary>[]);
+    await pumpFrames(tester);
+
+    expect(find.text('匿名ユーザーで接続中'), findsOneWidget);
+    expect(find.text('セッションはまだありません'), findsOneWidget);
+    expect(find.text('新規セッション'), findsOneWidget);
   });
 
   test('includes gpt-5.5 in model options', () {
@@ -128,7 +173,7 @@ void main() {
     );
     await tester.pump();
     repository.emit(const <SessionSummary>[]);
-    await tester.pumpAndSettle();
+    await pumpFrames(tester);
 
     await tester.tap(find.text('Check PC now'));
     await tester.pump();
@@ -156,14 +201,14 @@ void main() {
     );
     await tester.pump();
     repository.emit(const <SessionSummary>[]);
-    await tester.pumpAndSettle();
+    await pumpFrames(tester);
 
     await tester.tap(find.text('CLI defaults'));
-    await tester.pumpAndSettle();
+    await pumpFrames(tester);
     expect(find.text('Sandbox'), findsOneWidget);
     expect(find.text('Bypass sandbox'), findsOneWidget);
     await tester.tap(find.text('Advanced CLI options'));
-    await tester.pumpAndSettle();
+    await pumpFrames(tester);
     expect(find.byTooltip('Select image file'), findsOneWidget);
     await tester.tap(find.text('Save'));
     await tester.pump();
@@ -193,13 +238,13 @@ void main() {
     );
     await tester.pump();
     repository.emit(const <SessionSummary>[]);
-    await tester.pumpAndSettle();
+    await pumpFrames(tester);
 
     await tester.tap(find.text('CLI defaults'));
-    await tester.pumpAndSettle();
+    await pumpFrames(tester);
     await tester.enterText(find.byType(TextField).first, 'focused-profile');
     await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
+    await pumpFrames(tester);
 
     expect(tester.takeException(), isNull);
     expect(repository.savedDefaultsCount, 0);
@@ -225,12 +270,12 @@ void main() {
     );
     await tester.pump();
     repository.emit(const <SessionSummary>[]);
-    await tester.pumpAndSettle();
+    await pumpFrames(tester);
 
     await tester.tap(find.text('CLI defaults'));
-    await tester.pumpAndSettle();
+    await pumpFrames(tester);
     await tester.tap(find.byTooltip('Show help for Model'));
-    await tester.pumpAndSettle();
+    await pumpFrames(tester);
 
     expect(find.text('Example: gpt-5.5'), findsOneWidget);
   });
@@ -269,10 +314,10 @@ void main() {
         ),
       ),
     ]);
-    await tester.pumpAndSettle();
+    await pumpFrames(tester);
 
     await tester.longPress(find.text('Session 1'));
-    await tester.pumpAndSettle();
+    await pumpFrames(tester);
 
     expect(find.text('Model: gpt-5.4-mini'), findsOneWidget);
     expect(find.text('Sandbox: read-only'), findsOneWidget);
@@ -343,7 +388,7 @@ void main() {
       SessionSummary(id: 'session-1', title: 'Session 1', status: 'idle'),
     ]);
     repository.emitCommands('session-1', const <CommandSummary>[]);
-    await tester.pump();
+    await pumpFrames(tester);
 
     await tester.tap(find.text('Session 1'));
     await tester.pump();
@@ -354,7 +399,7 @@ void main() {
 
     await tester.enterText(find.byType(TextField), 'Summarize the repo');
     await tester.tap(find.byTooltip('Send'));
-    await tester.pump();
+    await pumpFrames(tester);
 
     expect(repository.createdCommandText, 'Summarize the repo');
     expect(find.text('Summarize the repo'), findsOneWidget);
@@ -362,11 +407,18 @@ void main() {
   });
 }
 
+Future<void> pumpFrames(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 300));
+}
+
 class FakeSessionRepository implements SessionRepository {
   final StreamController<List<SessionSummary>> controller =
       StreamController<List<SessionSummary>>.broadcast();
   final Map<String, StreamController<List<CommandSummary>>> commandControllers =
       {};
+  List<SessionSummary>? latestSessions;
+  final Map<String, List<CommandSummary>> latestCommands = {};
   int createdSessionCount = 0;
   int healthCheckCount = 0;
   int savedDefaultsCount = 0;
@@ -375,15 +427,29 @@ class FakeSessionRepository implements SessionRepository {
   SessionCreateOptions cliDefaults = defaultSessionCreateOptions;
 
   void emit(List<SessionSummary> sessions) {
+    latestSessions = sessions;
     controller.add(sessions);
   }
 
   @override
-  Stream<List<SessionSummary>> watchSessions(String uid) => controller.stream;
+  Stream<List<SessionSummary>> watchSessions(String uid) async* {
+    final latest = latestSessions;
+    if (latest != null) {
+      yield latest;
+    }
+    yield* controller.stream;
+  }
 
   @override
-  Stream<List<CommandSummary>> watchCommands(String uid, String sessionId) {
-    return commandControllers
+  Stream<List<CommandSummary>> watchCommands(
+    String uid,
+    String sessionId,
+  ) async* {
+    final latest = latestCommands[sessionId];
+    if (latest != null) {
+      yield latest;
+    }
+    yield* commandControllers
         .putIfAbsent(
           sessionId,
           () => StreamController<List<CommandSummary>>.broadcast(),
@@ -422,6 +488,7 @@ class FakeSessionRepository implements SessionRepository {
   }
 
   void emitCommands(String sessionId, List<CommandSummary> commands) {
+    latestCommands[sessionId] = commands;
     commandControllers
         .putIfAbsent(
           sessionId,
