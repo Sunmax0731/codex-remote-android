@@ -159,35 +159,29 @@ export class FirestoreRelayRepository implements CommandRepository {
   }
 
   async updateHeartbeat(pcBridgeId: string, now: Date): Promise<void> {
-    if (!this.config.ownerUserId) {
-      return;
-    }
-
     const firestore = await this.getFirestore();
-    await firestore.doc(`users/${this.config.ownerUserId}/pcBridges/${pcBridgeId}`).set({
+    const userIds = await this.resolveBridgeUserIds(firestore, pcBridgeId);
+    await Promise.all(userIds.map((userId) => firestore.doc(`users/${userId}/pcBridges/${pcBridgeId}`).set({
       pcBridgeId,
       displayName: this.config.displayName,
       workspaceName: this.config.workspaceName,
       lastSeenAt: Timestamp.fromDate(now),
       status: "active",
       version: "0.1.0",
-    }, { merge: true });
+    }, { merge: true })));
   }
 
   async updateQueueCheck(pcBridgeId: string, now: Date): Promise<void> {
-    if (!this.config.ownerUserId) {
-      return;
-    }
-
     const firestore = await this.getFirestore();
-    await firestore.doc(`users/${this.config.ownerUserId}/pcBridges/${pcBridgeId}`).set({
+    const userIds = await this.resolveBridgeUserIds(firestore, pcBridgeId);
+    await Promise.all(userIds.map((userId) => firestore.doc(`users/${userId}/pcBridges/${pcBridgeId}`).set({
       pcBridgeId,
       displayName: this.config.displayName,
       workspaceName: this.config.workspaceName,
       lastQueueCheckedAt: Timestamp.fromDate(now),
       status: "active",
       version: "0.1.0",
-    }, { merge: true });
+    }, { merge: true })));
   }
 
   private async getFirestore(): Promise<Firestore> {
@@ -223,6 +217,26 @@ export class FirestoreRelayRepository implements CommandRepository {
       );
 
     return getFirestore(app);
+  }
+
+  private async resolveBridgeUserIds(firestore: Firestore, pcBridgeId: string): Promise<string[]> {
+    const userIds = new Set<string>();
+
+    if (this.config.ownerUserId) {
+      userIds.add(this.config.ownerUserId);
+    }
+
+    const users = await firestore
+      .collection("users")
+      .where("defaultPcBridgeId", "==", pcBridgeId)
+      .limit(20)
+      .get();
+
+    for (const user of users.docs) {
+      userIds.add(user.id);
+    }
+
+    return [...userIds];
   }
 }
 
