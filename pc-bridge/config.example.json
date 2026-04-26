@@ -9,6 +9,8 @@
   "relayMode": "local",
   "localRelayPath": ".local\\relay-state.json",
   "claimTtlSeconds": 300,
+  "pollIntervalSeconds": 10,
+  "maxCommandsPerTick": 5,
   "codexMode": "stub",
   "codexCommandPath": "codex.cmd",
   "codexSandbox": "workspace-write",

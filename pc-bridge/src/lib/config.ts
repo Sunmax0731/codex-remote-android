@@ -40,6 +40,8 @@ export function normalizeConfig(raw: RawConfig): BridgeConfig {
     relayMode,
     localRelayPath: raw.localRelayPath ?? ".local/relay-state.json",
     claimTtlSeconds: raw.claimTtlSeconds ?? 300,
+    pollIntervalSeconds: raw.pollIntervalSeconds ?? 10,
+    maxCommandsPerTick: raw.maxCommandsPerTick ?? 5,
     codexMode,
     codexCommandPath: raw.codexCommandPath ?? "codex.cmd",
     codexSandbox,

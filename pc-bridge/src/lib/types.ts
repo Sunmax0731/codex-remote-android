@@ -15,6 +15,8 @@ export type BridgeConfig = {
   relayMode: RelayMode;
   localRelayPath: string;
   claimTtlSeconds: number;
+  pollIntervalSeconds: number;
+  maxCommandsPerTick: number;
   codexMode: CodexMode;
   codexCommandPath: string;
   codexSandbox: CodexSandbox;
