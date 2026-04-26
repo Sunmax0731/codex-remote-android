@@ -26,6 +26,13 @@ Android app <- Firebase Cloud Messaging completion notification
 
 This avoids opening inbound ports on the home network and allows cellular access.
 
+## Current Setup Status
+
+- `app/`: Flutter app placeholder. Flutter SDK is not installed on PATH yet.
+- `pc-bridge/`: Node.js/TypeScript scaffold for the Windows PC bridge.
+- `firebase/`: Firebase relay scaffold for Firestore, Functions, and Emulators.
+- `docs/development-setup.md`: Local toolchain status and setup handoff.
+
 ## Documents
 
 - [Requirements](docs/requirements.md)
