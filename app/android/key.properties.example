@@ -1,0 +1,4 @@
+storePassword=change-me
+keyPassword=change-me
+keyAlias=upload
+storeFile=D:\\secure\\codex-remote-upload-keystore.jks

@@ -4,7 +4,7 @@
 
 Xperia 1 IIIにインストールできるAndroidアプリをMVPのRelease対象とする。
 
-最初のReleaseはdebug署名または内部配布用署名のAPKでよい。Google Play公開はMVP範囲外とする。
+最初のReleaseは内部配布用署名のAPKを対象とする。debug署名APKは配布用途に使わない。Google Play公開はMVP範囲外とする。
 
 ## Release準備チェックリスト
 
@@ -40,3 +40,7 @@ Releaseは次を満たした時点で完了とする。
 - セッションpayloadを暗号化する。
 - 複数PCブリッジ登録に対応する。
 - ARBベースの翻訳管理または専門翻訳ワークフローを導入する。
+
+## release APK作成手順
+
+release APKの作成手順、署名鍵の扱い、version更新、リリースノート項目は [release APK作成手順](release-apk.md) を参照する。
