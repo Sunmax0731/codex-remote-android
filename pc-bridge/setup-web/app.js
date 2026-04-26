@@ -1,4 +1,6 @@
 const storageKey = "codexRemoteSetup.v1";
+const fixedAppName = "RemoteCodex";
+const fixedPackageName = "com.sunmax.remotecodex";
 
 const messages = {
   en: {
@@ -18,24 +20,14 @@ const messages = {
     step1: "Create a dedicated Firebase project.",
     step2: "Enable Authentication and Anonymous sign-in.",
     step3: "Create Firestore Database.",
-    step4: "Register Android app package. Example: com.sample.remotecodex.",
+    step4: "Register Android app package: com.sunmax.remotecodex.",
     step5Prefix: "Download",
     step6: "Create a PC bridge service account JSON and keep it local only.",
     step7: "Generate the QR and scan it from the Android setup screen.",
     step8: "Deploy Firestore rules, indexes, and Functions when needed.",
-    projectInputsTitle: "Project Inputs",
-    projectInputsSubtitle: "These values are saved only in this browser.",
     appNameLabel: "App name",
     packageNameLabel: "Android package name",
-    appNamePlaceholder: "RemoteCodex",
-    packageNamePlaceholder: "com.sunmax.remotecodex",
-    commandsTitle: "Command Guide",
-    commandsSubtitle:
-      "Run these from PowerShell or Command Prompt when setting up the PC side.",
-    commandInstallTitle: "Install PC dependencies",
-    commandStartUiTitle: "Start this setup UI",
-    commandDeployTitle: "Deploy Firebase resources",
-    commandQrTitle: "Generate QR from CLI",
+    fixedAppInfoTitle: "Distributed APK settings",
     jsonRegistrationTitle: "JSON Registration",
     jsonRegistrationSubtitle:
       "Use client config for the QR. Keep admin credentials on the PC side only.",
@@ -49,7 +41,7 @@ const messages = {
       "Never scan or share service account JSON, private keys, or Admin SDK credentials.",
     qrGeneratorTitle: "QR Generator",
     qrGeneratorSubtitle:
-      "Generate the same payload format used by the CLI QR command.",
+      "Generate the Android setup QR for the distributed APK.",
     generateQr: "Generate QR",
     saveLocal: "Save inputs locally",
     clearLocal: "Clear local inputs",
@@ -99,24 +91,14 @@ const messages = {
     step1: "専用のFirebaseプロジェクトを作成する。",
     step2: "Authenticationで匿名ログインを有効化する。",
     step3: "Firestore Databaseを作成する。",
-    step4: "Androidアプリのpackageを登録する（例：com.sample.remotecodex）",
+    step4: "Androidアプリのpackageを登録する: com.sunmax.remotecodex",
     step5Prefix: "次のファイルをダウンロードする:",
     step6: "PCブリッジ用service account JSONを作成し、PC上だけで保管する。",
     step7: "QRを生成し、Androidのセットアップ画面から読み取る。",
     step8: "必要に応じてFirestore Rules、Indexes、Functionsをデプロイする。",
-    projectInputsTitle: "プロジェクト入力",
-    projectInputsSubtitle: "これらの値はこのブラウザ内にだけ保存されます。",
     appNameLabel: "アプリ名",
     packageNameLabel: "Android package名",
-    appNamePlaceholder: "RemoteCodex",
-    packageNamePlaceholder: "com.sunmax.remotecodex",
-    commandsTitle: "コマンド案内",
-    commandsSubtitle:
-      "PC側のセットアップで必要なコマンドをPowerShellまたはコマンドプロンプトで実行します。",
-    commandInstallTitle: "PC側の依存関係をインストール",
-    commandStartUiTitle: "このセットアップ画面を起動",
-    commandDeployTitle: "Firebaseリソースをデプロイ",
-    commandQrTitle: "CLIでQRコードを生成",
+    fixedAppInfoTitle: "配布APKの固定設定",
     jsonRegistrationTitle: "JSON登録",
     jsonRegistrationSubtitle:
       "QRにはクライアント設定だけを使います。管理者認証情報はPC側だけで扱います。",
@@ -129,7 +111,7 @@ const messages = {
     dangerNotice:
       "service account JSON、秘密鍵、Admin SDK認証情報をQR化したり共有したりしないでください。",
     qrGeneratorTitle: "QR生成",
-    qrGeneratorSubtitle: "CLIのQRコマンドと同じpayload形式で生成します。",
+    qrGeneratorSubtitle: "配布APK向けのAndroidセットアップQRを生成します。",
     generateQr: "QRを生成",
     saveLocal: "入力をローカル保存",
     clearLocal: "ローカル入力をクリア",
@@ -177,23 +159,14 @@ const messages = {
     step1: "创建专用的 Firebase 项目。",
     step2: "启用 Authentication 和匿名登录。",
     step3: "创建 Firestore Database。",
-    step4: "注册 Android 应用 package（示例：com.sample.remotecodex）",
+    step4: "注册 Android 应用 package：com.sunmax.remotecodex",
     step5Prefix: "下载文件:",
     step6: "创建 PC 桥接用 service account JSON，并只保存在本机。",
     step7: "生成二维码，并从 Android 设置画面扫描。",
     step8: "按需部署 Firestore rules、indexes 和 Functions。",
-    projectInputsTitle: "项目输入",
-    projectInputsSubtitle: "这些值只保存在当前浏览器中。",
     appNameLabel: "应用名称",
     packageNameLabel: "Android package 名称",
-    appNamePlaceholder: "RemoteCodex",
-    packageNamePlaceholder: "com.sunmax.remotecodex",
-    commandsTitle: "命令指南",
-    commandsSubtitle: "设置 PC 端时，请在 PowerShell 或命令提示符中运行这些命令。",
-    commandInstallTitle: "安装 PC 端依赖",
-    commandStartUiTitle: "启动此设置页面",
-    commandDeployTitle: "部署 Firebase 资源",
-    commandQrTitle: "通过 CLI 生成二维码",
+    fixedAppInfoTitle: "分发 APK 的固定设置",
     jsonRegistrationTitle: "JSON 登记",
     jsonRegistrationSubtitle:
       "二维码只使用客户端配置。管理员凭据只在 PC 侧处理。",
@@ -205,7 +178,7 @@ const messages = {
     dangerNotice:
       "不要扫描或共享 service account JSON、私钥或 Admin SDK 凭据。",
     qrGeneratorTitle: "二维码生成",
-    qrGeneratorSubtitle: "生成与 CLI 二维码命令相同格式的 payload。",
+    qrGeneratorSubtitle: "为分发 APK 生成 Android 设置二维码。",
     generateQr: "生成二维码",
     saveLocal: "保存到本地",
     clearLocal: "清除本地输入",
@@ -240,8 +213,6 @@ const messages = {
   },
 };
 
-const appName = document.querySelector("#appName");
-const packageName = document.querySelector("#packageName");
 const languageSelect = document.querySelector("#languageSelect");
 const localStatus = document.querySelector("#localStatus");
 const googleServicesFile = document.querySelector("#googleServicesFile");
@@ -320,7 +291,7 @@ generateQr.addEventListener("click", async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         googleServicesJson: googleServicesText.value,
-        packageName: packageName.value,
+        packageName: fixedPackageName,
       }),
     });
     const result = await response.json();
@@ -368,10 +339,6 @@ function loadLocalState() {
       languageSelect.value = currentLanguage;
       applyLanguage();
     }
-    if (typeof state.appName === "string") appName.value = state.appName;
-    if (typeof state.packageName === "string") {
-      packageName.value = state.packageName;
-    }
     if (typeof state.googleServicesText === "string") {
       googleServicesText.value = state.googleServicesText;
       setStatus(googleServicesStatus, t("googleServicesRestored"), false);
@@ -387,8 +354,8 @@ function saveLocalState() {
     storageKey,
     JSON.stringify({
       language: currentLanguage,
-      appName: appName.value,
-      packageName: packageName.value,
+      appName: fixedAppName,
+      packageName: fixedPackageName,
       googleServicesText: googleServicesText.value,
     }),
   );
