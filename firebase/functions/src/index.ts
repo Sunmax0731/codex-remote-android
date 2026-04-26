@@ -10,7 +10,10 @@ const terminalStatuses = new Set(["completed", "failed"]);
 const notificationChannelId = "remote_codex_completion";
 
 export const notifyCommandCompletion = onDocumentUpdated(
-  "users/{userId}/sessions/{sessionId}/commands/{commandId}",
+  {
+    document: "users/{userId}/sessions/{sessionId}/commands/{commandId}",
+    region: "asia-northeast1",
+  },
   async (event) => {
     const change = event.data;
     if (!change) {

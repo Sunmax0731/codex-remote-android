@@ -21,7 +21,14 @@ Phase 6で実装する主な処理:
 
 ```powershell
 npm.cmd run build
+npm.cmd run check
 firebase deploy --only functions
 ```
 
-`firebase deploy --only functions` は Blaze plan が必要。Spark plan のままでは `artifactregistry.googleapis.com` / `cloudbuild.googleapis.com` を有効化できず停止する。
+`firebase deploy --only functions` は事前に `npm --prefix "$RESOURCE_DIR" run build` を実行し、`lib/index.js` を生成する。
+
+初回デプロイ時の注意:
+
+- Blaze plan が必要。
+- Cloud Functions / Cloud Build / Artifact Registry / Cloud Run / Eventarc / Pub/Sub / Compute Engine API が必要。
+- 現在はCompute Engine APIが無効なため、Functions upload bucket作成時に `Could not create bucket ... PERMISSION_DENIED` で停止している。
