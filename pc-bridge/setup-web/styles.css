@@ -208,6 +208,31 @@ textarea {
   gap: 18px;
 }
 
+.command-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+pre {
+  min-height: 92px;
+  margin: 8px 0 0;
+  padding: 12px;
+  overflow-x: auto;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+pre code {
+  padding: 0;
+  background: transparent;
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -323,6 +348,7 @@ code {
   .top-actions,
   .layout,
   .two-column,
+  .command-grid,
   .qr-area,
   .link-grid {
     display: block;
