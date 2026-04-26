@@ -334,8 +334,51 @@ Phase 4で確認済み:
 - `codex.cmd` は `C:\Users\gkkjh\AppData\Roaming\npm\codex.cmd` に存在する。
 - `codex exec --help` は利用可能。
 - PCブリッジには `stub` modeと `cli` modeの `CodexInvoker` 境界を用意した。
-- `cli` modeは `shell: false` で固定 `codex.cmd exec` を起動し、スマホ入力はstdin promptとして渡す。
+- `cli` modeは固定したCodex CLIを起動し、スマホ入力はstdin promptとして渡す。
 - 実Codex実行は作業内容を伴うため、受入条件が明確なIssueでだけ検証する。
+
+Issue #29で追加確認済み:
+
+- Codex CLI `0.114.0` では既定モデル `gpt-5.5` が未対応だったため、PCブリッジのローカル設定に `codexModel: "gpt-5.2"` を追加する。
+- WindowsではNode.jsから `.cmd` を直接spawnできないため、PCブリッジはローカル設定の `.cmd` 起動だけ `cmd.exe /d /s /c` を使う。スマホ入力はstdin promptのままで、shell commandとして扱わない。
+- `--output-last-message` が空の場合は成功扱いにせず、`failed` と `errorText` 保存にする。
+- ローカルrelayで `cli` modeの成功、未対応モデル失敗、timeout失敗を確認済み。
+- Firestore relayで `cli` modeの短いsmoke commandを処理し、`completed`、`resultText: CLI_FIRESTORE_OK`、`notificationSuccessCount: 1` を確認済み。
+
+実Codex検証用のPCブリッジ設定例:
+
+```json
+{
+  "codexMode": "cli",
+  "codexCommandPath": "codex.cmd",
+  "codexModel": "gpt-5.2",
+  "codexSandbox": "workspace-write",
+  "codexTimeoutSeconds": 900,
+  "pollIntervalSeconds": 10,
+  "maxCommandsPerTick": 5
+}
+```
+
+PC側で常駐実行する。
+
+```powershell
+Set-Location D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+npm.cmd run start:watch
+```
+
+Issue #29のユーザー受け入れタスク:
+
+```text
+DドライブのClaudeディレクトリ以下にあるローカルリポジトリを列挙してください。またそれらの概要を要約して、リポジトリ名と併記して教えてください。
+```
+
+確認観点:
+
+- スマホアプリから送信したcommandが `queued -> running -> completed` へ進む。
+- `resultText` にCodex回答が保存される。
+- アプリをバックグラウンドにしていても完了時にプッシュ通知が届く。
+- 通知またはアプリ画面から対象セッションを開くと回答が表示される。
+- 失敗時は `failed` と `errorText` が保存される。
 
 ### Phase 5: Androidアプリ
 

@@ -29,13 +29,15 @@ This avoids opening inbound ports on the home network and allows cellular access
 ## Current Setup Status
 
 - `app/`: Flutter Android project generated for package `com.sunmax.remotecodex`. Startup initializes Firebase, signs in anonymously, stores FCM tokens, shows sessions, queues text commands for the PC bridge, routes notification taps to the target session, and uses the custom RemoteCodex launcher icon.
-- `pc-bridge/`: Node.js/TypeScript bridge with local relay and Firestore relay support. Current local config can reach Firebase in `stub` mode, and `start:watch` can keep polling queued commands.
+- `pc-bridge/`: Node.js/TypeScript bridge with local relay and Firestore relay support. Current local config can run `codexMode: cli` with a fixed Codex model, and `start:watch` can keep polling queued commands.
 - `firebase/`: Firebase relay scaffold linked to project `remotecodex-c52ae`, with Firestore rules, command query index, and a Cloud Function that sends FCM completion notifications.
 - `docs/development-setup.md`: Local toolchain status, wireless debugging workflow, and Firebase/Flutter setup handoff.
 
 ## Current Phase
 
-Phase 6 push notification integration is in progress. Android FCM setup, device token storage, notification tap routing, and the Cloud Functions completion notification trigger are implemented. `notifyCommandCompletion` is deployed to `asia-northeast1` and has sent a completion notification successfully in Firebase-side validation.
+Phase 6 push notification integration is technically complete. Android FCM setup, device token storage, notification tap routing, and the Cloud Functions completion notification trigger are implemented. `notifyCommandCompletion` is deployed to `asia-northeast1` and has sent a completion notification successfully in Firebase-side validation.
+
+Issue #29 is validating real Codex CLI execution from the PC bridge. The bridge now supports a fixed `codexModel` setting, handles Windows `.cmd` launch through `cmd.exe` without passing phone text as shell input, and treats empty Codex final messages as failures instead of completed commands. Firestore relay smoke validation has completed with `resultText: CLI_FIRESTORE_OK` and one successful push notification send.
 
 ## Documents
 

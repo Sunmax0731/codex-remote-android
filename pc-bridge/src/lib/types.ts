@@ -19,6 +19,7 @@ export type BridgeConfig = {
   maxCommandsPerTick: number;
   codexMode: CodexMode;
   codexCommandPath: string;
+  codexModel?: string;
   codexSandbox: CodexSandbox;
   codexTimeoutSeconds: number;
 };
