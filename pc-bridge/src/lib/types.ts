@@ -45,6 +45,10 @@ export type RemoteCommand = {
   completedAt?: string;
   progressText?: string;
   progressUpdatedAt?: string;
+  codexModel?: string;
+  codexSandbox?: CodexSandbox;
+  codexBypassSandbox?: boolean;
+  codexProfile?: string;
   resultText?: string;
   errorText?: string;
   notificationSentAt?: string;

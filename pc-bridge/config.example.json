@@ -14,7 +14,7 @@
   "maxCommandsPerTick": 5,
   "codexMode": "stub",
   "codexCommandPath": "codex.cmd",
-  "codexModel": "gpt-5.2",
+  "codexModel": "gpt-5.4",
   "codexBypassSandbox": false,
   "codexSandbox": "workspace-write",
   "codexTimeoutSeconds": 900,

@@ -105,9 +105,13 @@ void main() {
 
     await tester.tap(find.text('New session'));
     await tester.pump();
+    expect(find.text(defaultCodexModel), findsOneWidget);
+    await tester.tap(find.text('Create'));
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(repository.createdSessionCount, 1);
+    expect(repository.createdSessionOptions?.codexModel, defaultCodexModel);
     expect(find.text('Session 1'), findsWidgets);
     expect(find.byType(TextField), findsOneWidget);
   });
@@ -162,6 +166,7 @@ class FakeSessionRepository implements SessionRepository {
   int createdSessionCount = 0;
   int healthCheckCount = 0;
   String? createdCommandText;
+  SessionCreateOptions? createdSessionOptions;
 
   void emit(List<SessionSummary> sessions) {
     controller.add(sessions);
@@ -214,8 +219,10 @@ class FakeSessionRepository implements SessionRepository {
   Future<SessionSummary> createSession({
     required String uid,
     required String pcBridgeId,
+    required SessionCreateOptions options,
   }) async {
     createdSessionCount++;
+    createdSessionOptions = options;
     final session = SessionSummary(
       id: 'session-$createdSessionCount',
       title: 'Session $createdSessionCount',

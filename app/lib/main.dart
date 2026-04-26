@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 const defaultPcBridgeId = 'home-main-pc';
+const defaultCodexModel = 'gpt-5.4';
+const defaultCodexSandbox = 'workspace-write';
 const androidDeviceId = 'android-app';
 const notificationChannelId = 'remote_codex_completion';
 const notificationChannelName = 'RemoteCodex completion';
@@ -373,6 +375,20 @@ class PcBridgeStatus {
   final String? status;
 }
 
+class SessionCreateOptions {
+  const SessionCreateOptions({
+    required this.codexModel,
+    required this.codexSandbox,
+    required this.codexBypassSandbox,
+    this.codexProfile,
+  });
+
+  final String codexModel;
+  final String codexSandbox;
+  final bool codexBypassSandbox;
+  final String? codexProfile;
+}
+
 abstract class SessionRepository {
   Stream<List<SessionSummary>> watchSessions(String uid);
   Stream<List<CommandSummary>> watchCommands(String uid, String sessionId);
@@ -384,6 +400,7 @@ abstract class SessionRepository {
   Future<SessionSummary> createSession({
     required String uid,
     required String pcBridgeId,
+    required SessionCreateOptions options,
   });
   Future<void> createCommand({
     required String uid,
@@ -514,6 +531,7 @@ class FirestoreSessionRepository implements SessionRepository {
   Future<SessionSummary> createSession({
     required String uid,
     required String pcBridgeId,
+    required SessionCreateOptions options,
   }) async {
     final now = DateTime.now();
     final title =
@@ -527,6 +545,11 @@ class FirestoreSessionRepository implements SessionRepository {
           'title': title,
           'status': 'idle',
           'targetPcBridgeId': pcBridgeId,
+          'codexModel': options.codexModel,
+          'codexSandbox': options.codexSandbox,
+          'codexBypassSandbox': options.codexBypassSandbox,
+          if (options.codexProfile != null)
+            'codexProfile': options.codexProfile,
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
@@ -690,11 +713,17 @@ class _SessionListViewState extends State<SessionListView> {
       return;
     }
 
+    final options = await showSessionCreateOptionsDialog(context);
+    if (options == null) {
+      return;
+    }
+
     setState(() => isCreating = true);
     try {
       final session = await widget.sessionRepository.createSession(
         uid: widget.bootstrap.uid,
         pcBridgeId: widget.bootstrap.pcBridgeId,
+        options: options,
       );
       if (!mounted) {
         return;
@@ -799,6 +828,105 @@ class _SessionListViewState extends State<SessionListView> {
       },
     );
   }
+}
+
+Future<SessionCreateOptions?> showSessionCreateOptionsDialog(
+  BuildContext context,
+) {
+  final modelController = TextEditingController(text: defaultCodexModel);
+  final profileController = TextEditingController();
+  var sandbox = defaultCodexSandbox;
+  var bypassSandbox = false;
+
+  return showDialog<SessionCreateOptions>(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('New session'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: modelController,
+                    decoration: const InputDecoration(labelText: 'Model'),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: sandbox,
+                    decoration: const InputDecoration(labelText: 'Sandbox'),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'read-only',
+                        child: Text('read-only'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'workspace-write',
+                        child: Text('workspace-write'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'danger-full-access',
+                        child: Text('danger-full-access'),
+                      ),
+                    ],
+                    onChanged: bypassSandbox
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              setDialogState(() => sandbox = value);
+                            }
+                          },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: profileController,
+                    decoration: const InputDecoration(
+                      labelText: 'Profile',
+                      hintText: 'Optional config profile',
+                    ),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Bypass sandbox'),
+                    value: bypassSandbox,
+                    onChanged: (value) {
+                      setDialogState(() => bypassSandbox = value);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final model = modelController.text.trim();
+                  final profile = profileController.text.trim();
+                  Navigator.of(context).pop(
+                    SessionCreateOptions(
+                      codexModel: model.isEmpty ? defaultCodexModel : model,
+                      codexSandbox: sandbox,
+                      codexBypassSandbox: bypassSandbox,
+                      codexProfile: profile.isEmpty ? null : profile,
+                    ),
+                  );
+                },
+                child: const Text('Create'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  ).whenComplete(() {
+    modelController.dispose();
+    profileController.dispose();
+  });
 }
 
 class _ConnectionSummary extends StatefulWidget {

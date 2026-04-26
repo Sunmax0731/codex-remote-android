@@ -64,10 +64,11 @@ export class CliCodexInvoker implements CodexInvoker {
     try {
       const result = await runCodexExec({
         commandPath: this.config.codexCommandPath,
-        model: this.config.codexModel,
-        bypassSandbox: this.config.codexBypassSandbox,
+        model: input.command.codexModel ?? this.config.codexModel,
+        profile: input.command.codexProfile,
+        bypassSandbox: input.command.codexBypassSandbox ?? this.config.codexBypassSandbox,
         workspacePath: this.config.workspacePath,
-        sandbox: this.config.codexSandbox,
+        sandbox: input.command.codexSandbox ?? this.config.codexSandbox,
         timeoutSeconds: this.config.codexTimeoutSeconds,
         progressIntervalSeconds: this.config.codexProgressIntervalSeconds,
         outputPath,
@@ -105,6 +106,7 @@ export class CliCodexInvoker implements CodexInvoker {
 type RunCodexExecInput = {
   commandPath: string;
   model?: string;
+  profile?: string;
   bypassSandbox: boolean;
   workspacePath: string;
   sandbox: string;
@@ -134,6 +136,10 @@ function runCodexExec(input: RunCodexExecInput): Promise<RunCodexExecResult> {
 
   if (input.model) {
     codexArgs.splice(1, 0, "-m", input.model);
+  }
+
+  if (input.profile) {
+    codexArgs.splice(1, 0, "-p", input.profile);
   }
 
   return new Promise((resolve) => {
