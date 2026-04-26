@@ -141,6 +141,7 @@ SO 51B (mobile) • 192.168.0.4:39757 • android-arm64 • Android 13 (API 33)
 - Firestore rulesを `firebase deploy --only firestore:rules` で実プロジェクト `remotecodex-c52ae` へデプロイ。
 - Xperia 1 III画面で匿名認証後のセッション一覧初期画面を確認。
 - 画面に表示されたUIDをPCブリッジのローカル `ownerUserId` に設定し、PCブリッジがFirestore接続で `No queued command found.` まで到達することを確認。
+- resident `flutter run -d 192.168.0.4:39757 --debug` 中に手動hot reloadを実行し、変更反映を確認。
 
 residentのhot reloadは次のように起動して、変更後に `r` を押して確認する。
 
@@ -150,6 +151,8 @@ flutter run -d 192.168.0.4:39757 --debug
 ```
 
 終了は `q`。ワイヤレスデバッグのポートは変わるため、接続できない場合はXperia側の現在のdebug-portを確認し直す。
+
+実行ログにGoogle Play services由来の `DEVELOPER_ERROR` やgraphics buffer警告が出る場合がある。匿名認証、Firestore画面表示、hot reloadが成立している限り、Phase 5のブロッカーとして扱わない。
 
 ### 前提
 
