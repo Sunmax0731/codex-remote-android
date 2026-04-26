@@ -244,6 +244,14 @@ npm.cmd run validate:local
 - `resultText` と `errorText` の保存を確認する。
 - スマホ入力をraw shell commandとして実行しないstub境界で処理する。
 
+Phase 4で確認済み:
+
+- `codex.cmd` は `C:\Users\gkkjh\AppData\Roaming\npm\codex.cmd` に存在する。
+- `codex exec --help` は利用可能。
+- PCブリッジには `stub` modeと `cli` modeの `CodexInvoker` 境界を用意した。
+- `cli` modeは `shell: false` で固定 `codex.cmd exec` を起動し、スマホ入力はstdin promptとして渡す。
+- 実Codex実行は作業内容を伴うため、受入条件が明確なIssueでだけ検証する。
+
 ### Phase 5: Androidアプリ
 
 Flutter SDKが必須。現時点では `flutter` が未検出のため、Flutter導入がPhase 5開始前のブロッカー。

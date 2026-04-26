@@ -7,6 +7,10 @@
   "serviceAccountPath": "D:\\secure\\codex-remote-service-account.json",
   "relayMode": "local",
   "localRelayPath": ".local\\relay-state.json",
-  "claimTtlSeconds": 300
+  "claimTtlSeconds": 300,
+  "codexMode": "stub",
+  "codexCommandPath": "codex.cmd",
+  "codexSandbox": "workspace-write",
+  "codexTimeoutSeconds": 900
 }
 

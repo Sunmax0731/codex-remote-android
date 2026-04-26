@@ -40,12 +40,37 @@ npm.cmd run validate:local
 
 ## 実装境界
 
-現時点のCodex呼び出しは `SafeStubCodexInvoker` による安全なstub。
+Codex呼び出しは `CodexInvoker` interfaceの実装として切り替える。
+
+### `stub` mode
+
+デフォルトは `SafeStubCodexInvoker`。
 
 - スマホ入力をraw shell commandとして実行しない。
 - 空の指示は失敗として扱う。
 - `/fail` で始まる指示は検証用の失敗として扱う。
 - それ以外は受領メッセージを `resultText` として返す。
 
-実Codex連携は後続Issueで `CodexInvoker` interfaceの実装として追加する。
+### `cli` mode
+
+`config.local.json` で `codexMode` を `cli` にすると、固定した `codexCommandPath` から `codex exec` を起動する。
+
+```json
+{
+  "codexMode": "cli",
+  "codexCommandPath": "codex.cmd",
+  "codexSandbox": "workspace-write",
+  "codexTimeoutSeconds": 900
+}
+```
+
+安全境界:
+
+- `spawn(..., { shell: false })` で起動する。
+- スマホ入力はstdinでCodex promptとして渡す。
+- 実行ファイル、作業ディレクトリ、sandbox、timeoutはPCブリッジのローカル設定で固定する。
+- スマホ入力から実行ファイルやshell引数を指定できない。
+- `--output-last-message` の出力を `resultText` として保存する。
+
+実Codex実行は作業内容を伴うため、Issueの受入条件が明確な時だけ `cli` modeで検証する。
 

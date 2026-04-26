@@ -1,5 +1,9 @@
 export type RelayMode = "local" | "firestore";
 
+export type CodexMode = "stub" | "cli";
+
+export type CodexSandbox = "read-only" | "workspace-write" | "danger-full-access";
+
 export type BridgeConfig = {
   pcBridgeId: string;
   displayName: string;
@@ -10,6 +14,10 @@ export type BridgeConfig = {
   relayMode: RelayMode;
   localRelayPath: string;
   claimTtlSeconds: number;
+  codexMode: CodexMode;
+  codexCommandPath: string;
+  codexSandbox: CodexSandbox;
+  codexTimeoutSeconds: number;
 };
 
 export type CommandStatus = "queued" | "running" | "completed" | "failed" | "canceled";
