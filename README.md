@@ -13,6 +13,7 @@ Build a Flutter Android app that can:
 - Show only the final result in the app.
 - Notify the phone with a push notification when remote processing completes.
 - Work from both WiFi and cellular networks while the home PC is online.
+- Automatically follow the phone language for Japanese, English, Chinese, and Korean.
 - Target Xperia 1 III and equivalent Android devices.
 
 ## Proposed Architecture
@@ -29,7 +30,7 @@ This avoids opening inbound ports on the home network and allows cellular access
 
 ## Current Setup Status
 
-- `app/`: Flutter Android project generated for package `com.sunmax.remotecodex`. Startup initializes Firebase, signs in anonymously, stores FCM tokens, shows sessions, stores CLI option defaults, lets new sessions choose Codex CLI model/profile values and advanced CLI options, exposes per-option help inside the settings dialog, supports image file selection for `--image`, shows session options on long press, queues text commands for the PC bridge, shows running progress logs, can request an on-demand PC bridge health check, routes notification taps to the target session, and uses the custom RemoteCodex launcher icon.
+- `app/`: Flutter Android project generated for package `com.sunmax.remotecodex`. Startup initializes Firebase, signs in anonymously, stores FCM tokens, shows sessions, stores CLI option defaults, lets new sessions choose Codex CLI model/profile values and advanced CLI options, exposes per-option help inside the settings dialog, supports image file selection for `--image`, shows session options on long press, queues text commands for the PC bridge, shows running progress logs, can request an on-demand PC bridge health check, routes notification taps to the target session, follows the phone language for Japanese/English/Chinese/Korean, and uses the custom RemoteCodex launcher icon.
 - `pc-bridge/`: Node.js/TypeScript bridge with local relay and Firestore relay support. Current local config can run `codexMode: cli` with a fixed Codex model, reflect session-level Codex CLI options into `codex exec`, return 1-minute progress logs while Codex CLI is running, respond to on-demand health checks, follow Android anonymous UID changes for bridge status, and `start:watch` can keep polling queued commands. Windows batch files under `pc-bridge/scripts/` can run the watcher in the background or register it with Task Scheduler.
 - `firebase/`: Firebase relay scaffold linked to project `remotecodex-c52ae`, with Firestore rules, command query index, and a Cloud Function that sends FCM completion notifications.
 - `docs/development-setup.md`: Local toolchain status, wireless debugging workflow, and Firebase/Flutter setup handoff.

@@ -8,6 +8,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 const defaultPcBridgeId = 'home-main-pc';
 const defaultCodexModel = 'gpt-5.4';
@@ -130,10 +131,416 @@ const cliOptionHelpItems = [
     example: 'on',
   ),
 ];
+const cliOptionHelpDescriptions = {
+  'ja': {
+    'Model': 'セッションで使用するCodexモデルを選択します。',
+    'Profile': 'PC側のCodex設定にある名前付きプロファイルを使用します。',
+    'Sandbox': 'Codexがアクセスできるファイル範囲を制御します。',
+    'Bypass sandbox': 'PCブリッジ上でサンドボックスの制限を回避して実行します。',
+    '--config key=value': '1回の実行だけCodex設定値を上書きします。',
+    '--enable / --disable': '指定したCodex機能フラグを有効または無効にします。',
+    '--image': '初回プロンプトに画像ファイルを添付します。',
+    '--oss': '設定済みの場合にOSSプロバイダーモードを使用します。',
+    '--local-provider': 'OSSモードで使用するローカルプロバイダーを選択します。',
+    '--full-auto': '確認を減らして自動実行を許可します。',
+    '--add-dir': 'Codexセッションに追加の作業ディレクトリを渡します。',
+    '--skip-git-repo-check': '対象がGitリポジトリでなくても実行を許可します。',
+    '--ephemeral': '後で再開するためのセッション状態を保存せずに開始します。',
+    '--ignore-user-config': 'PCユーザー単位のCodex設定を無視します。',
+    '--ignore-rules': 'リポジトリまたはユーザーの指示ファイルを無視します。',
+    '--output-schema': 'JSON schemaファイルに合う形式での出力を要求します。',
+    '--json': 'PCブリッジが読み取る機械可読CLIイベントを出力します。',
+  },
+  'zh': {
+    'Model': '选择此会话使用的Codex模型。',
+    'Profile': '使用PC端Codex配置中的命名配置文件。',
+    'Sandbox': '控制Codex可访问的文件范围。',
+    'Bypass sandbox': '在PC桥接端绕过沙箱限制运行。',
+    '--config key=value': '仅为本次运行覆盖Codex配置值。',
+    '--enable / --disable': '启用或禁用指定的Codex功能标志。',
+    '--image': '向初始提示附加一个或多个图片文件。',
+    '--oss': '在已配置时使用开源提供方模式。',
+    '--local-provider': '选择OSS模式使用的本地提供方。',
+    '--full-auto': '减少确认并允许自动执行。',
+    '--add-dir': '向Codex会话添加另一个工作目录。',
+    '--skip-git-repo-check': '即使目标不是Git仓库也允许运行。',
+    '--ephemeral': '启动时不保存用于以后恢复的会话状态。',
+    '--ignore-user-config': '忽略PC用户级Codex配置。',
+    '--ignore-rules': '忽略仓库或用户指令文件。',
+    '--output-schema': '请求输出符合JSON schema文件。',
+    '--json': '输出供PC桥接读取的机器可读CLI事件。',
+  },
+  'ko': {
+    'Model': '세션에서 사용할 Codex 모델을 선택합니다.',
+    'Profile': 'PC 쪽 Codex 설정의 이름 있는 프로필을 사용합니다.',
+    'Sandbox': 'Codex가 접근할 수 있는 파일 범위를 제어합니다.',
+    'Bypass sandbox': 'PC 브리지에서 샌드박스 제한을 우회해 실행합니다.',
+    '--config key=value': '이번 실행에만 Codex 설정 값을 덮어씁니다.',
+    '--enable / --disable': '지정한 Codex 기능 플래그를 켜거나 끕니다.',
+    '--image': '초기 프롬프트에 이미지 파일을 첨부합니다.',
+    '--oss': '설정된 경우 오픈소스 제공자 모드를 사용합니다.',
+    '--local-provider': 'OSS 모드에서 사용할 로컬 제공자를 선택합니다.',
+    '--full-auto': '확인을 줄이고 자동 실행을 허용합니다.',
+    '--add-dir': 'Codex 세션에 추가 작업 디렉터리를 전달합니다.',
+    '--skip-git-repo-check': '대상이 Git 저장소가 아니어도 실행을 허용합니다.',
+    '--ephemeral': '나중에 재개할 세션 상태를 저장하지 않고 시작합니다.',
+    '--ignore-user-config': 'PC 사용자 단위 Codex 설정을 무시합니다.',
+    '--ignore-rules': '저장소 또는 사용자 지시 파일을 무시합니다.',
+    '--output-schema': 'JSON schema 파일에 맞는 출력을 요청합니다.',
+    '--json': 'PC 브리지가 읽을 수 있는 기계 판독 CLI 이벤트를 출력합니다.',
+  },
+};
+const cliOptionHelpLocations = {
+  'ja': {
+    'New Session / CLI defaults': '新規セッション / CLI既定値',
+    'CLI defaults': 'CLI既定値',
+    'Advanced': '詳細',
+    'PC bridge internal': 'PCブリッジ内部',
+  },
+  'zh': {
+    'New Session / CLI defaults': '新会话 / CLI默认值',
+    'CLI defaults': 'CLI默认值',
+    'Advanced': '高级',
+    'PC bridge internal': 'PC桥接内部',
+  },
+  'ko': {
+    'New Session / CLI defaults': '새 세션 / CLI 기본값',
+    'CLI defaults': 'CLI 기본값',
+    'Advanced': '고급',
+    'PC bridge internal': 'PC 브리지 내부',
+  },
+};
 const androidDeviceId = 'android-app';
 const notificationChannelId = 'remote_codex_completion';
 const notificationChannelName = 'RemoteCodex completion';
 final appNavigatorKey = GlobalKey<NavigatorState>();
+
+class AppStrings {
+  const AppStrings(this.locale);
+
+  final Locale locale;
+
+  static const supportedLocales = [
+    Locale('en'),
+    Locale('ja'),
+    Locale('zh'),
+    Locale('ko'),
+  ];
+
+  static const LocalizationsDelegate<AppStrings> delegate =
+      _AppStringsDelegate();
+
+  static AppStrings of(BuildContext context) =>
+      Localizations.of<AppStrings>(context, AppStrings)!;
+
+  String get code {
+    final languageCode = locale.languageCode.toLowerCase();
+    if (_messages.containsKey(languageCode)) {
+      return languageCode;
+    }
+    return 'en';
+  }
+
+  String t(String key) => _messages[code]?[key] ?? _messages['en']![key] ?? key;
+}
+
+class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
+  const _AppStringsDelegate();
+
+  @override
+  bool isSupported(Locale locale) => AppStrings.supportedLocales.any(
+    (item) => item.languageCode == locale.languageCode,
+  );
+
+  @override
+  Future<AppStrings> load(Locale locale) async => AppStrings(locale);
+
+  @override
+  bool shouldReload(covariant LocalizationsDelegate<AppStrings> old) => false;
+}
+
+extension AppStringsContext on BuildContext {
+  AppStrings get l10n => AppStrings.of(this);
+}
+
+const _messages = <String, Map<String, String>>{
+  'en': {
+    'signingIn': 'Signing in',
+    'preparingRelay': 'Preparing secure relay access.',
+    'startupFailed': 'Startup failed',
+    'sessionLoadFailed': 'Session load failed',
+    'commandLoadFailed': 'Command load failed',
+    'newSession': 'New session',
+    'create': 'Create',
+    'creating': 'Creating',
+    'connectedAnonymous': 'Connected as anonymous user',
+    'pcBridge': 'PC bridge',
+    'lastHeartbeat': 'Last heartbeat',
+    'lastQueueCheck': 'Last queue check',
+    'lastManualCheck': 'Last manual check',
+    'lastResponse': 'Last response',
+    'checkPcNow': 'Check PC now',
+    'checking': 'Checking',
+    'cliDefaults': 'CLI defaults',
+    'loading': 'Loading',
+    'notifications': 'Notifications',
+    'notSeenYet': 'Not seen yet',
+    'sessions': 'Sessions',
+    'sessionCount': 'session(s)',
+    'loadingSessions': 'Loading sessions...',
+    'noSessionsYet': 'No sessions yet',
+    'noCommandsYet': 'No commands yet',
+    'waitingFinalResult': 'Waiting for final result.',
+    'elapsed': 'Elapsed',
+    'lastProgress': 'Last progress',
+    'instruction': 'Instruction',
+    'send': 'Send',
+    'model': 'Model',
+    'profile': 'Profile',
+    'sandbox': 'Sandbox',
+    'bypassSandbox': 'Bypass sandbox',
+    'bypassSandboxSubtitle': 'Overrides the sandbox selection',
+    'sandboxUsesDefaults': 'Sandbox and bypass use CLI defaults.',
+    'advancedCliOptions': 'Advanced CLI options',
+    'optionalConfigProfile': 'Optional config profile',
+    'defaultOption': 'Default',
+    'bridgeReadsFinalOutput': 'Bridge still reads final output from file',
+    'help': 'Help',
+    'cancel': 'Cancel',
+    'save': 'Save',
+    'close': 'Close',
+    'selectImageFile': 'Select image file',
+    'showHelpFor': 'Show help for',
+    'cliOptionHelp': 'CLI option help',
+    'noHelpAvailable': 'No help is available for this option.',
+    'where': 'Where',
+    'example': 'Example',
+    'none': 'None',
+    'on': 'on',
+    'off': 'off',
+    'config': 'Config',
+    'enable': 'Enable',
+    'disable': 'Disable',
+    'images': 'Images',
+    'oss': 'OSS',
+    'localProvider': 'Local provider',
+    'fullAuto': 'Full auto',
+    'addDirs': 'Add dirs',
+    'skipGitRepoCheck': 'Skip git repo check',
+    'ephemeral': 'Ephemeral',
+    'ignoreUserConfig': 'Ignore user config',
+    'ignoreRules': 'Ignore rules',
+    'outputSchema': 'Output schema',
+    'jsonEvents': 'JSON events',
+  },
+  'ja': {
+    'signingIn': 'サインイン中',
+    'preparingRelay': '安全なリレー接続を準備しています。',
+    'startupFailed': '起動に失敗しました',
+    'sessionLoadFailed': 'セッションの読み込みに失敗しました',
+    'commandLoadFailed': 'コマンドの読み込みに失敗しました',
+    'newSession': '新規セッション',
+    'create': '作成',
+    'creating': '作成中',
+    'connectedAnonymous': '匿名ユーザーで接続中',
+    'pcBridge': 'PCブリッジ',
+    'lastHeartbeat': '最終heartbeat',
+    'lastQueueCheck': '最終queue確認',
+    'lastManualCheck': '最終手動確認',
+    'lastResponse': '最終応答',
+    'checkPcNow': 'PCを確認',
+    'checking': '確認中',
+    'cliDefaults': 'CLI既定値',
+    'loading': '読込中',
+    'notifications': '通知',
+    'notSeenYet': '未確認',
+    'sessions': 'セッション',
+    'sessionCount': '件',
+    'loadingSessions': 'セッションを読み込み中...',
+    'noSessionsYet': 'セッションはまだありません',
+    'noCommandsYet': 'コマンドはまだありません',
+    'waitingFinalResult': '最終結果を待っています。',
+    'elapsed': '経過時間',
+    'lastProgress': '最終進捗',
+    'instruction': '指示',
+    'send': '送信',
+    'model': 'モデル',
+    'profile': 'プロファイル',
+    'sandbox': 'サンドボックス',
+    'bypassSandbox': 'サンドボックス迂回',
+    'bypassSandboxSubtitle': 'サンドボックス選択より優先します',
+    'sandboxUsesDefaults': 'サンドボックスと迂回設定はCLI既定値を使用します。',
+    'advancedCliOptions': '詳細CLIオプション',
+    'optionalConfigProfile': '任意のconfig profile',
+    'defaultOption': '既定',
+    'bridgeReadsFinalOutput': '最終出力は引き続きファイルから読み取ります',
+    'help': 'ヘルプ',
+    'cancel': 'キャンセル',
+    'save': '保存',
+    'close': '閉じる',
+    'selectImageFile': '画像ファイルを選択',
+    'showHelpFor': 'ヘルプを表示',
+    'cliOptionHelp': 'CLIオプションヘルプ',
+    'noHelpAvailable': 'この項目のヘルプはありません。',
+    'where': '表示場所',
+    'example': '入力例',
+    'none': 'なし',
+    'on': 'オン',
+    'off': 'オフ',
+    'config': 'Config',
+    'enable': 'Enable',
+    'disable': 'Disable',
+    'images': '画像',
+    'oss': 'OSS',
+    'localProvider': 'ローカルprovider',
+    'fullAuto': 'Full auto',
+    'addDirs': '追加ディレクトリ',
+    'skipGitRepoCheck': 'Git repo確認スキップ',
+    'ephemeral': 'Ephemeral',
+    'ignoreUserConfig': 'ユーザー設定を無視',
+    'ignoreRules': 'ルールを無視',
+    'outputSchema': '出力schema',
+    'jsonEvents': 'JSONイベント',
+  },
+  'zh': {
+    'signingIn': '正在登录',
+    'preparingRelay': '正在准备安全中继访问。',
+    'startupFailed': '启动失败',
+    'sessionLoadFailed': '会话加载失败',
+    'commandLoadFailed': '命令加载失败',
+    'newSession': '新建会话',
+    'create': '创建',
+    'creating': '创建中',
+    'connectedAnonymous': '已作为匿名用户连接',
+    'pcBridge': 'PC 桥接',
+    'lastHeartbeat': '上次心跳',
+    'lastQueueCheck': '上次队列检查',
+    'lastManualCheck': '上次手动检查',
+    'lastResponse': '上次响应',
+    'checkPcNow': '立即检查PC',
+    'checking': '检查中',
+    'cliDefaults': 'CLI 默认值',
+    'loading': '加载中',
+    'notifications': '通知',
+    'notSeenYet': '尚未看到',
+    'sessions': '会话',
+    'sessionCount': '个会话',
+    'loadingSessions': '正在加载会话...',
+    'noSessionsYet': '还没有会话',
+    'noCommandsYet': '还没有命令',
+    'waitingFinalResult': '正在等待最终结果。',
+    'elapsed': '已用时间',
+    'lastProgress': '上次进度',
+    'instruction': '指令',
+    'send': '发送',
+    'model': '模型',
+    'profile': '配置文件',
+    'sandbox': '沙盒',
+    'bypassSandbox': '绕过沙盒',
+    'bypassSandboxSubtitle': '覆盖沙盒选择',
+    'sandboxUsesDefaults': '沙盒和绕过设置使用CLI默认值。',
+    'advancedCliOptions': '高级CLI选项',
+    'optionalConfigProfile': '可选配置profile',
+    'defaultOption': '默认',
+    'bridgeReadsFinalOutput': '桥接仍从文件读取最终输出',
+    'help': '帮助',
+    'cancel': '取消',
+    'save': '保存',
+    'close': '关闭',
+    'selectImageFile': '选择图片文件',
+    'showHelpFor': '显示帮助',
+    'cliOptionHelp': 'CLI选项帮助',
+    'noHelpAvailable': '此选项没有帮助。',
+    'where': '位置',
+    'example': '示例',
+    'none': '无',
+    'on': '开',
+    'off': '关',
+    'config': '配置',
+    'enable': '启用',
+    'disable': '禁用',
+    'images': '图片',
+    'oss': 'OSS',
+    'localProvider': '本地provider',
+    'fullAuto': '全自动',
+    'addDirs': '追加目录',
+    'skipGitRepoCheck': '跳过Git repo检查',
+    'ephemeral': '临时会话',
+    'ignoreUserConfig': '忽略用户配置',
+    'ignoreRules': '忽略规则',
+    'outputSchema': '输出schema',
+    'jsonEvents': 'JSON事件',
+  },
+  'ko': {
+    'signingIn': '로그인 중',
+    'preparingRelay': '보안 릴레이 접속을 준비 중입니다.',
+    'startupFailed': '시작 실패',
+    'sessionLoadFailed': '세션 로드 실패',
+    'commandLoadFailed': '명령 로드 실패',
+    'newSession': '새 세션',
+    'create': '생성',
+    'creating': '생성 중',
+    'connectedAnonymous': '익명 사용자로 연결됨',
+    'pcBridge': 'PC 브리지',
+    'lastHeartbeat': '마지막 heartbeat',
+    'lastQueueCheck': '마지막 queue 확인',
+    'lastManualCheck': '마지막 수동 확인',
+    'lastResponse': '마지막 응답',
+    'checkPcNow': 'PC 확인',
+    'checking': '확인 중',
+    'cliDefaults': 'CLI 기본값',
+    'loading': '로딩 중',
+    'notifications': '알림',
+    'notSeenYet': '아직 확인 안 됨',
+    'sessions': '세션',
+    'sessionCount': '개 세션',
+    'loadingSessions': '세션 로딩 중...',
+    'noSessionsYet': '아직 세션이 없습니다',
+    'noCommandsYet': '아직 명령이 없습니다',
+    'waitingFinalResult': '최종 결과를 기다리는 중입니다.',
+    'elapsed': '경과 시간',
+    'lastProgress': '마지막 진행',
+    'instruction': '지시',
+    'send': '전송',
+    'model': '모델',
+    'profile': '프로필',
+    'sandbox': '샌드박스',
+    'bypassSandbox': '샌드박스 우회',
+    'bypassSandboxSubtitle': '샌드박스 선택보다 우선합니다',
+    'sandboxUsesDefaults': '샌드박스와 우회 설정은 CLI 기본값을 사용합니다.',
+    'advancedCliOptions': '고급 CLI 옵션',
+    'optionalConfigProfile': '선택적 config profile',
+    'defaultOption': '기본값',
+    'bridgeReadsFinalOutput': '최종 출력은 계속 파일에서 읽습니다',
+    'help': '도움말',
+    'cancel': '취소',
+    'save': '저장',
+    'close': '닫기',
+    'selectImageFile': '이미지 파일 선택',
+    'showHelpFor': '도움말 표시',
+    'cliOptionHelp': 'CLI 옵션 도움말',
+    'noHelpAvailable': '이 옵션에 대한 도움말이 없습니다.',
+    'where': '위치',
+    'example': '예시',
+    'none': '없음',
+    'on': '켜짐',
+    'off': '꺼짐',
+    'config': '설정',
+    'enable': '활성화',
+    'disable': '비활성화',
+    'images': '이미지',
+    'oss': 'OSS',
+    'localProvider': '로컬 provider',
+    'fullAuto': 'Full auto',
+    'addDirs': '추가 디렉터리',
+    'skipGitRepoCheck': 'Git repo 확인 건너뛰기',
+    'ephemeral': '임시 세션',
+    'ignoreUserConfig': '사용자 설정 무시',
+    'ignoreRules': '규칙 무시',
+    'outputSchema': '출력 schema',
+    'jsonEvents': 'JSON 이벤트',
+  },
+};
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -900,6 +1307,13 @@ class RemoteCodexApp extends StatelessWidget {
     return MaterialApp(
       navigatorKey: appNavigatorKey,
       title: 'RemoteCodex',
+      supportedLocales: AppStrings.supportedLocales,
+      localizationsDelegates: const [
+        AppStrings.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2563EB)),
         useMaterial3: true,
@@ -928,16 +1342,17 @@ class StartupView extends StatelessWidget {
       future: bootstrap,
       builder: (context, snapshot) {
         final Widget body;
+        final l10n = context.l10n;
 
         if (snapshot.connectionState != ConnectionState.done) {
-          body = const _StartupMessage(
-            title: 'Signing in',
-            message: 'Preparing secure relay access.',
-            child: CircularProgressIndicator(),
+          body = _StartupMessage(
+            title: l10n.t('signingIn'),
+            message: l10n.t('preparingRelay'),
+            child: const CircularProgressIndicator(),
           );
         } else if (snapshot.hasError) {
           body = _StartupMessage(
-            title: 'Startup failed',
+            title: l10n.t('startupFailed'),
             message: snapshot.error.toString(),
             child: const Icon(Icons.error_outline, size: 36),
           );
@@ -1006,9 +1421,9 @@ class _SessionListViewState extends State<SessionListView> {
 
     final options = await showSessionOptionsDialog(
       context,
-      title: 'New session',
+      title: context.l10n.t('newSession'),
       initialOptions: defaults,
-      primaryLabel: 'Create',
+      primaryLabel: context.l10n.t('create'),
       showExecutionDefaults: false,
     );
     if (options == null) {
@@ -1072,7 +1487,7 @@ class _SessionListViewState extends State<SessionListView> {
                   else if (snapshot.hasError)
                     SliverFillRemaining(
                       child: _StartupMessage(
-                        title: 'Session load failed',
+                        title: context.l10n.t('sessionLoadFailed'),
                         message: snapshot.error.toString(),
                         child: const Icon(Icons.error_outline, size: 36),
                       ),
@@ -1123,7 +1538,11 @@ class _SessionListViewState extends State<SessionListView> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.add),
-                label: Text(isCreating ? 'Creating' : 'New session'),
+                label: Text(
+                  isCreating
+                      ? context.l10n.t('creating')
+                      : context.l10n.t('newSession'),
+                ),
               ),
             ),
           ],
@@ -1141,6 +1560,7 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
   required bool showExecutionDefaults,
 }) {
   final dialogContext = context;
+  final l10n = context.l10n;
   final profileController = TextEditingController(
     text: initialOptions.codexProfile ?? '',
   );
@@ -1223,7 +1643,7 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                     initialValue: model,
                     decoration: optionInputDecoration(
                       context,
-                      label: 'Model',
+                      label: l10n.t('model'),
                       helpName: 'Model',
                     ),
                     items: [
@@ -1241,8 +1661,8 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                     controller: profileController,
                     decoration: optionInputDecoration(
                       context,
-                      label: 'Profile',
-                      hint: 'Optional config profile',
+                      label: l10n.t('profile'),
+                      hint: l10n.t('optionalConfigProfile'),
                       helpName: 'Profile',
                     ),
                   ),
@@ -1252,7 +1672,7 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                       initialValue: sandbox,
                       decoration: optionInputDecoration(
                         context,
-                        label: 'Sandbox',
+                        label: l10n.t('sandbox'),
                         helpName: 'Sandbox',
                       ),
                       items: [
@@ -1268,8 +1688,8 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                             },
                     ),
                     _OptionSwitchTile(
-                      title: 'Bypass sandbox',
-                      subtitle: 'Overrides the sandbox selection',
+                      title: l10n.t('bypassSandbox'),
+                      subtitle: l10n.t('bypassSandboxSubtitle'),
                       helpName: 'Bypass sandbox',
                       value: bypassSandbox,
                       onChanged: (value) {
@@ -1281,7 +1701,7 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Sandbox and bypass use CLI defaults.',
+                        l10n.t('sandboxUsesDefaults'),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
@@ -1289,7 +1709,7 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                   const SizedBox(height: 8),
                   ExpansionTile(
                     tilePadding: EdgeInsets.zero,
-                    title: const Text('Advanced CLI options'),
+                    title: Text(l10n.t('advancedCliOptions')),
                     childrenPadding: const EdgeInsets.only(bottom: 8),
                     children: [
                       _MultiLineOptionField(
@@ -1333,7 +1753,11 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                           for (final option in codexLocalProviderOptions)
                             DropdownMenuItem(
                               value: option,
-                              child: Text(option.isEmpty ? 'Default' : option),
+                              child: Text(
+                                option.isEmpty
+                                    ? l10n.t('defaultOption')
+                                    : option,
+                              ),
                             ),
                         ],
                         onChanged: (value) {
@@ -1401,7 +1825,7 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                       ),
                       _OptionSwitchTile(
                         title: '--json',
-                        subtitle: 'Bridge still reads final output from file',
+                        subtitle: l10n.t('bridgeReadsFinalOutput'),
                         helpName: '--json',
                         value: jsonOutput,
                         onChanged: (value) {
@@ -1419,14 +1843,14 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                   dismissKeyboard();
                   showCliOptionHelpDialog(dialogContext);
                 },
-                child: const Text('Help'),
+                child: Text(l10n.t('help')),
               ),
               TextButton(
                 onPressed: () {
                   dismissKeyboard();
                   Navigator.of(context).pop();
                 },
-                child: const Text('Cancel'),
+                child: Text(l10n.t('cancel')),
               ),
               FilledButton(
                 onPressed: () {
@@ -1524,7 +1948,7 @@ class _ImageOptionField extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         IconButton.filledTonal(
-          tooltip: 'Select image file',
+          tooltip: context.l10n.t('selectImageFile'),
           onPressed: onPick,
           icon: const Icon(Icons.attach_file),
         ),
@@ -1573,7 +1997,7 @@ class _OptionHelpButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      tooltip: 'Show help for $helpName',
+      tooltip: '${context.l10n.t('showHelpFor')} $helpName',
       onPressed: () {
         FocusManager.instance.primaryFocus?.unfocus();
         showCliOptionHelpDialog(context, optionName: helpName);
@@ -1617,11 +2041,11 @@ Future<void> showCliOptionHelpDialog(
   return showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
-      title: Text(optionName ?? 'CLI option help'),
+      title: Text(optionName ?? context.l10n.t('cliOptionHelp')),
       content: SizedBox(
         width: double.maxFinite,
         child: items.isEmpty
-            ? const Text('No help is available for this option.')
+            ? Text(context.l10n.t('noHelpAvailable'))
             : ListView.separated(
                 shrinkWrap: true,
                 itemCount: items.length,
@@ -1637,11 +2061,13 @@ Future<void> showCliOptionHelpDialog(
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       const SizedBox(height: 2),
-                      Text('Where: ${option.location}'),
+                      Text(
+                        '${context.l10n.t('where')}: ${localizedOptionHelpLocation(context, option)}',
+                      ),
                       const SizedBox(height: 6),
-                      Text(option.description),
+                      Text(localizedOptionHelpDescription(context, option)),
                       const SizedBox(height: 6),
-                      Text('Example: ${option.example}'),
+                      Text('${context.l10n.t('example')}: ${option.example}'),
                     ],
                   );
                 },
@@ -1653,11 +2079,26 @@ Future<void> showCliOptionHelpDialog(
             FocusManager.instance.primaryFocus?.unfocus();
             Navigator.of(context).pop();
           },
-          child: const Text('Close'),
+          child: Text(context.l10n.t('close')),
         ),
       ],
     ),
   );
+}
+
+String localizedOptionHelpDescription(
+  BuildContext context,
+  CliOptionHelp option,
+) {
+  final languageCode = Localizations.localeOf(context).languageCode;
+  return cliOptionHelpDescriptions[languageCode]?[option.name] ??
+      option.description;
+}
+
+String localizedOptionHelpLocation(BuildContext context, CliOptionHelp option) {
+  final languageCode = Localizations.localeOf(context).languageCode;
+  return cliOptionHelpLocations[languageCode]?[option.location] ??
+      option.location;
 }
 
 class CliOptionHelp {
@@ -1679,6 +2120,7 @@ Future<void> showSessionOptionsSummaryDialog(
   SessionSummary session,
 ) {
   final options = session.codexOptions ?? defaultSessionCreateOptions;
+  final l10n = context.l10n;
 
   return showDialog<void>(
     context: context,
@@ -1689,63 +2131,87 @@ Future<void> showSessionOptionsSummaryDialog(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Model: ${options.codexModel}'),
+            Text('${l10n.t('model')}: ${options.codexModel}'),
             const SizedBox(height: 6),
-            Text('Sandbox: ${options.codexSandbox}'),
-            const SizedBox(height: 6),
-            Text(
-              'Bypass sandbox: ${options.codexBypassSandbox ? 'on' : 'off'}',
-            ),
-            const SizedBox(height: 6),
-            Text('Profile: ${options.codexProfile ?? 'None'}'),
-            const SizedBox(height: 6),
-            Text('Config: ${summaryList(options.codexConfigOverrides)}'),
-            const SizedBox(height: 6),
-            Text('Enable: ${summaryList(options.codexEnableFeatures)}'),
-            const SizedBox(height: 6),
-            Text('Disable: ${summaryList(options.codexDisableFeatures)}'),
-            const SizedBox(height: 6),
-            Text('Images: ${summaryList(options.codexImages)}'),
-            const SizedBox(height: 6),
-            Text('OSS: ${options.codexOss ? 'on' : 'off'}'),
-            const SizedBox(height: 6),
-            Text('Local provider: ${options.codexLocalProvider ?? 'Default'}'),
-            const SizedBox(height: 6),
-            Text('Full auto: ${options.codexFullAuto ? 'on' : 'off'}'),
-            const SizedBox(height: 6),
-            Text('Add dirs: ${summaryList(options.codexAddDirs)}'),
+            Text('${l10n.t('sandbox')}: ${options.codexSandbox}'),
             const SizedBox(height: 6),
             Text(
-              'Skip git repo check: ${options.codexSkipGitRepoCheck ? 'on' : 'off'}',
+              '${l10n.t('bypassSandbox')}: ${options.codexBypassSandbox ? l10n.t('on') : l10n.t('off')}',
             ),
-            const SizedBox(height: 6),
-            Text('Ephemeral: ${options.codexEphemeral ? 'on' : 'off'}'),
             const SizedBox(height: 6),
             Text(
-              'Ignore user config: ${options.codexIgnoreUserConfig ? 'on' : 'off'}',
+              '${l10n.t('profile')}: ${options.codexProfile ?? l10n.t('none')}',
             ),
             const SizedBox(height: 6),
-            Text('Ignore rules: ${options.codexIgnoreRules ? 'on' : 'off'}'),
+            Text(
+              '${l10n.t('config')}: ${summaryList(context, options.codexConfigOverrides)}',
+            ),
             const SizedBox(height: 6),
-            Text('Output schema: ${options.codexOutputSchema ?? 'None'}'),
+            Text(
+              '${l10n.t('enable')}: ${summaryList(context, options.codexEnableFeatures)}',
+            ),
             const SizedBox(height: 6),
-            Text('JSON events: ${options.codexJson ? 'on' : 'off'}'),
+            Text(
+              '${l10n.t('disable')}: ${summaryList(context, options.codexDisableFeatures)}',
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${l10n.t('images')}: ${summaryList(context, options.codexImages)}',
+            ),
+            const SizedBox(height: 6),
+            Text('OSS: ${options.codexOss ? l10n.t('on') : l10n.t('off')}'),
+            const SizedBox(height: 6),
+            Text(
+              '${l10n.t('localProvider')}: ${options.codexLocalProvider ?? l10n.t('defaultOption')}',
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${l10n.t('fullAuto')}: ${options.codexFullAuto ? l10n.t('on') : l10n.t('off')}',
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${l10n.t('addDirs')}: ${summaryList(context, options.codexAddDirs)}',
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${l10n.t('skipGitRepoCheck')}: ${options.codexSkipGitRepoCheck ? l10n.t('on') : l10n.t('off')}',
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${l10n.t('ephemeral')}: ${options.codexEphemeral ? l10n.t('on') : l10n.t('off')}',
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${l10n.t('ignoreUserConfig')}: ${options.codexIgnoreUserConfig ? l10n.t('on') : l10n.t('off')}',
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${l10n.t('ignoreRules')}: ${options.codexIgnoreRules ? l10n.t('on') : l10n.t('off')}',
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${l10n.t('outputSchema')}: ${options.codexOutputSchema ?? l10n.t('none')}',
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${l10n.t('jsonEvents')}: ${options.codexJson ? l10n.t('on') : l10n.t('off')}',
+            ),
           ],
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text(l10n.t('close')),
         ),
       ],
     ),
   );
 }
 
-String summaryList(List<String> values) {
+String summaryList(BuildContext context, List<String> values) {
   if (values.isEmpty) {
-    return 'None';
+    return context.l10n.t('none');
   }
 
   return values.join(', ');
@@ -1814,9 +2280,9 @@ class _ConnectionSummaryState extends State<_ConnectionSummary> {
 
     final updated = await showSessionOptionsDialog(
       context,
-      title: 'CLI defaults',
+      title: context.l10n.t('cliDefaults'),
       initialOptions: defaults,
-      primaryLabel: 'Save',
+      primaryLabel: context.l10n.t('save'),
       showExecutionDefaults: true,
     );
 
@@ -1832,6 +2298,7 @@ class _ConnectionSummaryState extends State<_ConnectionSummary> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return StreamBuilder<PcBridgeStatus>(
       stream: widget.sessionRepository.watchPcBridgeStatus(
         widget.bootstrap.uid,
@@ -1851,26 +2318,28 @@ class _ConnectionSummaryState extends State<_ConnectionSummary> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Connected as anonymous user',
+                  l10n.t('connectedAnonymous'),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'PC bridge: ${widget.bootstrap.pcBridgeId}${bridge.status == null ? '' : ' (${bridge.status})'}',
-                ),
-                const SizedBox(height: 4),
-                Text('Last heartbeat: ${formatDateTime(bridge.lastSeenAt)}'),
-                const SizedBox(height: 4),
-                Text(
-                  'Last queue check: ${formatDateTime(bridge.lastQueueCheckedAt)}',
+                  '${l10n.t('pcBridge')}: ${widget.bootstrap.pcBridgeId}${bridge.status == null ? '' : ' (${bridge.status})'}',
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Last manual check: ${formatDateTime(bridge.lastHealthCheckRequestedAt)}',
+                  '${l10n.t('lastHeartbeat')}: ${formatDateTime(context, bridge.lastSeenAt)}',
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Last response: ${formatDateTime(bridge.lastHealthCheckRespondedAt)}${bridge.lastHealthCheckStatus == null ? '' : ' (${bridge.lastHealthCheckStatus})'}',
+                  '${l10n.t('lastQueueCheck')}: ${formatDateTime(context, bridge.lastQueueCheckedAt)}',
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${l10n.t('lastManualCheck')}: ${formatDateTime(context, bridge.lastHealthCheckRequestedAt)}',
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${l10n.t('lastResponse')}: ${formatDateTime(context, bridge.lastHealthCheckRespondedAt)}${bridge.lastHealthCheckStatus == null ? '' : ' (${bridge.lastHealthCheckStatus})'}',
                 ),
                 if (checkError != null) ...[
                   const SizedBox(height: 4),
@@ -1900,7 +2369,9 @@ class _ConnectionSummaryState extends State<_ConnectionSummary> {
                               )
                             : const Icon(Icons.sensors),
                         label: Text(
-                          isCheckingBridge ? 'Checking' : 'Check PC now',
+                          isCheckingBridge
+                              ? l10n.t('checking')
+                              : l10n.t('checkPcNow'),
                         ),
                       ),
                       OutlinedButton.icon(
@@ -1915,7 +2386,9 @@ class _ConnectionSummaryState extends State<_ConnectionSummary> {
                               )
                             : const Icon(Icons.tune),
                         label: Text(
-                          isOpeningDefaults ? 'Loading' : 'CLI defaults',
+                          isOpeningDefaults
+                              ? l10n.t('loading')
+                              : l10n.t('cliDefaults'),
                         ),
                       ),
                     ],
@@ -1923,7 +2396,7 @@ class _ConnectionSummaryState extends State<_ConnectionSummary> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Notifications: ${widget.bootstrap.notificationState.permissionStatus}',
+                  '${l10n.t('notifications')}: ${widget.bootstrap.notificationState.permissionStatus}',
                 ),
                 const SizedBox(height: 4),
                 SelectableText('UID: ${widget.bootstrap.uid}'),
@@ -1936,9 +2409,9 @@ class _ConnectionSummaryState extends State<_ConnectionSummary> {
   }
 }
 
-String formatDateTime(DateTime? value) {
+String formatDateTime(BuildContext context, DateTime? value) {
   if (value == null) {
-    return 'Not seen yet';
+    return context.l10n.t('notSeenYet');
   }
 
   final local = value.toLocal();
@@ -1977,6 +2450,7 @@ class SessionDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Drawer(
       child: SafeArea(
         child: StreamBuilder<List<SessionSummary>>(
@@ -1989,21 +2463,23 @@ class SessionDrawer extends StatelessWidget {
               children: [
                 ListTile(
                   title: Text(
-                    'Sessions',
+                    l10n.t('sessions'),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  subtitle: Text('${sessions.length} session(s)'),
+                  subtitle: Text(
+                    '${sessions.length} ${l10n.t('sessionCount')}',
+                  ),
                 ),
                 const Divider(height: 1),
                 if (snapshot.connectionState == ConnectionState.waiting)
-                  const ListTile(title: Text('Loading sessions...'))
+                  ListTile(title: Text(l10n.t('loadingSessions')))
                 else if (snapshot.hasError)
                   ListTile(
-                    title: const Text('Session load failed'),
+                    title: Text(l10n.t('sessionLoadFailed')),
                     subtitle: Text(snapshot.error.toString()),
                   )
                 else if (sessions.isEmpty)
-                  const ListTile(title: Text('No sessions yet'))
+                  ListTile(title: Text(l10n.t('noSessionsYet')))
                 else
                   for (final session in sessions)
                     ListTile(
@@ -2145,7 +2621,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
 
                   if (snapshot.hasError) {
                     return _StartupMessage(
-                      title: 'Command load failed',
+                      title: context.l10n.t('commandLoadFailed'),
                       message: snapshot.error.toString(),
                       child: const Icon(Icons.error_outline, size: 36),
                     );
@@ -2227,13 +2703,14 @@ class _CommandTileState extends State<_CommandTile> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final command = widget.command;
     final status = command.status;
     final detail =
         command.errorText ??
         command.resultText ??
         command.progressText ??
-        'Waiting for final result.';
+        l10n.t('waitingFinalResult');
     final elapsed = commandElapsed(command);
 
     return Card(
@@ -2257,7 +2734,7 @@ class _CommandTileState extends State<_CommandTile> {
             if (elapsed != null) ...[
               const SizedBox(height: 6),
               Text(
-                'Elapsed: ${formatDuration(elapsed)}',
+                '${l10n.t('elapsed')}: ${formatDuration(elapsed)}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -2265,7 +2742,7 @@ class _CommandTileState extends State<_CommandTile> {
                 !isTerminalStatus(status)) ...[
               const SizedBox(height: 6),
               Text(
-                'Last progress: ${formatDateTime(command.progressUpdatedAt)}',
+                '${l10n.t('lastProgress')}: ${formatDateTime(context, command.progressUpdatedAt)}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -2312,6 +2789,7 @@ class _CommandComposer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Material(
       elevation: 4,
       child: Padding(
@@ -2325,16 +2803,16 @@ class _CommandComposer extends StatelessWidget {
                 minLines: 1,
                 maxLines: 4,
                 textInputAction: TextInputAction.newline,
-                decoration: const InputDecoration(
-                  labelText: 'Instruction',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.t('instruction'),
+                  border: const OutlineInputBorder(),
                 ),
               ),
             ),
             const SizedBox(width: 8),
             IconButton.filled(
               onPressed: isSending ? null : onSend,
-              tooltip: 'Send',
+              tooltip: l10n.t('send'),
               icon: isSending
                   ? const SizedBox(
                       width: 18,
@@ -2364,7 +2842,7 @@ class _NoCommands extends StatelessWidget {
             const Icon(Icons.chat_bubble_outline, size: 40),
             const SizedBox(height: 16),
             Text(
-              'No commands yet',
+              context.l10n.t('noCommandsYet'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
           ],
@@ -2388,7 +2866,7 @@ class _EmptySessions extends StatelessWidget {
             const Icon(Icons.forum_outlined, size: 40),
             const SizedBox(height: 16),
             Text(
-              'No sessions yet',
+              context.l10n.t('noSessionsYet'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
           ],
