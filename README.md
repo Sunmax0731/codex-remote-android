@@ -35,7 +35,7 @@ This avoids opening inbound ports on the home network and allows cellular access
 
 ## Current Phase
 
-Phase 6 push notification integration is in progress. Android FCM setup and device token storage are complete, and the Cloud Functions completion notification trigger builds locally. Functions deployment is blocked until Firebase project `remotecodex-c52ae` is upgraded to the Blaze plan.
+Phase 6 push notification integration is in progress. Android FCM setup, device token storage, notification tap routing, and the Cloud Functions completion notification trigger are implemented. Functions deployment is blocked until Compute Engine API is enabled for Firebase project `remotecodex-c52ae`.
 
 ## Documents
 
