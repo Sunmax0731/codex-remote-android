@@ -24,14 +24,7 @@ export class FirestoreRelayRepository implements CommandRepository {
     claimTtlSeconds: number,
   ): Promise<RemoteCommand | null> {
     const firestore = await this.getFirestore();
-    const snapshot = await firestore
-      .collectionGroup("commands")
-      .where("targetPcBridgeId", "==", pcBridgeId)
-      .where("status", "==", "queued")
-      .limit(1)
-      .get();
-
-    const candidate = snapshot.docs[0];
+    const candidate = await this.findClaimCandidate(firestore, pcBridgeId, now);
     if (!candidate) {
       return null;
     }
@@ -47,7 +40,7 @@ export class FirestoreRelayRepository implements CommandRepository {
       }
 
       const data = current.data();
-      if (data?.status !== "queued" || data.targetPcBridgeId !== pcBridgeId) {
+      if (!isClaimable(data, pcBridgeId, now)) {
         return null;
       }
 
@@ -76,6 +69,32 @@ export class FirestoreRelayRepository implements CommandRepository {
         startedAt: now.toISOString(),
       });
     });
+  }
+
+  private async findClaimCandidate(
+    firestore: Firestore,
+    pcBridgeId: string,
+    now: Date,
+  ): Promise<DocumentSnapshot<DocumentData> | null> {
+    const queued = await firestore
+      .collectionGroup("commands")
+      .where("targetPcBridgeId", "==", pcBridgeId)
+      .where("status", "==", "queued")
+      .limit(1)
+      .get();
+
+    if (queued.docs[0]) {
+      return queued.docs[0];
+    }
+
+    const running = await firestore
+      .collectionGroup("commands")
+      .where("targetPcBridgeId", "==", pcBridgeId)
+      .where("status", "==", "running")
+      .limit(10)
+      .get();
+
+    return running.docs.find((doc) => isExpiredRunning(doc.data(), now)) ?? null;
   }
 
   async markCompleted(claim: CommandClaim, resultText: string, now: Date): Promise<void> {
@@ -219,6 +238,22 @@ function toRemoteCommand(
     errorText: data.errorText,
     notificationSentAt: timestampToIso(data.notificationSentAt),
   };
+}
+
+function isClaimable(data: DocumentData | undefined, pcBridgeId: string, now: Date): boolean {
+  if (!data || data.targetPcBridgeId !== pcBridgeId) {
+    return false;
+  }
+
+  return data.status === "queued" || isExpiredRunning(data, now);
+}
+
+function isExpiredRunning(data: DocumentData, now: Date): boolean {
+  if (data.status !== "running" || !(data.claimExpiresAt instanceof Timestamp)) {
+    return false;
+  }
+
+  return data.claimExpiresAt.toMillis() <= now.getTime();
 }
 
 function timestampToIso(value: unknown): string {

@@ -38,7 +38,7 @@ export class LocalRelayRepository implements CommandRepository {
     for (const [userId, user] of Object.entries(state.users)) {
       for (const [sessionId, session] of Object.entries(user.sessions)) {
         for (const [commandId, command] of Object.entries(session.commands)) {
-          if (command.status !== "queued" || command.targetPcBridgeId !== pcBridgeId) {
+          if (!isClaimable(command, pcBridgeId, now)) {
             continue;
           }
 
@@ -134,6 +134,23 @@ export class LocalRelayRepository implements CommandRepository {
     await mkdir(dirname(this.relayPath), { recursive: true });
     await writeFile(this.relayPath, `${JSON.stringify(state, null, 2)}\n`, "utf8");
   }
+}
+
+function isClaimable(command: CommandState, pcBridgeId: string, now: Date): boolean {
+  if (command.targetPcBridgeId !== pcBridgeId) {
+    return false;
+  }
+
+  if (command.status === "queued") {
+    return true;
+  }
+
+  if (command.status !== "running" || !command.claimExpiresAt) {
+    return false;
+  }
+
+  const claimExpiresAt = Date.parse(command.claimExpiresAt);
+  return Number.isFinite(claimExpiresAt) && claimExpiresAt <= now.getTime();
 }
 
 function toRemoteCommand(userId: string, sessionId: string, commandId: string, command: CommandState): RemoteCommand {
