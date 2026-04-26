@@ -10,19 +10,21 @@ MVPで使うFirebase機能:
 - Cloud Functions
 - Firebase Emulator Suite
 
-Phase 3時点ではFirebase CLIがPATH上にないため、実際の `firebase init` は未実施。
+Firebase CLIは導入済みで、Firebase project `remotecodex-c52ae` に紐づけ済み。
+Firestore rules / indexes はデプロイ済みで、Phase 6ではFunctionsの実装とデプロイを進める。
+Cloud Functions のデプロイには Blaze plan が必要なため、`remotecodex-c52ae` のプラン更新後にデプロイする。
 
-Firebase CLI導入後、Phase 3またはPhase 6で次を実施する。
+Firebase設定を更新した場合は、次を実行して対象projectを確認する。
 
 ```powershell
-firebase login
-firebase init firestore functions emulators
+firebase use
+firebase deploy --only firestore:rules,firestore:indexes
 ```
 
 ## ファイル
 
-- `firebase.json`: EmulatorとFirestore/Functions設定の初期案。
-- `firestore.rules`: MVP Security Rulesの初期雛形。
-- `firestore.indexes.json`: Firestore indexesの初期雛形。
+- `firebase.json`: EmulatorとFirestore/Functions設定。
+- `firestore.rules`: MVP Security Rules。
+- `firestore.indexes.json`: Firestore command query index。
 - `functions/`: 通知Cloud Functionsの配置先。
 
