@@ -316,13 +316,129 @@ Androidアプリ、PCブリッジ、Cloud Functionsの権限は分離する。
 
 ## PCブリッジ責務
 
-PCブリッジの詳細はPhase 2の別サブIssueで確定する。MVPでは次を前提にする。
+PCブリッジは、自宅PC上で動くローカル companion process とする。MVPではVS Codeが起動済みで、Codexを利用できる状態を前提にする。
 
 - Windows上で動く常駐または手動起動の companion process とする。
 - 自分に紐づくコマンドだけを処理する。
 - 固定ワークスペースを1つ扱う。
 - Codexへの指示投入と最終結果取得を担当する。
 - Androidアプリから受け取った文字列を raw shell command として実行しない。
+
+### 実装ランタイム方針
+
+MVPのPCブリッジ実装ランタイムは、Phase 3でローカル環境を確認して最終決定する。候補は次の順で評価する。
+
+1. Node.js/TypeScript
+2. .NET
+3. Dart
+
+MVPではNode.js/TypeScriptを第一候補とする。
+
+理由:
+
+- Firebase Admin SDKまたはFirebaseクライアントSDKを扱いやすい。
+- Windows常駐プロセスやCLI実装が軽い。
+- 後でVS Code extensionとコード共有しやすい。
+
+ただし、Phase 3でNode.js環境やFirebase接続が不都合な場合は.NETへ切り替えてよい。
+
+### 固定ワークスペース
+
+MVPではPCブリッジ設定に1つの固定ワークスペースを持たせる。
+
+想定ローカル設定:
+
+```json
+{
+  "pcBridgeId": "home-main-pc",
+  "displayName": "Home PC",
+  "workspaceName": "codex-remote-android",
+  "workspacePath": "D:\\Claude\\FlutterApp\\codex-remote-android"
+}
+```
+
+制約:
+
+- `workspacePath` はローカル設定にのみ保存する。
+- Firestoreには必要に応じて `workspaceName` と `workspacePathHash` だけを保存する。
+- Androidアプリには、ユーザーが識別できる `displayName` と `workspaceName` を表示する。
+- 複数ワークスペース選択はpost-MVPとする。
+
+### Codex呼び出し境界
+
+PCブリッジは、Androidアプリから受け取ったテキストを「Codexへの指示」として扱う。
+
+禁止すること:
+
+- Androidアプリから受け取った文字列をPowerShellやcmdへ直接渡す。
+- 任意の実行ファイルパスやシェル引数をスマホ側から指定させる。
+- Firestore上の値だけで作業ディレクトリを任意変更する。
+
+許可すること:
+
+- PCブリッジのローカル設定で固定したワークスペースに対してCodex指示を送る。
+- Codex実行方法をPCブリッジ側の設定または実装で固定する。
+- 実行結果、失敗理由、診断ログIDをFirestoreへ返す。
+
+### Codex連携方式
+
+MVPのCodex連携方式はPhase 4で実装時に確定するが、アーキテクチャ上は次の順で検討する。
+
+1. 既存のCodex CLIまたはローカルCodex実行手段をPCブリッジから呼び出す。
+2. VS Code上のCodex連携が必要な場合は、VS Code extensionまたはローカル補助APIを追加する。
+3. CLI/拡張連携が不安定な場合は、PCブリッジの範囲を「コマンド受信と通知」までに分け、Codex投入方式を別Issueで扱う。
+
+いずれの場合も、Codexへ渡す入力はテキスト指示であり、スマホから直接シェルを操作する設計にはしない。
+
+### 起動とheartbeat
+
+PCブリッジは起動中、定期的に `pcBridges/{pcBridgeId}.lastSeenAt` を更新する。
+
+Androidアプリは次を表示する。
+
+- `lastSeenAt` が新しい: PCブリッジ接続中。
+- `lastSeenAt` が古い: PCブリッジ待機中またはオフライン。
+- `pcBridge` が存在しない: セットアップが必要。
+
+heartbeat間隔とオフライン判定時間はPhase 4で実装時に決める。MVPの初期値は次を候補にする。
+
+- heartbeat: 30秒ごと。
+- offline判定: 2分以上更新なし。
+
+### VS Code前提
+
+MVPではVS Codeが起動済みであることを前提にする。
+
+失敗時の扱い:
+
+- VS CodeまたはCodex連携が利用できない場合、PCブリッジはコマンドを `failed` にする。
+- `errorText` にはユーザーが次に確認できる内容を書く。
+- 例: `VS CodeまたはCodex連携が利用できません。PC側でVS CodeとCodexの状態を確認してください。`
+
+post-MVP:
+
+- PCブリッジから `code.cmd` を起動する。
+- Windowsサービスまたはスタートアップ登録でPCブリッジを自動起動する。
+- VS Code extensionと連携してワークスペース状態を取得する。
+
+### ローカルログ
+
+PCブリッジはローカルに診断ログを出す。
+
+ログに含めてよいもの:
+
+- 起動/停止時刻。
+- Firebase接続状態。
+- コマンドID。
+- 状態遷移。
+- エラー種別。
+
+ログに含めないもの:
+
+- Firebase credential。
+- pairing token。
+- FCM token全文。
+- コマンド本文や結果全文。必要な場合でもデバッグ設定時だけにする。
 
 ## 通知責務
 
@@ -332,6 +448,5 @@ PCブリッジの詳細はPhase 2の別サブIssueで確定する。MVPでは次
 
 次の項目は、Phase 2の残りサブIssueで確定する。
 
-- PCブリッジの実装ランタイムとCodex呼び出し方式。
 - Cloud Functions通知トリガーの詳細。
 - MVP脅威モデルとRelease前セキュリティ確認項目。
