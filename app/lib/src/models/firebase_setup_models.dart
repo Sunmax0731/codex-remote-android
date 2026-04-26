@@ -68,7 +68,27 @@ class FirebaseClientConfig {
       storageBucket: nonEmptyString(json['storageBucket']),
     );
   }
+
+  static FirebaseClientConfig? fromQrPayload(String payload) {
+    try {
+      final decoded = jsonDecode(payload);
+      if (decoded is! Map<String, dynamic>) {
+        return null;
+      }
+
+      final schema = nonEmptyString(decoded['schema']);
+      if (schema != null && schema != firebaseClientQrSchema) {
+        return null;
+      }
+
+      return FirebaseClientConfig.fromJson(decoded);
+    } on FormatException {
+      return null;
+    }
+  }
 }
+
+const firebaseClientQrSchema = 'codex-remote.firebase-client.v1';
 
 class FirebaseClientConfigDraft {
   const FirebaseClientConfigDraft({

@@ -55,6 +55,30 @@ class _FirebaseSetupViewState extends State<FirebaseSetupView> {
     await start(config);
   }
 
+  void applyConfig(FirebaseClientConfig config) {
+    setState(() {
+      projectIdController.text = config.projectId;
+      apiKeyController.text = config.apiKey;
+      appIdController.text = config.appId;
+      messagingSenderIdController.text = config.messagingSenderId;
+      authDomainController.text = config.authDomain ?? '';
+      storageBucketController.text = config.storageBucket ?? '';
+      errorText = null;
+    });
+  }
+
+  Future<void> scanQrCode() async {
+    final config = await Navigator.of(context).push<FirebaseClientConfig>(
+      MaterialPageRoute<FirebaseClientConfig>(
+        builder: (_) => const FirebaseConfigQrScannerPage(),
+      ),
+    );
+
+    if (config != null) {
+      applyConfig(config);
+    }
+  }
+
   Future<void> start(FirebaseClientConfig? config) async {
     setState(() {
       isSaving = true;
@@ -90,6 +114,12 @@ class _FirebaseSetupViewState extends State<FirebaseSetupView> {
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: isSaving ? null : scanQrCode,
+              icon: const Icon(Icons.qr_code_scanner),
+              label: const Text('Scan setup QR'),
+            ),
+            const SizedBox(height: 12),
             _SetupTextField(
               controller: projectIdController,
               label: 'Project ID',
@@ -149,6 +179,92 @@ class _FirebaseSetupViewState extends State<FirebaseSetupView> {
             Text(
               'The bundled option is for developer builds that already include google-services.json. Runtime setup is required for APK-only distribution to another Firebase project.',
               style: theme.textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class FirebaseConfigQrScannerPage extends StatefulWidget {
+  const FirebaseConfigQrScannerPage({super.key});
+
+  @override
+  State<FirebaseConfigQrScannerPage> createState() =>
+      _FirebaseConfigQrScannerPageState();
+}
+
+class _FirebaseConfigQrScannerPageState
+    extends State<FirebaseConfigQrScannerPage> {
+  final MobileScannerController controller = MobileScannerController();
+  bool handled = false;
+  String? errorText;
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  void handleCapture(BarcodeCapture capture) {
+    if (handled) {
+      return;
+    }
+
+    final rawValue = capture.barcodes
+        .map((barcode) => barcode.rawValue)
+        .whereType<String>()
+        .firstOrNull;
+    if (rawValue == null || rawValue.trim().isEmpty) {
+      return;
+    }
+
+    final config = FirebaseClientConfig.fromQrPayload(rawValue);
+    if (config == null) {
+      setState(() {
+        errorText = 'This QR code is not a valid RemoteCodex Firebase setup.';
+      });
+      return;
+    }
+
+    handled = true;
+    Navigator.of(context).pop(config);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Scan setup QR')),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: MobileScanner(
+                controller: controller,
+                onDetect: handleCapture,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Scan the QR code generated on your PC. It must not contain service account JSON or Admin SDK credentials.',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  if (errorText != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      errorText!,
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ],
         ),
