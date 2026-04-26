@@ -2,13 +2,19 @@
 
 このディレクトリはFlutter Androidアプリの配置先。
 
-Phase 3時点では、このPCのPATH上に `flutter` がないため、Flutterプロジェクト生成は未実施。
+Phase 5でFlutter Androidプロジェクトを生成済み。
 
-Flutter SDK導入後、Phase 5で次のように生成する想定。
+生成時の主要設定:
+
+- Flutter project name: `remote_codex`
+- Android package/applicationId: `com.sunmax.remotecodex`
+- 対象platform: Android
 
 ```powershell
-flutter create --platforms android .
+flutter create --platforms android --org com.sunmax --project-name remote_codex app
 ```
+
+`google-services.json` はFirebase SDK設定時に `android/app/google-services.json` へ配置する。Phase 5 scaffold時点では、ユーザーが取得したファイルを `app/google-services.json` に一時配置しており、この一時配置パスは誤コミット防止のためGit管理外にしている。
 
 ## MVP責務
 
