@@ -11,7 +11,8 @@
     "check": "tsc --noEmit",
     "validate:local": "tsc && node dist/scripts/validate-local-relay.js",
     "qr:firebase": "tsc && node dist/scripts/generate-firebase-setup-qr.js",
-    "setup:web": "tsc && node dist/scripts/setup-web.js"
+    "setup:web": "tsc && node dist/scripts/setup-web.js",
+    "package:dist": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-distribution.ps1"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0",

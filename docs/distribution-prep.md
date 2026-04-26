@@ -149,3 +149,5 @@ QRに含めてはいけないもの:
 配布前セキュリティレビューの結果は [配布前セキュリティレビュー](security-review-distribution.md) に記録する。
 
 release APK作成手順と署名方針は [release APK作成手順](release-apk.md) に記録する。
+
+PCブリッジ配布パッケージの作成・展開・起動手順は [PCブリッジ配布パッケージ](pc-bridge-distribution.md) に記録する。
