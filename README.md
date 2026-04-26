@@ -7,7 +7,7 @@ Android app and PC-side bridge for sending instructions from a phone to Codex ru
 Build a Flutter Android app that can:
 
 - Start a new remote Codex session.
-- Choose Codex CLI model and main execution options when starting a session.
+- Choose per-session Codex CLI options when starting a session and keep stable execution options in app defaults.
 - Select an existing remote Codex session.
 - Send text instructions to a selected session.
 - Show only the final result in the app.
@@ -29,7 +29,7 @@ This avoids opening inbound ports on the home network and allows cellular access
 
 ## Current Setup Status
 
-- `app/`: Flutter Android project generated for package `com.sunmax.remotecodex`. Startup initializes Firebase, signs in anonymously, stores FCM tokens, shows sessions, stores CLI option defaults, lets new sessions choose Codex CLI model/options, shows session options on long press, queues text commands for the PC bridge, shows running progress logs, can request an on-demand PC bridge health check, routes notification taps to the target session, and uses the custom RemoteCodex launcher icon.
+- `app/`: Flutter Android project generated for package `com.sunmax.remotecodex`. Startup initializes Firebase, signs in anonymously, stores FCM tokens, shows sessions, stores CLI option defaults, lets new sessions choose per-session Codex CLI model/profile values, exposes CLI option help, shows session options on long press, queues text commands for the PC bridge, shows running progress logs, can request an on-demand PC bridge health check, routes notification taps to the target session, and uses the custom RemoteCodex launcher icon.
 - `pc-bridge/`: Node.js/TypeScript bridge with local relay and Firestore relay support. Current local config can run `codexMode: cli` with a fixed Codex model, return 1-minute progress logs while Codex CLI is running, respond to on-demand health checks, follow Android anonymous UID changes for bridge status, and `start:watch` can keep polling queued commands. Windows batch files under `pc-bridge/scripts/` can run the watcher in the background or register it with Task Scheduler.
 - `firebase/`: Firebase relay scaffold linked to project `remotecodex-c52ae`, with Firestore rules, command query index, and a Cloud Function that sends FCM completion notifications.
 - `docs/development-setup.md`: Local toolchain status, wireless debugging workflow, and Firebase/Flutter setup handoff.

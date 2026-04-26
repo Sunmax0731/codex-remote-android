@@ -46,8 +46,21 @@ void main() {
     expect(find.text('PC bridge: home-main-pc (active)'), findsOneWidget);
     expect(find.text('Check PC now'), findsOneWidget);
     expect(find.text('CLI defaults'), findsOneWidget);
+    expect(find.text('CLI option help'), findsOneWidget);
     expect(find.text('UID: test-uid'), findsOneWidget);
     expect(find.text('No sessions yet'), findsOneWidget);
+  });
+
+  test('includes gpt-5.5 in model options', () {
+    expect(codexModelOptions, contains('gpt-5.5'));
+  });
+
+  test('documents advanced CLI option meanings', () {
+    final optionNames = cliOptionHelpItems.map((option) => option.name);
+
+    expect(optionNames, contains('--config key=value'));
+    expect(optionNames, contains('--add-dir'));
+    expect(optionNames, contains('--json'));
   });
 
   testWidgets('requests a PC bridge health check from the status panel', (
@@ -104,10 +117,42 @@ void main() {
 
     await tester.tap(find.text('CLI defaults'));
     await tester.pumpAndSettle();
+    expect(find.text('Sandbox'), findsOneWidget);
+    expect(find.text('Bypass sandbox'), findsOneWidget);
     await tester.tap(find.text('Save'));
     await tester.pump();
 
     expect(repository.savedDefaultsCount, 1);
+  });
+
+  testWidgets('shows CLI option help from the status panel', (tester) async {
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const <SessionSummary>[]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('CLI option help'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('CLI option help'), findsWidgets);
+    expect(find.text('Model'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
   });
 
   testWidgets('shows session CLI options on long press', (tester) async {
@@ -177,6 +222,8 @@ void main() {
     await tester.tap(find.text('New session'));
     await tester.pump();
     expect(find.text(defaultCodexModel), findsOneWidget);
+    expect(find.text('Sandbox'), findsNothing);
+    expect(find.text('Sandbox and bypass use CLI defaults.'), findsOneWidget);
     await tester.tap(find.text('Create'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));

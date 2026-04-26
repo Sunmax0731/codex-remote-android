@@ -12,6 +12,7 @@ const defaultPcBridgeId = 'home-main-pc';
 const defaultCodexModel = 'gpt-5.4';
 const defaultCodexSandbox = 'workspace-write';
 const codexModelOptions = [
+  'gpt-5.5',
   'gpt-5.4',
   'gpt-5.4-mini',
   'gpt-5.3-codex',
@@ -22,6 +23,93 @@ const codexSandboxOptions = [
   'read-only',
   'workspace-write',
   'danger-full-access',
+];
+const cliOptionHelpItems = [
+  CliOptionHelp(
+    name: 'Model',
+    location: 'New Session / CLI defaults',
+    description: 'セッションで使用するCodexモデルを選びます。',
+  ),
+  CliOptionHelp(
+    name: 'Profile',
+    location: 'New Session / CLI defaults',
+    description: 'PC側のCodex設定にある名前付きprofileを使用します。',
+  ),
+  CliOptionHelp(
+    name: 'Sandbox',
+    location: 'CLI defaults',
+    description: 'CodexがPC上のファイルへどこまでアクセスできるかを制御します。',
+  ),
+  CliOptionHelp(
+    name: 'Bypass sandbox',
+    location: 'CLI defaults',
+    description: 'PCブリッジでsandbox制限を迂回してCodexを実行します。',
+  ),
+  CliOptionHelp(
+    name: '--config key=value',
+    location: 'Advanced / future',
+    description: '1回の実行だけCodex設定値を上書きします。',
+  ),
+  CliOptionHelp(
+    name: '--enable / --disable',
+    location: 'Advanced / future',
+    description: 'Codexの機能フラグを有効化または無効化します。',
+  ),
+  CliOptionHelp(
+    name: '--image',
+    location: 'Advanced / future',
+    description: '画像を使う依頼で、入力画像のパスを追加します。',
+  ),
+  CliOptionHelp(
+    name: '--oss',
+    location: 'Advanced / future',
+    description: '設定済みの場合にローカルOSS providerモードを使います。',
+  ),
+  CliOptionHelp(
+    name: '--local-provider',
+    location: 'Advanced / future',
+    description: 'OSSモードで使うローカルproviderを選びます。',
+  ),
+  CliOptionHelp(
+    name: '--full-auto',
+    location: 'Advanced / future',
+    description: '確認を減らして自動実行寄りで進めます。',
+  ),
+  CliOptionHelp(
+    name: '--add-dir',
+    location: 'Advanced / future',
+    description: 'Codexセッションに追加の作業ディレクトリを渡します。',
+  ),
+  CliOptionHelp(
+    name: '--skip-git-repo-check',
+    location: 'Advanced / future',
+    description: '対象がGitリポジトリでなくても実行できるようにします。',
+  ),
+  CliOptionHelp(
+    name: '--ephemeral',
+    location: 'Advanced / future',
+    description: '後から再開するためのセッション状態を保存せずに開始します。',
+  ),
+  CliOptionHelp(
+    name: '--ignore-user-config',
+    location: 'Advanced / future',
+    description: 'PCユーザー単位のCodex設定を無視します。',
+  ),
+  CliOptionHelp(
+    name: '--ignore-rules',
+    location: 'Advanced / future',
+    description: 'リポジトリまたはユーザーの指示ファイルを無視します。',
+  ),
+  CliOptionHelp(
+    name: '--output-schema',
+    location: 'Advanced / future',
+    description: 'JSON schemaに沿った出力を要求します。',
+  ),
+  CliOptionHelp(
+    name: '--json',
+    location: 'PC bridge internal',
+    description: 'PCブリッジが扱いやすい機械可読イベントを出力します。',
+  ),
 ];
 const androidDeviceId = 'android-app';
 const notificationChannelId = 'remote_codex_completion';
@@ -820,6 +908,7 @@ class _SessionListViewState extends State<SessionListView> {
       title: 'New session',
       initialOptions: defaults,
       primaryLabel: 'Create',
+      showExecutionDefaults: false,
     );
     if (options == null) {
       return;
@@ -948,6 +1037,7 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
   required String title,
   required SessionCreateOptions initialOptions,
   required String primaryLabel,
+  required bool showExecutionDefaults,
 }) {
   final profileController = TextEditingController(
     text: initialOptions.codexProfile ?? '',
@@ -985,22 +1075,6 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                     },
                   ),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: sandbox,
-                    decoration: const InputDecoration(labelText: 'Sandbox'),
-                    items: [
-                      for (final option in codexSandboxOptions)
-                        DropdownMenuItem(value: option, child: Text(option)),
-                    ],
-                    onChanged: bypassSandbox
-                        ? null
-                        : (value) {
-                            if (value != null) {
-                              setDialogState(() => sandbox = value);
-                            }
-                          },
-                  ),
-                  const SizedBox(height: 12),
                   TextField(
                     controller: profileController,
                     decoration: const InputDecoration(
@@ -1008,18 +1082,50 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
                       hintText: 'Optional config profile',
                     ),
                   ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Bypass sandbox'),
-                    value: bypassSandbox,
-                    onChanged: (value) {
-                      setDialogState(() => bypassSandbox = value);
-                    },
-                  ),
+                  if (showExecutionDefaults) ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: sandbox,
+                      decoration: const InputDecoration(labelText: 'Sandbox'),
+                      items: [
+                        for (final option in codexSandboxOptions)
+                          DropdownMenuItem(value: option, child: Text(option)),
+                      ],
+                      onChanged: bypassSandbox
+                          ? null
+                          : (value) {
+                              if (value != null) {
+                                setDialogState(() => sandbox = value);
+                              }
+                            },
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Bypass sandbox'),
+                      subtitle: const Text('Overrides the sandbox selection'),
+                      value: bypassSandbox,
+                      onChanged: (value) {
+                        setDialogState(() => bypassSandbox = value);
+                      },
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Sandbox and bypass use CLI defaults.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
             actions: [
+              TextButton(
+                onPressed: () => showCliOptionHelpDialog(context),
+                child: const Text('Help'),
+              ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('Cancel'),
@@ -1046,6 +1152,58 @@ Future<SessionCreateOptions?> showSessionOptionsDialog(
   ).whenComplete(() {
     profileController.dispose();
   });
+}
+
+Future<void> showCliOptionHelpDialog(BuildContext context) {
+  return showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('CLI option help'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView.separated(
+          shrinkWrap: true,
+          itemCount: cliOptionHelpItems.length,
+          separatorBuilder: (context, index) => const Divider(height: 18),
+          itemBuilder: (context, index) {
+            final option = cliOptionHelpItems[index];
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  option.name,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 2),
+                Text('表示場所: ${option.location}'),
+                const SizedBox(height: 2),
+                Text(option.description),
+              ],
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
+    ),
+  );
+}
+
+class CliOptionHelp {
+  const CliOptionHelp({
+    required this.name,
+    required this.location,
+    required this.description,
+  });
+
+  final String name;
+  final String location;
+  final String description;
 }
 
 Future<void> showSessionOptionsSummaryDialog(
@@ -1147,6 +1305,7 @@ class _ConnectionSummaryState extends State<_ConnectionSummary> {
       title: 'CLI defaults',
       initialOptions: defaults,
       primaryLabel: 'Save',
+      showExecutionDefaults: true,
     );
 
     if (updated == null) {
@@ -1246,6 +1405,11 @@ class _ConnectionSummaryState extends State<_ConnectionSummary> {
                         label: Text(
                           isOpeningDefaults ? 'Loading' : 'CLI defaults',
                         ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => showCliOptionHelpDialog(context),
+                        icon: const Icon(Icons.help_outline),
+                        label: const Text('CLI option help'),
                       ),
                     ],
                   ),
