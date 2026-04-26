@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -56,6 +57,32 @@ void main() {
     expect(valid?.storageBucket, 'bucket');
   });
 
+  test('parses Firebase setup QR payloads', () {
+    final config = FirebaseClientConfig.fromQrPayload(
+      jsonEncode({
+        'schema': firebaseClientQrSchema,
+        'projectId': 'project',
+        'apiKey': 'key',
+        'appId': 'app',
+        'messagingSenderId': 'sender',
+        'storageBucket': 'bucket',
+      }),
+    );
+
+    expect(config?.projectId, 'project');
+    expect(config?.apiKey, 'key');
+    expect(config?.appId, 'app');
+    expect(config?.messagingSenderId, 'sender');
+    expect(config?.storageBucket, 'bucket');
+    expect(FirebaseClientConfig.fromQrPayload('not-json'), isNull);
+    expect(
+      FirebaseClientConfig.fromQrPayload(
+        jsonEncode({'schema': 'other', 'projectId': 'project'}),
+      ),
+      isNull,
+    );
+  });
+
   testWidgets('shows Firebase setup before bootstrapping without config', (
     tester,
   ) async {
@@ -75,6 +102,7 @@ void main() {
     );
 
     expect(find.text('Firebase setup'), findsOneWidget);
+    expect(find.text('Scan setup QR'), findsOneWidget);
     expect(find.text('Save and connect'), findsOneWidget);
     expect(find.text('Use bundled Firebase config'), findsOneWidget);
 

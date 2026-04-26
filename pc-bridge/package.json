@@ -9,17 +9,19 @@
     "start": "tsc && node dist/src/index.js",
     "start:watch": "tsc && node dist/src/watch.js",
     "check": "tsc --noEmit",
-    "validate:local": "tsc && node dist/scripts/validate-local-relay.js"
+    "validate:local": "tsc && node dist/scripts/validate-local-relay.js",
+    "qr:firebase": "tsc && node dist/scripts/generate-firebase-setup-qr.js"
   },
   "dependencies": {
-    "firebase-admin": "^13.0.0"
+    "firebase-admin": "^13.0.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "@types/qrcode": "^1.5.6",
     "typescript": "^5.7.0"
   },
   "engines": {
     "node": ">=22"
   }
 }
-
