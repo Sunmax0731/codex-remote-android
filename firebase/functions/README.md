@@ -31,4 +31,13 @@ firebase deploy --only functions
 
 - Blaze plan が必要。
 - Cloud Functions / Cloud Build / Artifact Registry / Cloud Run / Eventarc / Pub/Sub / Compute Engine API が必要。
-- 現在はCompute Engine APIが無効なため、Functions upload bucket作成時に `Could not create bucket ... PERMISSION_DENIED` で停止している。
+- 初回の2nd gen FunctionsデプロイではEventarc権限反映に数分かかる場合がある。その場合は数分待って `firebase deploy --only functions` を再実行する。
+- Artifact RegistryのCloud Functions imageには7日保持のcleanup policyを設定済み。
+
+## デプロイ済み関数
+
+- `notifyCommandCompletion`
+- version: v2
+- region: `asia-northeast1`
+- runtime: `nodejs22`
+- trigger: `google.cloud.firestore.document.v1.updated`
