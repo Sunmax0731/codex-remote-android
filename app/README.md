@@ -30,7 +30,9 @@ Firebase SDK設定で、ユーザーが取得した `google-services.json` を `
 
 初回実機起動後、画面に表示される `User uid` をPCブリッジの `config.local.json` の `ownerUserId` に設定すると、PCブリッジのheartbeatを `/users/{uid}/pcBridges/home-main-pc` に保存できる。
 
-セッション一覧、コマンド送信は後続Issueで実装する。
+セッション一覧では `/users/{uid}/sessions` を `updatedAt` 降順で購読し、`New session` から新規セッションを作成する。作成時はMVP接続先として `targetPcBridgeId: home-main-pc` を保存する。
+
+コマンド送信は後続Issueで実装する。
 
 ## MVP責務
 
