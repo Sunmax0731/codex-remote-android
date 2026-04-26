@@ -14,7 +14,9 @@ local.properties
 
 # Firebase
 app/google-services.json
+app/android/app/google-services.json
 firebase/.runtimeconfig.json
+firebase/.firebaserc
 firebase/serviceAccount*.json
 firebase/firebase-debug.log
 firebase/.env

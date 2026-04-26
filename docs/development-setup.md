@@ -138,7 +138,7 @@ SO 51B (mobile) • 192.168.0.4:39757 • android-arm64 • Android 13 (API 33)
 
 - `flutter run -d 192.168.0.4:39757 --debug --no-resident` でXperia 1 IIIへDebug APKをインストール、起動。
 - アプリ起動時のFirebase初期化順序を修正し、`Firebase.initializeApp()` 後にFirestoreを参照する形へ変更。
-- Firestore rulesを `firebase deploy --only firestore:rules` で実プロジェクト `remotecodex-c52ae` へデプロイ。
+- Firestore rulesは、利用者自身のFirebaseプロジェクトを `firebase use --add` で選択してからデプロイする。
 - Xperia 1 III画面で匿名認証後のセッション一覧初期画面を確認。
 - 画面に表示されたUIDをPCブリッジのローカル `ownerUserId` に設定し、PCブリッジがFirestore接続で `No queued command found.` まで到達することを確認。
 - resident `flutter run -d 192.168.0.4:39757 --debug` 中に手動hot reloadを実行し、変更反映を確認。
@@ -519,14 +519,14 @@ Phase 4では、`pc-bridge/` を起点にPCブリッジMVPを実装する。
 
 1. `pc-bridge/config.example.json` を元に `pc-bridge/config.local.json` を作成する。
 2. `config.local.json` がGitに入らないことを確認する。
-3. Firebaseプロジェクトを実接続するか、Firestoreアクセス層をモックして先にコマンドライフサイクルを実装するか決める。
+3. 利用者自身のFirebaseプロジェクトへ実接続するか、Firestoreアクセス層をモックして先にコマンドライフサイクルを実装するか決める。
 4. `queued -> running -> completed/failed` の状態遷移を最小実装する。
 5. Codex呼び出し方式は、raw shell実行にならない境界を守ってIssue内で確定する。
 
 Phase 4開始時の既知ブロッカー:
 
 - Firebase CLI未導入。
-- Firebase実プロジェクト未設定。
+- 利用者自身のFirebaseプロジェクト設定が必要。
 - Codex呼び出し方式は未実装。
 
 Phase 4実装後のrelay状態:
@@ -535,7 +535,7 @@ Phase 4実装後のrelay状態:
 - `firestore` relayはFirebase Admin SDKを使う実adapterコードを実装済み。
 - Firestore実接続には `firebaseProjectId` とローカルの `serviceAccountPath` が必要。
 - `serviceAccountPath` のJSONはGitに含めない。
-- 実Firebase資格情報がまだないため、Firestore adapterは `npm.cmd run check` によるコンパイル確認まで実施済み。
+- Firestore実接続は、利用者自身のFirebaseプロジェクト、service account JSON、`ownerUserId` を設定してから確認する。
 
 Phase 4開始時にブロッカーではないもの:
 

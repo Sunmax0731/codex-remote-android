@@ -15,7 +15,7 @@ Phase 5でFlutter Androidプロジェクトを生成済み。
 flutter create --platforms android --org com.sunmax --project-name remote_codex app
 ```
 
-Firebase SDK設定で、ユーザーが取得した `google-services.json` を `android/app/google-services.json` へ配置済み。Firebase公式手順では、このファイルはFirebase SDKがアプリ設定値を参照するためにmodule rootへ置く。
+Firebase SDK設定では、利用者自身のFirebaseプロジェクトから取得した `google-services.json` を `android/app/google-services.json` へ配置する。Firebase公式手順では、このファイルはFirebase SDKがアプリ設定値を参照するためにmodule rootへ置く。
 
 導入済みFlutterFire package:
 
