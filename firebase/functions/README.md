@@ -25,7 +25,23 @@ npm.cmd run check
 firebase deploy --only functions
 ```
 
+pnpmで依存関係を管理する場合:
+
+```powershell
+corepack enable
+corepack pnpm --version
+corepack pnpm install
+corepack pnpm run build
+corepack pnpm run check
+corepack pnpm audit
+firebase deploy --only functions
+```
+
+pnpmはnpmとは別のlockfileと依存解決を使うため、npm auditの結果と差が出る場合がある。ただし、pnpmを使うだけで脆弱性が必ず解消するわけではない。`corepack pnpm audit` の結果を確認し、依存更新が必要な場合は別Issueで扱う。
+
 `firebase deploy --only functions` は事前に `npm --prefix "$RESOURCE_DIR" run build` を実行し、`lib/index.js` を生成する。
+
+Firebase CLIのdeploy hookはnpm形式で実行される場合があるため、Functionsの依存をpnpmで管理する場合も、デプロイ前に `corepack pnpm run build` が成功することを確認する。
 
 初回デプロイ時の注意:
 

@@ -54,6 +54,7 @@ Android app <- Firebase Cloud Messaging completion notification
 - VS Code
 - Codex CLI
 - Node.js / npm
+- pnpm
 - Flutter SDK
 - Android SDK platform-tools
 - Firebase CLI
@@ -64,6 +65,8 @@ Android app <- Firebase Cloud Messaging completion notification
 ```powershell
 node --version
 npm.cmd --version
+corepack --version
+corepack pnpm --version
 flutter doctor
 firebase --version
 gh --version
@@ -78,6 +81,20 @@ npm.cmd install
 npm.cmd run build
 Copy-Item config.example.json config.local.json
 ```
+
+pnpmを使う場合:
+
+```powershell
+cd D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+corepack enable
+corepack pnpm --version
+corepack pnpm install
+corepack pnpm run build
+corepack pnpm audit
+Copy-Item config.example.json config.local.json
+```
+
+pnpmは依存解決とlockfileをnpmとは別に管理できますが、脆弱性警告が必ず解消するわけではありません。`corepack pnpm audit` の結果を確認し、必要に応じて依存更新を別Issueで扱ってください。環境によって `pnpm.cmd` が使える場合は、`corepack pnpm` を `pnpm.cmd` に置き換えても構いません。
 
 `pc-bridge/config.local.json` にFirebase service account JSONのパス、対象UID、固定ワークスペース、Codex CLI設定を記入します。`config.local.json` とservice account JSONはGitに含めません。
 
