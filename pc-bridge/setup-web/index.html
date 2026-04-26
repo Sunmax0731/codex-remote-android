@@ -50,7 +50,7 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel span-2">
         <div class="section-heading">
           <h2 data-i18n="procedureTitle">Procedure</h2>
           <p data-i18n="procedureSubtitle">Follow these steps before scanning the QR on Android.</p>
@@ -59,60 +59,12 @@
           <li data-i18n="step1">Create a dedicated Firebase project.</li>
           <li data-i18n="step2">Enable Authentication and Anonymous sign-in.</li>
           <li data-i18n="step3">Create Firestore Database.</li>
-          <li data-i18n="step4">Register Android app package. Example: com.sample.remotecodex.</li>
+          <li data-i18n="step4">Register Android app package: com.sunmax.remotecodex.</li>
           <li><span data-i18n="step5Prefix">Download</span> <code>google-services.json</code>.</li>
           <li data-i18n="step6">Create a PC bridge service account JSON and keep it local only.</li>
           <li data-i18n="step7">Generate the QR and scan it from the Android setup screen.</li>
           <li data-i18n="step8">Deploy Firestore rules, indexes, and Functions when needed.</li>
         </ol>
-      </section>
-
-      <section class="panel">
-        <div class="section-heading">
-          <h2 data-i18n="projectInputsTitle">Project Inputs</h2>
-          <p data-i18n="projectInputsSubtitle">These values are saved only in this browser.</p>
-        </div>
-        <label>
-          <span data-i18n="appNameLabel">App name</span>
-          <input id="appName" autocomplete="off" data-i18n-placeholder="appNamePlaceholder" placeholder="RemoteCodex" />
-        </label>
-        <label>
-          <span data-i18n="packageNameLabel">Android package name</span>
-          <input id="packageName" autocomplete="off" data-i18n-placeholder="packageNamePlaceholder" placeholder="com.sunmax.remotecodex" />
-        </label>
-        <div class="status-line" id="localStatus" data-i18n="localStatusEmpty">No local setup saved.</div>
-      </section>
-
-      <section class="panel span-2">
-        <div class="section-heading">
-          <h2 data-i18n="commandsTitle">Command Guide</h2>
-          <p data-i18n="commandsSubtitle">Run these from PowerShell or Command Prompt when setting up the PC side.</p>
-        </div>
-        <div class="command-grid">
-          <div>
-            <h3 data-i18n="commandInstallTitle">Install PC dependencies</h3>
-            <pre><code>cd pc-bridge
-npm.cmd install</code></pre>
-          </div>
-          <div>
-            <h3 data-i18n="commandStartUiTitle">Start this setup UI</h3>
-            <pre><code>cd pc-bridge
-npm.cmd run setup:web</code></pre>
-          </div>
-          <div>
-            <h3 data-i18n="commandDeployTitle">Deploy Firebase resources</h3>
-            <pre><code>cd firebase
-firebase login
-firebase use --add
-firebase deploy --only firestore:rules,firestore:indexes
-firebase deploy --only functions</code></pre>
-          </div>
-          <div>
-            <h3 data-i18n="commandQrTitle">Generate QR from CLI</h3>
-            <pre><code>cd pc-bridge
-npm.cmd run qr:firebase -- --google-services ..\app\android\app\google-services.json --package com.sample.remotecodex</code></pre>
-          </div>
-        </div>
       </section>
 
       <section class="panel span-2">
@@ -143,7 +95,16 @@ npm.cmd run qr:firebase -- --google-services ..\app\android\app\google-services.
       <section class="panel span-2">
         <div class="section-heading">
           <h2 data-i18n="qrGeneratorTitle">QR Generator</h2>
-          <p data-i18n="qrGeneratorSubtitle">Generate the same payload format used by the CLI QR command.</p>
+          <p data-i18n="qrGeneratorSubtitle">Generate the Android setup QR for the distributed APK.</p>
+        </div>
+        <div class="fixed-app-info">
+          <h3 data-i18n="fixedAppInfoTitle">Distributed APK settings</h3>
+          <dl>
+            <dt data-i18n="appNameLabel">App name</dt>
+            <dd>RemoteCodex</dd>
+            <dt data-i18n="packageNameLabel">Android package name</dt>
+            <dd><code>com.sunmax.remotecodex</code></dd>
+          </dl>
         </div>
         <div class="actions">
           <button id="generateQr" class="button primary" data-i18n="generateQr">Generate QR</button>
@@ -156,6 +117,7 @@ npm.cmd run qr:firebase -- --google-services ..\app\android\app\google-services.
           </div>
           <dl class="payload-list" id="payloadList"></dl>
         </div>
+        <div class="status-line" id="localStatus" data-i18n="localStatusEmpty">No local setup saved.</div>
         <div class="status-line" id="qrStatus" data-i18n="ready">Ready.</div>
       </section>
     </main>
