@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,6 +12,7 @@ const defaultPcBridgeId = 'home-main-pc';
 const androidDeviceId = 'android-app';
 const notificationChannelId = 'remote_codex_completion';
 const notificationChannelName = 'RemoteCodex completion';
+final appNavigatorKey = GlobalKey<NavigatorState>();
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -88,6 +90,10 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._();
   static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
+  static bool _messageHandlersRegistered = false;
+  AppBootstrap? _bootstrap;
+  SessionRepository? _sessionRepository;
+  String? _pendingSessionId;
 
   Future<NotificationState> registerDevice({
     required String uid,
@@ -115,12 +121,26 @@ class NotificationService {
       );
     });
 
-    FirebaseMessaging.onMessage.listen(_showForegroundNotification);
+    _registerMessageHandlers();
 
     return NotificationState(
       permissionStatus: settings.authorizationStatus.name,
       hasToken: token != null && token.isNotEmpty,
     );
+  }
+
+  void attachNavigation({
+    required AppBootstrap bootstrap,
+    required SessionRepository sessionRepository,
+  }) {
+    _bootstrap = bootstrap;
+    _sessionRepository = sessionRepository;
+
+    final pendingSessionId = _pendingSessionId;
+    if (pendingSessionId != null) {
+      _pendingSessionId = null;
+      scheduleMicrotask(() => _openSession(pendingSessionId));
+    }
   }
 
   Future<void> _initializeLocalNotifications() async {
@@ -131,7 +151,15 @@ class NotificationService {
     const initializationSettings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
     );
-    await _localNotifications.initialize(settings: initializationSettings);
+    await _localNotifications.initialize(
+      settings: initializationSettings,
+      onDidReceiveNotificationResponse: (response) {
+        final sessionId = sessionIdFromPayload(response.payload);
+        if (sessionId != null) {
+          _openSession(sessionId);
+        }
+      },
+    );
 
     const channel = AndroidNotificationChannel(
       notificationChannelId,
@@ -145,6 +173,29 @@ class NotificationService {
         ?.createNotificationChannel(channel);
 
     _initialized = true;
+  }
+
+  void _registerMessageHandlers() {
+    if (_messageHandlersRegistered) {
+      return;
+    }
+
+    FirebaseMessaging.onMessage.listen(_showForegroundNotification);
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      final sessionId = sessionIdFromMessageData(message.data);
+      if (sessionId != null) {
+        _openSession(sessionId);
+      }
+    });
+
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      final sessionId = message == null ? null : sessionIdFromMessageData(message.data);
+      if (sessionId != null) {
+        _openSession(sessionId);
+      }
+    });
+
+    _messageHandlersRegistered = true;
   }
 
   Future<void> _storeToken({
@@ -182,9 +233,72 @@ class NotificationService {
       title: title,
       body: body,
       notificationDetails: details,
-      payload: message.data['sessionId'] as String?,
+      payload: notificationPayloadFromMessageData(message.data),
     );
   }
+
+  void _openSession(String sessionId) {
+    final navigator = appNavigatorKey.currentState;
+    final bootstrap = _bootstrap;
+    final sessionRepository = _sessionRepository;
+
+    if (navigator == null || bootstrap == null || sessionRepository == null) {
+      _pendingSessionId = sessionId;
+      return;
+    }
+
+    navigator.push(
+      MaterialPageRoute<void>(
+        builder: (_) => SessionDetailPage(
+          bootstrap: bootstrap,
+          session: SessionSummary(
+            id: sessionId,
+            title: 'Session $sessionId',
+            status: 'unknown',
+          ),
+          sessionRepository: sessionRepository,
+        ),
+      ),
+    );
+  }
+}
+
+String notificationPayloadFromMessageData(Map<String, dynamic> data) {
+  return jsonEncode({
+    'sessionId': data['sessionId'],
+    'commandId': data['commandId'],
+    'status': data['status'],
+  });
+}
+
+String? sessionIdFromPayload(String? payload) {
+  if (payload == null || payload.trim().isEmpty) {
+    return null;
+  }
+
+  try {
+    final decoded = jsonDecode(payload);
+    if (decoded is Map<String, dynamic>) {
+      return nonEmptyString(decoded['sessionId']);
+    }
+  } on FormatException {
+    return payload.trim();
+  }
+
+  return null;
+}
+
+String? sessionIdFromMessageData(Map<String, dynamic> data) {
+  return nonEmptyString(data['sessionId']);
+}
+
+String? nonEmptyString(Object? value) {
+  if (value is! String) {
+    return null;
+  }
+
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
 }
 
 class SessionSummary {
@@ -344,6 +458,7 @@ class RemoteCodexApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: appNavigatorKey,
       title: 'RemoteCodex',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2563EB)),
@@ -418,6 +533,15 @@ class SessionListView extends StatefulWidget {
 
 class _SessionListViewState extends State<SessionListView> {
   bool isCreating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    NotificationService().attachNavigation(
+      bootstrap: widget.bootstrap,
+      sessionRepository: widget.sessionRepository,
+    );
+  }
 
   Future<void> createSession() async {
     if (isCreating) {
