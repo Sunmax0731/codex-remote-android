@@ -442,11 +442,188 @@ PCブリッジはローカルに診断ログを出す。
 
 ## 通知責務
 
-通知責務の詳細はPhase 2の別サブIssueで確定する。MVPでは、コマンドが `completed` または `failed` になったタイミングでFCM通知を送る。
+MVPでは、コマンドが `completed` または `failed` になったタイミングでFCM通知を送る。
+
+### 通知送信者
+
+通知送信はFirebase Cloud Functionsが担当する。
+
+理由:
+
+- Androidアプリに通知送信用の管理者権限を持たせない。
+- PCブリッジにFCM送信用の広い権限を持たせない。
+- Firestoreの状態変更を起点に通知を一元化できる。
+
+### 通知トリガー
+
+Cloud Functionsは `commands/{commandId}` の更新を監視する。
+
+通知対象:
+
+- `status` が `completed` へ変わったとき。
+- `status` が `failed` へ変わったとき。
+
+通知しない対象:
+
+- `queued` 作成時。
+- `running` 遷移時。
+- `notificationSentAt` が既に設定されている場合。
+- `canceled`。MVPではキャンセルUIを持たないため、通知対象外とする。
+
+### 通知payload
+
+通知payloadには最小限の情報だけを含める。
+
+含めてよいもの:
+
+- `sessionId`
+- `commandId`
+- `status`
+- 短い通知タイトル。
+- 短い通知本文。
+
+含めないもの:
+
+- コマンド本文全文。
+- 結果本文全文。
+- ローカルPCの実パス。
+- 認証情報、token、credential。
+
+通知文面例:
+
+- 成功: `Codexの処理が完了しました`
+- 失敗: `Codexの処理が失敗しました`
+
+アプリは通知タップ後、Firestoreから該当セッションとコマンドを読み、画面に最終結果またはエラーを表示する。
+
+### 通知冪等性
+
+二重通知を避けるため、Cloud Functionsは通知送信後に `notificationSentAt` を設定する。
+
+MVPでは次の方針を採用する。
+
+- `notificationSentAt` が未設定の `completed` / `failed` だけを送信対象にする。
+- 通知送信に失敗した場合は、ログに残し、再試行方針をPhase 6で実装する。
+- 通知送信成功後に `notificationSentAt` と必要なら `notificationError` を更新する。
+
+## 脅威モデル
+
+MVPで想定する主要脅威と緩和策を定義する。
+
+### T-001 他ユーザーのセッション閲覧
+
+脅威:
+
+- 認証境界が弱い場合、別ユーザーのセッションや結果を読めてしまう。
+
+緩和策:
+
+- `users/{userId}` 配下を `request.auth.uid == userId` に制限する。
+- Firestore Security RulesをEmulatorでテストする。
+- Androidアプリから任意の `userId` を指定して読ませない。
+
+### T-002 Androidアプリから結果や状態を偽装
+
+脅威:
+
+- Androidアプリが `completed` や `resultText` を直接書き換え、PC処理を偽装する。
+
+緩和策:
+
+- Androidアプリは `queued` コマンド作成だけを許可する。
+- `running`, `completed`, `failed`, `resultText`, `errorText` はPCブリッジまたはCloud Functionsだけが更新できるようにする。
+
+### T-003 PCブリッジの過剰権限
+
+脅威:
+
+- PCブリッジ資格情報が漏れた場合、他ユーザーや全データへアクセスできる。
+
+緩和策:
+
+- PCブリッジは自分のユーザーと自分宛コマンドだけを扱う。
+- service accountを使う場合はローカルPCに限定し、リポジトリに含めない。
+- 将来的にはカスタムトークンや制約付き認証へ移行できる設計にする。
+
+### T-004 スマホからの任意コマンド実行
+
+脅威:
+
+- スマホ入力がそのままPowerShellやcmdに渡され、任意コマンド実行になる。
+
+緩和策:
+
+- スマホ入力はCodexへのテキスト指示として扱う。
+- 実行コマンド、作業ディレクトリ、Codex起動方式はPCブリッジのローカル設定で固定する。
+- Firestore上の値で実行ファイルやシェル引数を指定しない。
+
+### T-005 通知payloadからの情報漏えい
+
+脅威:
+
+- ロック画面通知にコマンド本文や結果が表示される。
+
+緩和策:
+
+- FCM通知payloadには本文全文を含めない。
+- 通知は完了/失敗だけを知らせる。
+- 詳細はアプリ起動後に認証済みFirestore読み取りで取得する。
+
+### T-006 コマンド二重処理
+
+脅威:
+
+- 複数PCブリッジや再試行により、同じコマンドが複数回処理される。
+
+緩和策:
+
+- Firestore transactionでclaimする。
+- `claimedByPcBridgeId`, `claimExpiresAt`, `status` を確認する。
+- `queued` 以外はclaimできない。
+
+### T-007 PCブリッジ停止中の誤認
+
+脅威:
+
+- PCブリッジが停止しているのに、Androidアプリが処理中と誤表示する。
+
+緩和策:
+
+- `lastSeenAt` による接続状態表示を行う。
+- PCブリッジ未登録、オフライン、処理中を分けて表示する。
+- `running` のまま期限切れになったコマンドの復旧方針をPhase 4で実装する。
+
+## Release前セキュリティ確認
+
+Phase 7またはPhase 8で、少なくとも次を確認する。
+
+- AndroidアプリにFirebase Admin credentialやservice account JSONが含まれていない。
+- リポジトリにPCブリッジcredential、pairing token、署名鍵が含まれていない。
+- Firestore Security Rulesの拒否テストが通る。
+- Androidアプリから `resultText` や `status=completed` を直接書けない。
+- 他ユーザーの `sessions` や `commands` を読めない。
+- 通知payloadにコマンド本文や結果全文が含まれていない。
+- PCブリッジは固定ワークスペース以外をFirestore値だけで実行対象にしない。
+- 失敗時の `errorText` にcredentialやローカル秘密情報が含まれない。
+
+## Phase 3への引き継ぎ
+
+リポジトリ・環境セットアップ工程では、このアーキテクチャを元に次を作成する。
+
+- Flutter app scaffold。
+- PC bridge scaffold。
+- Firebase scaffold。
+- `.gitignore` とサンプル設定。
+- Firebase Auth / Firestore / Functions / FCM の開発用設定手順。
+- Firestore Security RulesとEmulatorテストの最小構成。
+- PCブリッジのローカル設定ファイルサンプル。
 
 ## 未確定事項
 
-次の項目は、Phase 2の残りサブIssueで確定する。
+次の項目は、Phase 3以降の実装時に確定する。
 
-- Cloud Functions通知トリガーの詳細。
-- MVP脅威モデルとRelease前セキュリティ確認項目。
+- PCブリッジの最終実装ランタイム。
+- Codex呼び出し方式の実装詳細。
+- heartbeat間隔とoffline判定時間の実測調整。
+- pairing codeの具体UIと有効期限。
+- 通知再試行の実装方式。
