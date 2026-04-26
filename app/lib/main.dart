@@ -284,6 +284,8 @@ const _messages = <String, Map<String, String>>{
     'cliDefaults': 'CLI defaults',
     'loading': 'Loading',
     'notifications': 'Notifications',
+    'settings': 'Settings',
+    'connectionSettings': 'Connection settings',
     'notSeenYet': 'Not seen yet',
     'sessions': 'Sessions',
     'sessionCount': 'session(s)',
@@ -369,6 +371,8 @@ const _messages = <String, Map<String, String>>{
     'cliDefaults': 'CLI既定値',
     'loading': '読込中',
     'notifications': '通知',
+    'settings': '設定',
+    'connectionSettings': '接続設定',
     'notSeenYet': '未確認',
     'sessions': 'セッション',
     'sessionCount': '件',
@@ -454,6 +458,8 @@ const _messages = <String, Map<String, String>>{
     'cliDefaults': 'CLI 默认值',
     'loading': '加载中',
     'notifications': '通知',
+    'settings': '设置',
+    'connectionSettings': '连接设置',
     'notSeenYet': '尚未看到',
     'sessions': '会话',
     'sessionCount': '个会话',
@@ -539,6 +545,8 @@ const _messages = <String, Map<String, String>>{
     'cliDefaults': 'CLI 기본값',
     'loading': '로딩 중',
     'notifications': '알림',
+    'settings': '설정',
+    'connectionSettings': '연결 설정',
     'notSeenYet': '아직 확인 안 됨',
     'sessions': '세션',
     'sessionCount': '개 세션',
@@ -1557,7 +1565,7 @@ class SessionListView extends StatefulWidget {
 class _SessionListViewState extends State<SessionListView> {
   final TextEditingController searchController = TextEditingController();
   bool isCreating = false;
-  String selectedGroup = '';
+  String? selectedGroup;
 
   @override
   void initState() {
@@ -1581,7 +1589,7 @@ class _SessionListViewState extends State<SessionListView> {
           final matchesSearch =
               query.isEmpty || session.title.toLowerCase().contains(query);
           final matchesGroup =
-              selectedGroup.isEmpty ||
+              selectedGroup == null ||
               sessionGroupKey(session) == selectedGroup;
           return matchesSearch && matchesGroup;
         })
@@ -1852,9 +1860,9 @@ class _SessionListViewState extends State<SessionListView> {
                                   padding: const EdgeInsets.only(right: 8),
                                   child: ChoiceChip(
                                     label: Text(context.l10n.t('allGroups')),
-                                    selected: selectedGroup.isEmpty,
+                                    selected: selectedGroup == null,
                                     onSelected: (_) =>
-                                        setState(() => selectedGroup = ''),
+                                        setState(() => selectedGroup = null),
                                   ),
                                 ),
                                 for (final group in groups)
@@ -2667,6 +2675,92 @@ class _ConnectionSummary extends StatefulWidget {
 }
 
 class _ConnectionSummaryState extends State<_ConnectionSummary> {
+  Future<void> openConnectionSettings() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => _ConnectionSettingsSheet(
+        bootstrap: widget.bootstrap,
+        sessionRepository: widget.sessionRepository,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return StreamBuilder<PcBridgeStatus>(
+      stream: widget.sessionRepository.watchPcBridgeStatus(
+        widget.bootstrap.uid,
+        widget.bootstrap.pcBridgeId,
+      ),
+      builder: (context, snapshot) {
+        final bridge = snapshot.data ?? const PcBridgeStatus();
+
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+            child: Row(
+              children: [
+                const Icon(Icons.computer),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.t('pcBridge'),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${widget.bootstrap.pcBridgeId}${bridge.status == null ? '' : ' (${bridge.status})'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '${l10n.t('lastHeartbeat')}: ${formatDateTime(context, bridge.lastSeenAt)}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: openConnectionSettings,
+                  tooltip: l10n.t('settings'),
+                  icon: const Icon(Icons.settings),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ConnectionSettingsSheet extends StatefulWidget {
+  const _ConnectionSettingsSheet({
+    required this.bootstrap,
+    required this.sessionRepository,
+  });
+
+  final AppBootstrap bootstrap;
+  final SessionRepository sessionRepository;
+
+  @override
+  State<_ConnectionSettingsSheet> createState() =>
+      _ConnectionSettingsSheetState();
+}
+
+class _ConnectionSettingsSheetState extends State<_ConnectionSettingsSheet> {
   bool isCheckingBridge = false;
   bool isOpeningDefaults = false;
   String? checkError;
@@ -2735,24 +2829,32 @@ class _ConnectionSummaryState extends State<_ConnectionSummary> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return StreamBuilder<PcBridgeStatus>(
-      stream: widget.sessionRepository.watchPcBridgeStatus(
-        widget.bootstrap.uid,
-        widget.bootstrap.pcBridgeId,
-      ),
-      builder: (context, snapshot) {
-        final bridge = snapshot.data ?? const PcBridgeStatus();
 
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
+    return SafeArea(
+      child: StreamBuilder<PcBridgeStatus>(
+        stream: widget.sessionRepository.watchPcBridgeStatus(
+          widget.bootstrap.uid,
+          widget.bootstrap.pcBridgeId,
+        ),
+        builder: (context, snapshot) {
+          final bridge = snapshot.data ?? const PcBridgeStatus();
+
+          return SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              0,
+              20,
+              20 + MediaQuery.of(context).viewInsets.bottom,
+            ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(
+                  l10n.t('connectionSettings'),
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 12),
                 Text(
                   l10n.t('connectedAnonymous'),
                   style: Theme.of(context).textTheme.titleMedium,
@@ -2838,9 +2940,9 @@ class _ConnectionSummaryState extends State<_ConnectionSummary> {
                 SelectableText('UID: ${widget.bootstrap.uid}'),
               ],
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -3047,12 +3149,19 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
     }
   }
 
-  Future<void> renameSession() async {
+  SessionSummary currentSessionFrom(List<SessionSummary> sessions) {
+    return sessions.firstWhere(
+      (session) => session.id == widget.session.id,
+      orElse: () => widget.session,
+    );
+  }
+
+  Future<void> renameSession(SessionSummary session) async {
     final title = await showTextValueDialog(
       context,
       title: context.l10n.t('renameSession'),
       label: context.l10n.t('sessionName'),
-      initialValue: widget.session.title,
+      initialValue: session.title,
     );
     if (title == null) {
       return;
@@ -3060,17 +3169,17 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
 
     await widget.sessionRepository.renameSession(
       uid: widget.bootstrap.uid,
-      sessionId: widget.session.id,
+      sessionId: session.id,
       title: title,
     );
   }
 
-  Future<void> updateGroup() async {
+  Future<void> updateGroup(SessionSummary session) async {
     final groupName = await showTextValueDialog(
       context,
       title: context.l10n.t('changeGroup'),
       label: context.l10n.t('groupName'),
-      initialValue: widget.session.groupName ?? '',
+      initialValue: session.groupName ?? '',
     );
     if (groupName == null) {
       return;
@@ -3078,12 +3187,12 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
 
     await widget.sessionRepository.updateSessionGroup(
       uid: widget.bootstrap.uid,
-      sessionId: widget.session.id,
+      sessionId: session.id,
       groupName: groupName,
     );
   }
 
-  Future<void> deleteSession() async {
+  Future<void> deleteSession(SessionSummary session) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -3108,7 +3217,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
 
     await widget.sessionRepository.deleteSession(
       uid: widget.bootstrap.uid,
-      sessionId: widget.session.id,
+      sessionId: session.id,
     );
     if (mounted) {
       Navigator.of(context).pop();
@@ -3117,108 +3226,118 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.session.title),
-        actions: [
-          IconButton(
-            onPressed: () => widget.sessionRepository.updateSessionFavorite(
-              uid: widget.bootstrap.uid,
-              sessionId: widget.session.id,
-              favorite: !widget.session.favorite,
-            ),
-            tooltip: context.l10n.t(
-              widget.session.favorite ? 'removeFavorite' : 'favorite',
-            ),
-            icon: Icon(
-              widget.session.favorite ? Icons.star : Icons.star_border,
-            ),
-          ),
-          PopupMenuButton<String>(
-            tooltip: context.l10n.t('more'),
-            onSelected: (value) {
-              switch (value) {
-                case 'rename':
-                  renameSession();
-                case 'group':
-                  updateGroup();
-                case 'delete':
-                  deleteSession();
-                case 'options':
-                  showSessionOptionsSummaryDialog(context, widget.session);
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'rename',
-                child: Text(context.l10n.t('renameSession')),
+    return StreamBuilder<List<SessionSummary>>(
+      stream: widget.sessionRepository.watchSessions(widget.bootstrap.uid),
+      builder: (context, sessionSnapshot) {
+        final currentSession = currentSessionFrom(
+          sessionSnapshot.data ?? const <SessionSummary>[],
+        );
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(currentSession.title),
+            actions: [
+              IconButton(
+                onPressed: () => widget.sessionRepository.updateSessionFavorite(
+                  uid: widget.bootstrap.uid,
+                  sessionId: currentSession.id,
+                  favorite: !currentSession.favorite,
+                ),
+                tooltip: context.l10n.t(
+                  currentSession.favorite ? 'removeFavorite' : 'favorite',
+                ),
+                icon: Icon(
+                  currentSession.favorite ? Icons.star : Icons.star_border,
+                ),
               ),
-              PopupMenuItem(
-                value: 'group',
-                child: Text(context.l10n.t('changeGroup')),
-              ),
-              PopupMenuItem(
-                value: 'options',
-                child: Text(context.l10n.t('cliOptionHelp')),
-              ),
-              PopupMenuItem(
-                value: 'delete',
-                child: Text(context.l10n.t('deleteSession')),
+              PopupMenuButton<String>(
+                tooltip: context.l10n.t('more'),
+                onSelected: (value) {
+                  switch (value) {
+                    case 'rename':
+                      renameSession(currentSession);
+                    case 'group':
+                      updateGroup(currentSession);
+                    case 'delete':
+                      deleteSession(currentSession);
+                    case 'options':
+                      showSessionOptionsSummaryDialog(context, currentSession);
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'rename',
+                    child: Text(context.l10n.t('renameSession')),
+                  ),
+                  PopupMenuItem(
+                    value: 'group',
+                    child: Text(context.l10n.t('changeGroup')),
+                  ),
+                  PopupMenuItem(
+                    value: 'options',
+                    child: Text(context.l10n.t('cliOptionHelp')),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text(context.l10n.t('deleteSession')),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-      drawer: SessionDrawer(
-        bootstrap: widget.bootstrap,
-        sessionRepository: widget.sessionRepository,
-        currentSessionId: widget.session.id,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: StreamBuilder<List<CommandSummary>>(
-                stream: widget.sessionRepository.watchCommands(
-                  widget.bootstrap.uid,
-                  widget.session.id,
+          drawer: SessionDrawer(
+            bootstrap: widget.bootstrap,
+            sessionRepository: widget.sessionRepository,
+            currentSessionId: currentSession.id,
+          ),
+          body: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: StreamBuilder<List<CommandSummary>>(
+                    stream: widget.sessionRepository.watchCommands(
+                      widget.bootstrap.uid,
+                      currentSession.id,
+                    ),
+                    builder: (context, snapshot) {
+                      final commands =
+                          snapshot.data ?? const <CommandSummary>[];
+
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return _StartupMessage(
+                          title: context.l10n.t('commandLoadFailed'),
+                          message: snapshot.error.toString(),
+                          child: const Icon(Icons.error_outline, size: 36),
+                        );
+                      }
+
+                      if (commands.isEmpty) {
+                        return const _NoCommands();
+                      }
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                        itemCount: commands.length,
+                        itemBuilder: (context, index) =>
+                            _CommandTile(command: commands[index]),
+                      );
+                    },
+                  ),
                 ),
-                builder: (context, snapshot) {
-                  final commands = snapshot.data ?? const <CommandSummary>[];
-
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (snapshot.hasError) {
-                    return _StartupMessage(
-                      title: context.l10n.t('commandLoadFailed'),
-                      message: snapshot.error.toString(),
-                      child: const Icon(Icons.error_outline, size: 36),
-                    );
-                  }
-
-                  if (commands.isEmpty) {
-                    return const _NoCommands();
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                    itemCount: commands.length,
-                    itemBuilder: (context, index) =>
-                        _CommandTile(command: commands[index]),
-                  );
-                },
-              ),
+                _CommandComposer(
+                  controller: controller,
+                  isSending: isSending,
+                  onSend: sendCommand,
+                ),
+              ],
             ),
-            _CommandComposer(
-              controller: controller,
-              isSending: isSending,
-              onSend: sendCommand,
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

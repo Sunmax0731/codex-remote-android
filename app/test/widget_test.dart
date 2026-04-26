@@ -54,12 +54,12 @@ void main() {
     repository.emit(const <SessionSummary>[]);
     await pumpFrames(tester);
 
-    expect(find.text('Connected as anonymous user'), findsOneWidget);
-    expect(find.text('PC bridge: home-main-pc (active)'), findsOneWidget);
-    expect(find.text('Check PC now'), findsOneWidget);
-    expect(find.text('CLI defaults'), findsOneWidget);
+    expect(find.text('PC bridge'), findsOneWidget);
+    expect(find.text('home-main-pc (active)'), findsOneWidget);
+    expect(find.byTooltip('Settings'), findsOneWidget);
+    expect(find.text('Check PC now'), findsNothing);
+    expect(find.text('CLI defaults'), findsNothing);
     expect(find.text('CLI option help'), findsNothing);
-    expect(find.text('UID: test-uid'), findsOneWidget);
     expect(find.text('No sessions yet'), findsOneWidget);
   });
 
@@ -91,7 +91,7 @@ void main() {
     repository.emit(const <SessionSummary>[]);
     await pumpFrames(tester);
 
-    expect(find.text('匿名ユーザーで接続中'), findsOneWidget);
+    expect(find.text('PCブリッジ'), findsOneWidget);
     expect(find.text('セッションはまだありません'), findsOneWidget);
     expect(find.text('新規セッション'), findsOneWidget);
   });
@@ -175,6 +175,8 @@ void main() {
     repository.emit(const <SessionSummary>[]);
     await pumpFrames(tester);
 
+    await tester.tap(find.byTooltip('Settings'));
+    await pumpFrames(tester);
     await tester.tap(find.text('Check PC now'));
     await tester.pump();
 
@@ -203,6 +205,8 @@ void main() {
     repository.emit(const <SessionSummary>[]);
     await pumpFrames(tester);
 
+    await tester.tap(find.byTooltip('Settings'));
+    await pumpFrames(tester);
     await tester.tap(find.text('CLI defaults'));
     await pumpFrames(tester);
     expect(find.text('Sandbox'), findsOneWidget);
@@ -240,6 +244,8 @@ void main() {
     repository.emit(const <SessionSummary>[]);
     await pumpFrames(tester);
 
+    await tester.tap(find.byTooltip('Settings'));
+    await pumpFrames(tester);
     await tester.tap(find.text('CLI defaults'));
     await pumpFrames(tester);
     await tester.enterText(find.byType(TextField).first, 'focused-profile');
@@ -272,6 +278,8 @@ void main() {
     repository.emit(const <SessionSummary>[]);
     await pumpFrames(tester);
 
+    await tester.tap(find.byTooltip('Settings'));
+    await pumpFrames(tester);
     await tester.tap(find.text('CLI defaults'));
     await pumpFrames(tester);
     await tester.tap(find.byTooltip('Show help for Model'));
@@ -360,6 +368,7 @@ void main() {
         status: 'idle',
         groupName: 'Personal',
       ),
+      SessionSummary(id: 'session-3', title: 'Inbox item', status: 'idle'),
     ]);
     await pumpFrames(tester);
 
@@ -368,8 +377,7 @@ void main() {
       'billing',
     );
     await pumpFrames(tester);
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
-    await tester.pump();
+    await tester.ensureVisible(find.text('Billing fix'));
 
     expect(find.text('Billing fix'), findsOneWidget);
     expect(find.text('Game notes'), findsNothing);
@@ -383,9 +391,22 @@ void main() {
     await tester.pump();
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
     await tester.pump();
+    await tester.ensureVisible(find.text('Game notes'));
 
     expect(find.text('Billing fix'), findsNothing);
     expect(find.text('Game notes'), findsOneWidget);
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, 800));
+    await tester.pump();
+    await tester.tap(find.text('Ungrouped'));
+    await tester.pump();
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+    await tester.pump();
+    await tester.ensureVisible(find.text('Inbox item'));
+
+    expect(find.text('Billing fix'), findsNothing);
+    expect(find.text('Game notes'), findsNothing);
+    expect(find.text('Inbox item'), findsOneWidget);
   });
 
   testWidgets('edits favorite group and deletion from session actions', (
@@ -413,6 +434,7 @@ void main() {
       SessionSummary(id: 'session-1', title: 'Session 1', status: 'idle'),
     ]);
     await pumpFrames(tester);
+    await tester.ensureVisible(find.text('Session 1'));
 
     await tester.longPress(find.text('Session 1'));
     await pumpFrames(tester);
@@ -426,13 +448,15 @@ void main() {
     await pumpFrames(tester);
     expect(repository.renamedSessionTitle, 'Renamed');
 
-    await tester.longPress(find.text('Session 1'));
+    await tester.ensureVisible(find.text('Renamed'));
+    await tester.longPress(find.text('Renamed'));
     await pumpFrames(tester);
     await tester.tap(find.text('Favorite'));
     await pumpFrames(tester);
     expect(repository.updatedFavorite, true);
 
-    await tester.longPress(find.text('Session 1'));
+    await tester.ensureVisible(find.text('Renamed'));
+    await tester.longPress(find.text('Renamed'));
     await pumpFrames(tester);
     await tester.tap(find.text('Change group'));
     await pumpFrames(tester);
@@ -444,7 +468,8 @@ void main() {
     await pumpFrames(tester);
     expect(repository.updatedGroupName, 'Work');
 
-    await tester.longPress(find.text('Session 1'));
+    await tester.ensureVisible(find.text('Renamed'));
+    await tester.longPress(find.text('Renamed'));
     await pumpFrames(tester);
     await tester.tap(find.text('Delete session'));
     await pumpFrames(tester);
@@ -516,9 +541,15 @@ void main() {
     ]);
     repository.emitCommands('session-1', const <CommandSummary>[]);
     await pumpFrames(tester);
+    await tester.ensureVisible(find.text('Session 1'));
 
-    await tester.tap(find.text('Session 1'));
-    await tester.pump();
+    await tester.tap(
+      find.ancestor(
+        of: find.text('Session 1'),
+        matching: find.byType(ListTile),
+      ),
+    );
+    await pumpFrames(tester);
     repository.emitCommands('session-1', const <CommandSummary>[]);
     await tester.pump(const Duration(milliseconds: 300));
 
@@ -530,10 +561,64 @@ void main() {
     );
     await tester.tap(find.byTooltip('Send'));
     await pumpFrames(tester);
+    await tester.pump(const Duration(seconds: 1));
 
     expect(repository.createdCommandText, 'Summarize the repo');
     expect(find.text('Summarize the repo'), findsOneWidget);
     expect(find.text('queued'), findsOneWidget);
+  });
+
+  testWidgets('updates session detail title and favorite without navigation', (
+    tester,
+  ) async {
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const [
+      SessionSummary(id: 'session-1', title: 'Session 1', status: 'idle'),
+    ]);
+    repository.emitCommands('session-1', const <CommandSummary>[]);
+    await pumpFrames(tester);
+    await tester.ensureVisible(find.text('Session 1'));
+
+    await tester.tap(find.text('Session 1'));
+    await pumpFrames(tester);
+    expect(find.text('Session 1'), findsWidgets);
+    expect(find.byTooltip('Favorite'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Favorite'));
+    await pumpFrames(tester);
+    expect(repository.updatedFavorite, true);
+    expect(find.byTooltip('Remove favorite'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.more_vert).last);
+    await pumpFrames(tester);
+    await tester.tap(find.text('Rename session'));
+    await pumpFrames(tester);
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Session name'),
+      'Renamed session',
+    );
+    await tester.tap(find.text('Save'));
+    await pumpFrames(tester);
+
+    expect(repository.renamedSessionTitle, 'Renamed session');
+    expect(find.text('Renamed session'), findsOneWidget);
   });
 }
 
@@ -655,6 +740,7 @@ class FakeSessionRepository implements SessionRepository {
     required String title,
   }) async {
     renamedSessionTitle = title;
+    updateSession(sessionId, (session) => copySession(session, title: title));
   }
 
   @override
@@ -664,6 +750,10 @@ class FakeSessionRepository implements SessionRepository {
     required bool favorite,
   }) async {
     updatedFavorite = favorite;
+    updateSession(
+      sessionId,
+      (session) => copySession(session, favorite: favorite),
+    );
   }
 
   @override
@@ -673,6 +763,13 @@ class FakeSessionRepository implements SessionRepository {
     required String? groupName,
   }) async {
     updatedGroupName = groupName;
+    updateSession(
+      sessionId,
+      (session) => copySession(
+        session,
+        groupName: groupName?.trim().isEmpty == true ? null : groupName,
+      ),
+    );
   }
 
   @override
@@ -681,6 +778,14 @@ class FakeSessionRepository implements SessionRepository {
     required String sessionId,
   }) async {
     deletedSessionCount++;
+    final sessions = latestSessions;
+    if (sessions != null) {
+      emit(
+        sessions
+            .where((session) => session.id != sessionId)
+            .toList(growable: false),
+      );
+    }
   }
 
   @override
@@ -695,4 +800,38 @@ class FakeSessionRepository implements SessionRepository {
       CommandSummary(id: 'command-1', text: text, status: 'queued'),
     ]);
   }
+
+  void updateSession(
+    String sessionId,
+    SessionSummary Function(SessionSummary session) update,
+  ) {
+    final sessions = latestSessions;
+    if (sessions == null) {
+      return;
+    }
+
+    emit(
+      sessions
+          .map((session) => session.id == sessionId ? update(session) : session)
+          .toList(growable: false),
+    );
+  }
+}
+
+SessionSummary copySession(
+  SessionSummary session, {
+  String? title,
+  bool? favorite,
+  String? groupName,
+}) {
+  return SessionSummary(
+    id: session.id,
+    title: title ?? session.title,
+    status: session.status,
+    favorite: favorite ?? session.favorite,
+    groupName: groupName ?? session.groupName,
+    codexOptions: session.codexOptions,
+    lastResultPreview: session.lastResultPreview,
+    lastErrorPreview: session.lastErrorPreview,
+  );
 }
