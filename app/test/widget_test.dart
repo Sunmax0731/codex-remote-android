@@ -1,30 +1,38 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:remote_codex/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
-
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  testWidgets('shows startup ready state after Firebase initialization', (tester) async {
+    await tester.pumpWidget(RemoteCodexApp(firebaseInitialization: Future<FirebaseApp>.value(FakeFirebaseApp())));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('RemoteCodex'), findsWidgets);
+    expect(find.text('Firebase is ready. Session features are next.'), findsOneWidget);
   });
+}
+
+class FakeFirebaseApp implements FirebaseApp {
+  @override
+  String get name => '[DEFAULT]';
+
+  @override
+  FirebaseOptions get options => const FirebaseOptions(
+        apiKey: 'test-api-key',
+        appId: 'test-app-id',
+        messagingSenderId: 'test-sender-id',
+        projectId: 'test-project-id',
+      );
+
+  @override
+  bool get isAutomaticDataCollectionEnabled => false;
+
+  @override
+  Future<void> delete() async {}
+
+  @override
+  Future<void> setAutomaticDataCollectionEnabled(bool enabled) async {}
+
+  @override
+  Future<void> setAutomaticResourceManagementEnabled(bool enabled) async {}
 }
