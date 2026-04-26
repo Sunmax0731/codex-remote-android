@@ -13,6 +13,8 @@ async function main(): Promise<void> {
   console.log(`Relay mode: ${config.relayMode}`);
   console.log(`PC bridge: ${config.pcBridgeId}`);
 
+  await repository.updateHeartbeat(config.pcBridgeId, new Date());
+
   const result = await processNextCommand({
     config,
     repository,

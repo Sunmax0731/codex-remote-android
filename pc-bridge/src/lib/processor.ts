@@ -19,7 +19,6 @@ export type ProcessNextCommandResult =
 
 export async function processNextCommand(input: ProcessNextCommandInput): Promise<ProcessNextCommandResult> {
   const now = input.now ?? new Date();
-  await input.repository.updateHeartbeat(input.config.pcBridgeId, now);
 
   const command = await input.repository.claimNextQueuedCommand(
     input.config.pcBridgeId,

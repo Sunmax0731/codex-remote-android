@@ -419,10 +419,11 @@ Androidアプリは次を表示する。
 - `lastSeenAt` が古い: PCブリッジ待機中またはオフライン。
 - `pcBridge` が存在しない: セットアップが必要。
 
-heartbeat間隔とオフライン判定時間はPhase 4で実装時に決める。MVPの初期値は次を候補にする。
+heartbeat間隔とオフライン判定時間はPhase 4以降の実測で調整する。2026-04-26時点のMVP設定は次の通り。
 
-- heartbeat: 30秒ごと。
-- offline判定: 2分以上更新なし。
+- queued command確認: 5秒ごと。
+- heartbeat: 5分ごと。
+- offline判定: heartbeat間隔より十分長い時間を使う。MVPでは10分以上更新なしを目安にする。
 
 ### VS Code前提
 
