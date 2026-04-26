@@ -286,7 +286,7 @@ Phase 3以降で導入する場合の候補:
 npm.cmd install -g firebase-tools
 ```
 
-### Node.js / npm
+### Node.js / npm / pnpm
 
 PCブリッジの第一候補ランタイムはNode.js/TypeScript。
 
@@ -298,6 +298,15 @@ npm.cmd --version
 ```
 
 この環境ではPowerShellの実行ポリシーにより `npm` ではなく `npm.cmd` を使う方針にする。
+
+pnpmを使う場合は、Node.js付属のCorepack経由で実行する。環境によっては `pnpm.cmd` shim がPATHに作成されないため、このプロジェクトの手順では `corepack pnpm ...` を標準表記にする。`pnpm.cmd` が使える環境では置き換えてよい。
+
+```powershell
+corepack enable
+corepack pnpm --version
+```
+
+pnpmはnpmとは異なる依存解決と `pnpm-lock.yaml` を使うため、npmで報告された脆弱性警告が変わる場合がある。ただし、pnpmを使うだけで脆弱性が必ず解消するわけではない。`corepack pnpm audit` の結果を確認し、依存更新が必要な場合は別Issueで対応する。
 
 ## PowerShellと日本語ファイル
 
@@ -334,17 +343,36 @@ npm.cmd install
 npm.cmd run check
 ```
 
+pnpmで確認する場合:
+
+```powershell
+Set-Location pc-bridge
+corepack enable
+corepack pnpm --version
+corepack pnpm install
+corepack pnpm run check
+corepack pnpm audit
+```
+
 Phase 3時点の確認結果:
 
 - `npm.cmd install` 成功。
 - `npm.cmd run check` 成功。
 - `npm audit` は 2 low / 8 moderate の脆弱性警告を報告。Phase 4で依存関係を実装に合わせて再評価する。
+- pnpmを使う場合も監査結果を確認し、必要なら依存更新Issueを作成する。
 
 Phase 4で追加された確認コマンド:
 
 ```powershell
 Set-Location pc-bridge
 npm.cmd run validate:local
+```
+
+pnpmで確認する場合:
+
+```powershell
+Set-Location pc-bridge
+corepack pnpm run validate:local
 ```
 
 確認内容:
@@ -394,6 +422,13 @@ Set-Location D:\Claude\FlutterApp\codex-remote-android\pc-bridge
 npm.cmd run start:watch
 ```
 
+pnpmで起動する場合:
+
+```powershell
+Set-Location D:\Claude\FlutterApp\codex-remote-android\pc-bridge
+corepack pnpm run start:watch
+```
+
 Issue #29のユーザー受け入れタスク:
 
 ```text
@@ -440,12 +475,25 @@ npm.cmd install
 npm.cmd run check
 ```
 
+pnpmで確認する場合:
+
+```powershell
+Set-Location firebase\functions
+corepack enable
+corepack pnpm --version
+corepack pnpm install
+corepack pnpm run check
+corepack pnpm run build
+corepack pnpm audit
+```
+
 Phase 3時点の確認結果:
 
 - `npm.cmd install` 成功。
 - `npm.cmd run check` 成功。
 - `npm audit` は 2 low / 9 moderate の脆弱性警告を報告。Phase 6でFunctions実装に合わせて再評価する。
 - `package.json` の Firebase Functions runtime は `node: 22`。ローカルNode.jsは `v24.14.0` のため、`npm` は `EBADENGINE` warningを表示するが、TypeScript checkは成功する。
+- pnpm利用時もFunctions runtimeは `node: 22` のまま扱い、監査結果とengine warningの有無を確認する。
 
 ### Phase 8: Release
 
