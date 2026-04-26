@@ -77,7 +77,7 @@ The Android app must show the final result after the PC finishes processing.
 
 Acceptance criteria:
 
-- Intermediate progress does not need to be displayed.
+- The app can show periodic progress logs while a command is running.
 - The app shows the final response text.
 - The app shows failure state if the PC bridge reports an error.
 - The app preserves the final result after app restart.
@@ -251,7 +251,7 @@ Then:
 | Start session | FR-001 |
 | Select existing session | FR-002 |
 | Send text and show result | FR-003, FR-004 |
-| No intermediate progress, notify on completion | FR-004, FR-005 |
+| Running progress logs and completion notification | FR-004, FR-005 |
 | PC is powered on | FR-006 |
 | VS Code is running | FR-007 |
 | Possible later VS Code startup | FR-007, out of scope for MVP |

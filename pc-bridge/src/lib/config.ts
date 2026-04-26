@@ -49,6 +49,7 @@ export function normalizeConfig(raw: RawConfig): BridgeConfig {
     codexBypassSandbox: raw.codexBypassSandbox ?? false,
     codexSandbox,
     codexTimeoutSeconds: raw.codexTimeoutSeconds ?? 900,
+    codexProgressIntervalSeconds: raw.codexProgressIntervalSeconds ?? 60,
   };
 }
 

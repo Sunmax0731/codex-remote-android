@@ -24,6 +24,7 @@ export type BridgeConfig = {
   codexBypassSandbox: boolean;
   codexSandbox: CodexSandbox;
   codexTimeoutSeconds: number;
+  codexProgressIntervalSeconds: number;
 };
 
 export type CommandStatus = "queued" | "running" | "completed" | "failed" | "canceled";
@@ -42,6 +43,8 @@ export type RemoteCommand = {
   claimExpiresAt?: string;
   startedAt?: string;
   completedAt?: string;
+  progressText?: string;
+  progressUpdatedAt?: string;
   resultText?: string;
   errorText?: string;
   notificationSentAt?: string;
@@ -55,6 +58,7 @@ export type CommandClaim = {
 
 export type CommandRepository = {
   claimNextQueuedCommand(pcBridgeId: string, now: Date, claimTtlSeconds: number): Promise<RemoteCommand | null>;
+  updateProgress(claim: CommandClaim, progressText: string, now: Date, claimTtlSeconds: number): Promise<void>;
   markCompleted(claim: CommandClaim, resultText: string, now: Date): Promise<void>;
   markFailed(claim: CommandClaim, errorText: string, now: Date): Promise<void>;
   updateHeartbeat(pcBridgeId: string, now: Date): Promise<void>;
@@ -64,6 +68,7 @@ export type CommandRepository = {
 export type CodexInvocation = {
   command: RemoteCommand;
   workspacePath: string;
+  onProgress?: (progressText: string, now: Date) => Promise<void>;
 };
 
 export type CodexInvocationResult =

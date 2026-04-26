@@ -120,6 +120,22 @@ export class FirestoreRelayRepository implements CommandRepository {
     });
   }
 
+  async updateProgress(
+    claim: CommandClaim,
+    progressText: string,
+    now: Date,
+    claimTtlSeconds: number,
+  ): Promise<void> {
+    const firestore = await this.getFirestore();
+    const commandRef = commandDocument(firestore, claim);
+
+    await commandRef.update({
+      progressText,
+      progressUpdatedAt: Timestamp.fromDate(now),
+      claimExpiresAt: Timestamp.fromMillis(now.getTime() + claimTtlSeconds * 1000),
+    });
+  }
+
   async markFailed(claim: CommandClaim, errorText: string, now: Date): Promise<void> {
     const firestore = await this.getFirestore();
     const nowTimestamp = Timestamp.fromDate(now);
@@ -250,6 +266,8 @@ function toRemoteCommand(
     claimExpiresAt: timestampToIso(data.claimExpiresAt),
     startedAt: timestampToIso(data.startedAt),
     completedAt: timestampToIso(data.completedAt),
+    progressText: data.progressText,
+    progressUpdatedAt: timestampToIso(data.progressUpdatedAt),
     resultText: data.resultText,
     errorText: data.errorText,
     notificationSentAt: timestampToIso(data.notificationSentAt),
