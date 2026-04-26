@@ -157,16 +157,17 @@ Firebaseをクラウドリレーとして使います。
 - Cloud Functions
 - Firebase Emulator Suite
 
-現在のFirebase scaffoldは `firebase/` にあります。Firestore Rules、Indexes、Cloud Functionsを更新した場合は次を実行します。
+利用者自身のFirebaseプロジェクトを作成し、このリポジトリの `firebase/` 構成をデプロイして使います。Firestore Rules、Indexes、Cloud Functionsをデプロイする場合は次を実行します。
 
 ```powershell
 cd firebase
-firebase use
+firebase login
+firebase use --add
 firebase deploy --only firestore:rules,firestore:indexes
 firebase deploy --only functions
 ```
 
-Cloud Functionsの初回デプロイにはBlazeプランとGoogle Cloud APIの有効化が必要です。詳細は [Firebase手順](firebase/README.md) と [Cloud Functions手順](firebase/functions/README.md) を参照してください。
+`firebase use --add` では、利用者自身が用意したFirebase project IDを選択します。Cloud Functionsの初回デプロイにはBlazeプランとGoogle Cloud APIの有効化が必要です。詳細は [Firebase手順](firebase/README.md) と [Cloud Functions手順](firebase/functions/README.md) を参照してください。
 
 ## 利用開始手順
 

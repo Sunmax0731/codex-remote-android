@@ -435,7 +435,7 @@ Phase 4時点では、PCブリッジのrelayアクセスを `CommandRepository` 
 
 Firestore実接続時は、`CommandRepository` のclaim/complete/fail/heartbeat操作をFirestore transactionとSecurity Rules前提に置き換える。
 
-Phase 4時点でFirestore adapterコードは実装済み。ただし、実Firebaseプロジェクトとservice accountが未設定のため、実接続検証はFirebase設定後に行う。
+Firestore adapterコードは実装済み。実接続検証は、利用者自身のFirebaseプロジェクト、service account JSON、`ownerUserId` を設定した後に行う。
 
 ### 起動とheartbeat
 

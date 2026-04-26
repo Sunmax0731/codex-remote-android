@@ -50,7 +50,7 @@ Firebase CLIのdeploy hookはnpm形式で実行される場合があるため、
 - 初回の2nd gen FunctionsデプロイではEventarc権限反映に数分かかる場合がある。その場合は数分待って `firebase deploy --only functions` を再実行する。
 - Artifact RegistryのCloud Functions imageには7日保持のcleanup policyを設定済み。
 
-## デプロイ済み関数
+## デプロイ後に作成される関数
 
 - `notifyCommandCompletion`
 - version: v2

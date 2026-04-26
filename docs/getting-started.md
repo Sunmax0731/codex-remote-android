@@ -30,9 +30,11 @@ Android側:
 - Cloud Functions
 - Blazeプラン
 
-## 2. Firebaseを準備する
+## 2. 自分のFirebaseプロジェクトを準備する
 
-Firebase Consoleでプロジェクトを作成し、次を有効化します。
+利用者自身のFirebase/GCPプロジェクトを用意します。既存プロジェクトを使っても構いませんが、コマンド本文や結果がFirestoreに保存されるため、このアプリ専用のプロジェクトを推奨します。
+
+Firebase Consoleでプロジェクトを作成し、次を設定します。
 
 1. AuthenticationでAnonymous Authを有効化する。
 2. Firestore Databaseを作成する。
@@ -42,15 +44,18 @@ Firebase Consoleでプロジェクトを作成し、次を有効化します。
 6. `google-services.json` をダウンロードし、`app/android/app/google-services.json` に配置する。
 7. PCブリッジ用のservice account JSONを取得し、Git管理外の安全な場所に保存する。
 
-Firebase CLIで対象プロジェクトを選択します。
+Firebase CLIで利用者自身の対象プロジェクトを選択し、Firestore Rules / Indexes / Functionsをデプロイします。
 
 ```powershell
 cd firebase
+firebase login
 firebase use --add
 firebase deploy --only firestore:rules,firestore:indexes
 firebase deploy --only functions
 cd ..
 ```
+
+`firebase use --add` では、自分で作成したFirebase project IDを選択してください。既存開発者のproject IDを使う前提にはしません。
 
 ## 3. Androidアプリを起動してUIDを確認する
 
