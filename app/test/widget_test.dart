@@ -318,12 +318,139 @@ void main() {
 
     await tester.longPress(find.text('Session 1'));
     await pumpFrames(tester);
+    await tester.tap(find.text('CLI option help'));
+    await pumpFrames(tester);
 
     expect(find.text('Model: gpt-5.4-mini'), findsOneWidget);
     expect(find.text('Sandbox: read-only'), findsOneWidget);
     expect(find.text('Config: model="gpt-5.4-mini"'), findsOneWidget);
     expect(find.text('Enable: feature-a'), findsOneWidget);
     expect(find.text('JSON events: on'), findsOneWidget);
+  });
+
+  testWidgets('filters sessions by title and group', (tester) async {
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const [
+      SessionSummary(
+        id: 'session-1',
+        title: 'Billing fix',
+        status: 'idle',
+        groupName: 'Work',
+      ),
+      SessionSummary(
+        id: 'session-2',
+        title: 'Game notes',
+        status: 'idle',
+        groupName: 'Personal',
+      ),
+    ]);
+    await pumpFrames(tester);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Search sessions'),
+      'billing',
+    );
+    await pumpFrames(tester);
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+    await tester.pump();
+
+    expect(find.text('Billing fix'), findsOneWidget);
+    expect(find.text('Game notes'), findsNothing);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Search sessions'),
+      '',
+    );
+    await pumpFrames(tester);
+    await tester.tap(find.text('Personal'));
+    await tester.pump();
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+    await tester.pump();
+
+    expect(find.text('Billing fix'), findsNothing);
+    expect(find.text('Game notes'), findsOneWidget);
+  });
+
+  testWidgets('edits favorite group and deletion from session actions', (
+    tester,
+  ) async {
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const [
+      SessionSummary(id: 'session-1', title: 'Session 1', status: 'idle'),
+    ]);
+    await pumpFrames(tester);
+
+    await tester.longPress(find.text('Session 1'));
+    await pumpFrames(tester);
+    await tester.tap(find.text('Rename session'));
+    await pumpFrames(tester);
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Session name'),
+      'Renamed',
+    );
+    await tester.tap(find.text('Save'));
+    await pumpFrames(tester);
+    expect(repository.renamedSessionTitle, 'Renamed');
+
+    await tester.longPress(find.text('Session 1'));
+    await pumpFrames(tester);
+    await tester.tap(find.text('Favorite'));
+    await pumpFrames(tester);
+    expect(repository.updatedFavorite, true);
+
+    await tester.longPress(find.text('Session 1'));
+    await pumpFrames(tester);
+    await tester.tap(find.text('Change group'));
+    await pumpFrames(tester);
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Group name'),
+      'Work',
+    );
+    await tester.tap(find.text('Save'));
+    await pumpFrames(tester);
+    expect(repository.updatedGroupName, 'Work');
+
+    await tester.longPress(find.text('Session 1'));
+    await pumpFrames(tester);
+    await tester.tap(find.text('Delete session'));
+    await pumpFrames(tester);
+    await tester.tap(find.text('Delete'));
+    await pumpFrames(tester);
+    expect(repository.deletedSessionCount, 1);
   });
 
   testWidgets('creates a session from the floating action button', (
@@ -362,7 +489,7 @@ void main() {
     expect(repository.createdSessionCount, 1);
     expect(repository.createdSessionOptions?.codexModel, defaultCodexModel);
     expect(find.text('Session 1'), findsWidgets);
-    expect(find.byType(TextField), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'Instruction'), findsOneWidget);
   });
 
   testWidgets('opens session detail and sends a command', (tester) async {
@@ -397,7 +524,10 @@ void main() {
 
     expect(find.text('No commands yet'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), 'Summarize the repo');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Instruction'),
+      'Summarize the repo',
+    );
     await tester.tap(find.byTooltip('Send'));
     await pumpFrames(tester);
 
@@ -422,7 +552,11 @@ class FakeSessionRepository implements SessionRepository {
   int createdSessionCount = 0;
   int healthCheckCount = 0;
   int savedDefaultsCount = 0;
+  int deletedSessionCount = 0;
   String? createdCommandText;
+  String? renamedSessionTitle;
+  bool? updatedFavorite;
+  String? updatedGroupName;
   SessionCreateOptions? createdSessionOptions;
   SessionCreateOptions cliDefaults = defaultSessionCreateOptions;
 
@@ -512,6 +646,41 @@ class FakeSessionRepository implements SessionRepository {
     );
     controller.add([session]);
     return session;
+  }
+
+  @override
+  Future<void> renameSession({
+    required String uid,
+    required String sessionId,
+    required String title,
+  }) async {
+    renamedSessionTitle = title;
+  }
+
+  @override
+  Future<void> updateSessionFavorite({
+    required String uid,
+    required String sessionId,
+    required bool favorite,
+  }) async {
+    updatedFavorite = favorite;
+  }
+
+  @override
+  Future<void> updateSessionGroup({
+    required String uid,
+    required String sessionId,
+    required String? groupName,
+  }) async {
+    updatedGroupName = groupName;
+  }
+
+  @override
+  Future<void> deleteSession({
+    required String uid,
+    required String sessionId,
+  }) async {
+    deletedSessionCount++;
   }
 
   @override
