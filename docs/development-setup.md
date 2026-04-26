@@ -354,7 +354,8 @@ Issue #29で追加確認済み:
   "codexModel": "gpt-5.2",
   "codexSandbox": "workspace-write",
   "codexTimeoutSeconds": 900,
-  "pollIntervalSeconds": 10,
+  "pollIntervalSeconds": 5,
+  "heartbeatIntervalSeconds": 300,
   "maxCommandsPerTick": 5
 }
 ```

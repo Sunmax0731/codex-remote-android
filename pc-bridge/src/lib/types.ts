@@ -16,6 +16,7 @@ export type BridgeConfig = {
   localRelayPath: string;
   claimTtlSeconds: number;
   pollIntervalSeconds: number;
+  heartbeatIntervalSeconds: number;
   maxCommandsPerTick: number;
   codexMode: CodexMode;
   codexCommandPath: string;
