@@ -7,13 +7,17 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test:functions": "tsc && node --test \"lib/tests/functions/**/*.test.js\"",
+    "test:rules": "tsc && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-firestore-rules-tests.ps1",
+    "test": "npm run test:functions && npm run test:rules"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0",
     "firebase-functions": "^6.0.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
     "@types/node": "^22.10.0",
     "typescript": "^5.7.0"
   },
@@ -21,4 +25,3 @@
     "node": "22"
   }
 }
-
