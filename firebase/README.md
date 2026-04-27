@@ -14,6 +14,33 @@
 
 Firebase Consoleで新しいプロジェクトを作成します。プロジェクト名とproject IDは利用者が自由に決めて構いません。
 
+画面例:
+
+![Firebase Console home](../docs/assets/firebase-setup-screenshots/masked/01-console-home.png)
+
+1. Firebase Consoleで `Create a Firebase project` を選択する。
+2. プロジェクト名を入力する。
+
+![Firebase project name](../docs/assets/firebase-setup-screenshots/masked/02-project-name.png)
+
+3. Gemini in Firebaseを使う場合は有効化し、不要な場合は無効のまま進める。
+
+![Firebase AI assistance](../docs/assets/firebase-setup-screenshots/masked/03-ai-assistance.png)
+
+4. Google Analyticsを使う場合は有効化し、Analytics accountを選択してプロジェクトを作成する。
+
+![Firebase Google Analytics](../docs/assets/firebase-setup-screenshots/masked/04-google-analytics.png)
+
+![Firebase Analytics account](../docs/assets/firebase-setup-screenshots/masked/05-analytics-account.png)
+
+5. 作成完了画面が表示されたら `Continue` を選択する。
+
+![Firebase project ready](../docs/assets/firebase-setup-screenshots/masked/06-project-ready.png)
+
+6. Firebase Consoleのプロジェクト画面が表示されることを確認する。
+
+![Firebase project dashboard](../docs/assets/firebase-setup-screenshots/masked/07-project-dashboard.png)
+
 作成後、次を有効化します。
 
 1. Authentication
