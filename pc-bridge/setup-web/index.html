@@ -79,17 +79,55 @@
             <input id="googleServicesFile" type="file" accept=".json,application/json" />
             <textarea id="googleServicesText" spellcheck="false" data-i18n-placeholder="googleServicesPlaceholder" placeholder="Paste google-services.json here"></textarea>
             <div class="status-line" id="googleServicesStatus" data-i18n="notLoaded">Not loaded.</div>
+            <ul class="check-list" id="googleServicesChecks"></ul>
           </div>
           <div>
             <h3 data-i18n="serviceAccountTitle">Service account JSON</h3>
             <p class="muted" data-i18n="serviceAccountDesc">This is checked locally for setup progress. It is not sent to the QR endpoint.</p>
             <input id="serviceAccountFile" type="file" accept=".json,application/json" />
             <div class="status-line" id="serviceAccountStatus" data-i18n="notRegistered">Not registered.</div>
+            <label>
+              <span data-i18n="serviceAccountPathLabel">Service account JSON path for config.local.json</span>
+              <input id="serviceAccountPath" type="text" spellcheck="false" placeholder="D:\secure\codex-remote-service-account.json" />
+            </label>
             <div class="notice danger" data-i18n="dangerNotice">
               Never scan or share service account JSON, private keys, or Admin SDK credentials.
             </div>
           </div>
         </div>
+      </section>
+
+      <section class="panel span-2">
+        <div class="section-heading">
+          <h2 data-i18n="configHelperTitle">config.local.json Helper</h2>
+          <p data-i18n="configHelperSubtitle">Generate a PC bridge config template without embedding service account JSON or QR secrets.</p>
+        </div>
+        <div class="config-grid">
+          <label>
+            <span data-i18n="pcBridgeIdLabel">PC bridge ID</span>
+            <input id="pcBridgeId" type="text" value="home-main-pc" spellcheck="false" />
+          </label>
+          <label>
+            <span data-i18n="displayNameLabel">Display name</span>
+            <input id="displayName" type="text" value="Home PC" spellcheck="false" />
+          </label>
+          <label>
+            <span data-i18n="workspaceNameLabel">Workspace name</span>
+            <input id="workspaceName" type="text" value="codex-remote-android" spellcheck="false" />
+          </label>
+          <label>
+            <span data-i18n="workspacePathLabel">Workspace path</span>
+            <input id="workspacePath" type="text" spellcheck="false" placeholder="D:\Claude\FlutterApp\codex-remote-android" />
+          </label>
+        </div>
+        <div class="notice" data-i18n="configSecretNotice">
+          The generated template contains project IDs and local paths, but not API keys, private keys, or service account JSON contents.
+        </div>
+        <textarea id="configPreview" class="config-preview" spellcheck="false" readonly placeholder="config.local.json preview"></textarea>
+        <div class="actions">
+          <button id="copyConfig" class="button secondary" data-i18n="copyConfig">Copy config template</button>
+        </div>
+        <div class="status-line" id="configStatus" data-i18n="configWaiting">Load google-services.json to generate a config template.</div>
       </section>
 
       <section class="panel span-2">
