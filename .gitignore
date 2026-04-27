@@ -22,6 +22,7 @@ firebase/firebase-debug.log
 firebase/.env
 firebase/functions/.env
 firebase/functions/lib/
+firebase/functions/firestore-debug.log
 
 # Node / bridge
 node_modules/

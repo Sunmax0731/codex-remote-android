@@ -1,0 +1,158 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Optional release tag to validate, for example v1.0.2"
+        required: false
+        type: string
+      require_release_notes:
+        description: "Require docs/releases/<version>.md"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  flutter:
+    name: Flutter analyze/test
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        working-directory: app
+        run: flutter pub get
+
+      - name: Analyze Flutter app
+        working-directory: app
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        working-directory: app
+        run: flutter test
+
+  pc-bridge:
+    name: PC bridge check/test/audit
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: pc-bridge/package-lock.json
+
+      - name: Install PC bridge dependencies
+        working-directory: pc-bridge
+        run: npm.cmd ci
+
+      - name: Typecheck PC bridge
+        working-directory: pc-bridge
+        run: npm.cmd run check
+
+      - name: Test PC bridge
+        working-directory: pc-bridge
+        run: npm.cmd test
+
+      - name: Audit PC bridge dependencies
+        working-directory: pc-bridge
+        run: npm.cmd audit --audit-level=high
+
+  firebase:
+    name: Firebase functions/rules check/test/audit
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: firebase/functions/package-lock.json
+
+      - name: Setup Java for Firestore Emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install Firebase Functions dependencies
+        working-directory: firebase/functions
+        run: npm.cmd ci
+
+      - name: Typecheck Firebase Functions
+        working-directory: firebase/functions
+        run: npm.cmd run check
+
+      - name: Build Firebase Functions
+        working-directory: firebase/functions
+        run: npm.cmd run build
+
+      - name: Test Firebase Functions
+        working-directory: firebase/functions
+        run: npm.cmd run test:functions
+
+      - name: Audit Firebase Functions dependencies
+        working-directory: firebase/functions
+        run: npm.cmd audit --audit-level=high
+
+      - name: Install Firebase CLI
+        run: npm.cmd install -g firebase-tools
+
+      - name: Test Firestore Rules
+        working-directory: firebase/functions
+        run: npm.cmd run test:rules
+
+  release-readiness:
+    name: Release readiness check
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check release metadata
+        shell: pwsh
+        env:
+          GITHUB_REF_TYPE_VALUE: ${{ github.ref_type }}
+          GITHUB_REF_NAME_VALUE: ${{ github.ref_name }}
+          RELEASE_TAG_INPUT: ${{ github.event.inputs.release_tag }}
+          REQUIRE_RELEASE_NOTES_INPUT: ${{ github.event.inputs.require_release_notes }}
+        run: |
+          $tag = $env:RELEASE_TAG_INPUT
+          if (-not $tag -and $env:GITHUB_REF_TYPE_VALUE -eq "tag") {
+            $tag = $env:GITHUB_REF_NAME_VALUE
+          }
+
+          $arguments = @()
+          if ($tag) {
+            $arguments += @("-Tag", $tag)
+          }
+          if ($env:REQUIRE_RELEASE_NOTES_INPUT -eq "true") {
+            $arguments += "-RequireReleaseNotes"
+          }
+
+          .\scripts\check-release-readiness.ps1 @arguments

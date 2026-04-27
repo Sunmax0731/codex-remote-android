@@ -15,6 +15,8 @@
 
 artifactを作成する前に主要チェックを実行する。
 
+PRとRelease前の自動チェックは [CI](ci.md) に記録している。Release署名と実Firebase E2EはローカルRunbookの対象とし、CIには署名鍵やservice account JSONを渡さない。
+
 ```powershell
 Set-Location app
 flutter test
