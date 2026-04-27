@@ -3,6 +3,7 @@ import { createAttachmentDownloader } from "./lib/attachmentDownloader.js";
 import { createCodexInvoker } from "./lib/codexInvoker.js";
 import { processNextCommand } from "./lib/processor.js";
 import { createCommandRepository } from "./lib/relayRepository.js";
+import { createResultAttachmentPublisher } from "./lib/resultAttachmentPublisher.js";
 
 let shuttingDown = false;
 
@@ -22,6 +23,7 @@ async function main(): Promise<void> {
   const repository = createCommandRepository(config);
   const invoker = createCodexInvoker(config);
   const attachmentDownloader = createAttachmentDownloader(config);
+  const resultAttachmentPublisher = createResultAttachmentPublisher(config);
   const pollIntervalMs = Math.max(1, config.pollIntervalSeconds) * 1000;
   const heartbeatIntervalMs = Math.max(1, config.heartbeatIntervalSeconds) * 1000;
   const maxCommandsPerTick = Math.max(1, config.maxCommandsPerTick);
@@ -55,6 +57,7 @@ async function main(): Promise<void> {
           repository,
           invoker,
           attachmentDownloader,
+          resultAttachmentPublisher,
         });
 
         if (result.kind === "none") {

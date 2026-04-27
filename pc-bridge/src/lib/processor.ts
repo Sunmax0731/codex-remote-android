@@ -5,6 +5,7 @@ import type {
   CodexInvocationResult,
   CodexInvoker,
   CommandRepository,
+  ResultAttachmentPublisher,
 } from "./types.js";
 
 export type ProcessNextCommandInput = {
@@ -12,6 +13,7 @@ export type ProcessNextCommandInput = {
   repository: CommandRepository;
   invoker: CodexInvoker;
   attachmentDownloader?: AttachmentDownloader;
+  resultAttachmentPublisher?: ResultAttachmentPublisher;
   now?: Date;
 };
 
@@ -69,7 +71,10 @@ export async function processNextCommand(input: ProcessNextCommandInput): Promis
   const completedAt = new Date();
 
   if (result.kind === "success") {
-    await input.repository.markCompleted(claim, redactSensitiveText(result.resultText), completedAt);
+    const resultText = redactSensitiveText(result.resultText);
+    const resultAttachments =
+      (await input.resultAttachmentPublisher?.publish(prepared.command, resultText)) ?? [];
+    await input.repository.markCompleted(claim, resultText, completedAt, resultAttachments);
     return {
       kind: "processed",
       commandId: command.commandId,

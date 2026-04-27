@@ -34,6 +34,7 @@ class CommandSummary {
     this.progressText,
     this.progressUpdatedAt,
     this.resultText,
+    this.resultAttachments = const <CommandResultAttachment>[],
     this.errorText,
   });
 
@@ -47,6 +48,7 @@ class CommandSummary {
   final String? progressText;
   final DateTime? progressUpdatedAt;
   final String? resultText;
+  final List<CommandResultAttachment> resultAttachments;
   final String? errorText;
 }
 
@@ -85,6 +87,32 @@ class CommandAttachment {
   final String storagePath;
   final String sha256;
 }
+
+class CommandResultAttachment {
+  const CommandResultAttachment({
+    required this.id,
+    required this.type,
+    required this.fileName,
+    required this.contentType,
+    required this.sizeBytes,
+    required this.storagePath,
+    required this.sha256,
+  });
+
+  final String id;
+  final String type;
+  final String fileName;
+  final String contentType;
+  final int sizeBytes;
+  final String storagePath;
+  final String sha256;
+}
+
+typedef CommandAttachmentImageLoader =
+    Future<Uint8List?> Function(CommandAttachment attachment);
+
+typedef ResultAttachmentImageLoader =
+    Future<Uint8List?> Function(CommandResultAttachment attachment);
 
 class PcBridgeStatus {
   const PcBridgeStatus({

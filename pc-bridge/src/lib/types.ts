@@ -66,6 +66,7 @@ export type RemoteCommand = {
   codexOutputSchema?: string;
   codexJson?: boolean;
   resultText?: string;
+  resultAttachments?: CommandResultAttachment[];
   errorText?: string;
   notificationSentAt?: string;
   attachments?: CommandAttachment[];
@@ -74,6 +75,16 @@ export type RemoteCommand = {
 export type CommandAttachment = {
   id: string;
   type: "image" | "file";
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  storagePath: string;
+  sha256: string;
+};
+
+export type CommandResultAttachment = {
+  id: string;
+  type: "image";
   fileName: string;
   contentType: string;
   sizeBytes: number;
@@ -90,7 +101,12 @@ export type CommandClaim = {
 export type CommandRepository = {
   claimNextQueuedCommand(pcBridgeId: string, now: Date, claimTtlSeconds: number): Promise<RemoteCommand | null>;
   updateProgress(claim: CommandClaim, progressText: string, now: Date, claimTtlSeconds: number): Promise<void>;
-  markCompleted(claim: CommandClaim, resultText: string, now: Date): Promise<void>;
+  markCompleted(
+    claim: CommandClaim,
+    resultText: string,
+    now: Date,
+    resultAttachments?: CommandResultAttachment[],
+  ): Promise<void>;
   markFailed(claim: CommandClaim, errorText: string, now: Date): Promise<void>;
   updateHeartbeat(pcBridgeId: string, now: Date): Promise<void>;
   updateQueueCheck(pcBridgeId: string, now: Date): Promise<void>;
@@ -124,4 +140,8 @@ export type PreparedCommandAttachments = {
 
 export type AttachmentDownloader = {
   prepare(command: RemoteCommand): Promise<PreparedCommandAttachments>;
+};
+
+export type ResultAttachmentPublisher = {
+  publish(command: RemoteCommand, resultText: string): Promise<CommandResultAttachment[]>;
 };

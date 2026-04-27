@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import type { CommandClaim, CommandRepository, RemoteCommand } from "./types.js";
+import type { CommandClaim, CommandRepository, CommandResultAttachment, RemoteCommand } from "./types.js";
 
 type RelayState = {
   users: Record<string, UserState>;
@@ -79,11 +79,17 @@ export class LocalRelayRepository implements CommandRepository {
     return null;
   }
 
-  async markCompleted(claim: CommandClaim, resultText: string, now: Date): Promise<void> {
+  async markCompleted(
+    claim: CommandClaim,
+    resultText: string,
+    now: Date,
+    resultAttachments: CommandResultAttachment[] = [],
+  ): Promise<void> {
     await this.updateClaimedCommand(claim, now, (session, command, nowIso) => {
       command.status = "completed";
       command.completedAt = nowIso;
       command.resultText = resultText;
+      command.resultAttachments = resultAttachments;
       delete command.errorText;
       session.status = "completed";
       session.updatedAt = nowIso;

@@ -117,6 +117,9 @@ class FirestoreSessionRepository implements SessionRepository {
               progressText: data['progressText'] as String?,
               progressUpdatedAt: timestampToDateTime(data['progressUpdatedAt']),
               resultText: data['resultText'] as String?,
+              resultAttachments: commandResultAttachmentsFromData(
+                data['resultAttachments'],
+              ),
               errorText: data['errorText'] as String?,
             );
           }).toList(),
@@ -417,6 +420,44 @@ List<CommandAttachment> commandAttachmentsFromData(Object? value) {
         );
       })
       .whereType<CommandAttachment>()
+      .toList(growable: false);
+}
+
+List<CommandResultAttachment> commandResultAttachmentsFromData(Object? value) {
+  if (value is! Iterable) {
+    return const <CommandResultAttachment>[];
+  }
+
+  return value
+      .whereType<Map>()
+      .map((entry) {
+        final id = optionString(entry['id']);
+        final type = optionString(entry['type']);
+        final fileName = optionString(entry['fileName']);
+        final contentType = optionString(entry['contentType']);
+        final sizeBytes = entry['sizeBytes'];
+        final storagePath = optionString(entry['storagePath']);
+        final digest = optionString(entry['sha256']);
+        if (id == null ||
+            type != 'image' ||
+            fileName == null ||
+            contentType == null ||
+            sizeBytes is! int ||
+            storagePath == null ||
+            digest == null) {
+          return null;
+        }
+        return CommandResultAttachment(
+          id: id,
+          type: 'image',
+          fileName: fileName,
+          contentType: contentType,
+          sizeBytes: sizeBytes,
+          storagePath: storagePath,
+          sha256: digest,
+        );
+      })
+      .whereType<CommandResultAttachment>()
       .toList(growable: false);
 }
 

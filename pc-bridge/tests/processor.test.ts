@@ -6,6 +6,7 @@ import type {
   AttachmentDownloader,
   CodexInvoker,
   CommandClaim,
+  CommandResultAttachment,
   CommandRepository,
   RemoteCommand,
 } from "../src/lib/types.js";
@@ -118,6 +119,44 @@ test("processNextCommand prepares attachments before invoking Codex and cleans u
   assert.equal(cleaned, true);
 });
 
+test("processNextCommand publishes result attachments before completing", async () => {
+  const repository = new MemoryCommandRepository(makeCommand());
+  const resultAttachment: CommandResultAttachment = {
+    id: "result_0",
+    type: "image",
+    fileName: "result.png",
+    contentType: "image/png",
+    sizeBytes: 4,
+    storagePath: "users/userA/sessions/session1/commands/command1/results/result_0/result.png",
+    sha256: "b".repeat(64),
+  };
+  const invoker: CodexInvoker = {
+    async invoke() {
+      return {
+        kind: "success",
+        resultText: "done\n\n![result](result.png)",
+      };
+    },
+  };
+
+  const result = await processNextCommand({
+    config: testConfig(),
+    repository,
+    invoker,
+    resultAttachmentPublisher: {
+      async publish(inputCommand, resultText) {
+        assert.equal(inputCommand.commandId, "command1");
+        assert.match(resultText, /!\[result]/);
+        return [resultAttachment];
+      },
+    },
+    now: new Date("2026-04-27T01:00:00.000Z"),
+  });
+
+  assert.deepEqual(result, { kind: "processed", commandId: "command1", status: "completed" });
+  assert.deepEqual(repository.completed?.resultAttachments, [resultAttachment]);
+});
+
 test("processNextCommand returns none when no command is claimable", async () => {
   const repository = new MemoryCommandRepository(null);
   const invoker: CodexInvoker = {
@@ -163,7 +202,7 @@ function makeCommand(overrides: Partial<RemoteCommand> = {}): RemoteCommand {
 
 class MemoryCommandRepository implements CommandRepository {
   progress: Array<{ progressText: string; claimTtlSeconds: number }> = [];
-  completed?: { resultText: string };
+  completed?: { resultText: string; resultAttachments: CommandResultAttachment[] };
   failed?: { errorText: string };
 
   constructor(private readonly command: RemoteCommand | null) {}
@@ -176,8 +215,13 @@ class MemoryCommandRepository implements CommandRepository {
     this.progress.push({ progressText, claimTtlSeconds });
   }
 
-  async markCompleted(_claim: CommandClaim, resultText: string): Promise<void> {
-    this.completed = { resultText };
+  async markCompleted(
+    _claim: CommandClaim,
+    resultText: string,
+    _now: Date,
+    resultAttachments: CommandResultAttachment[] = [],
+  ): Promise<void> {
+    this.completed = { resultText, resultAttachments };
   }
 
   async markFailed(_claim: CommandClaim, errorText: string): Promise<void> {

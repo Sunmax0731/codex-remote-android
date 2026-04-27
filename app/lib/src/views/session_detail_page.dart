@@ -375,3 +375,32 @@ String commandSendFailedMessage(Object error) {
 
   return 'Command send failed: $error';
 }
+
+CommandAttachmentImageLoader commandAttachmentImageLoader =
+    defaultCommandAttachmentImageLoader;
+ResultAttachmentImageLoader resultAttachmentImageLoader =
+    defaultResultAttachmentImageLoader;
+
+Future<Uint8List?> defaultCommandAttachmentImageLoader(
+  CommandAttachment attachment,
+) async {
+  try {
+    return await FirebaseStorage.instance
+        .ref(attachment.storagePath)
+        .getData(maxCommandAttachmentBytes);
+  } on FirebaseException {
+    return null;
+  }
+}
+
+Future<Uint8List?> defaultResultAttachmentImageLoader(
+  CommandResultAttachment attachment,
+) async {
+  try {
+    return await FirebaseStorage.instance
+        .ref(attachment.storagePath)
+        .getData(maxCommandAttachmentBytes);
+  } on FirebaseException {
+    return null;
+  }
+}

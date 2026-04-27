@@ -3,6 +3,7 @@ import { createAttachmentDownloader } from "./lib/attachmentDownloader.js";
 import { createCodexInvoker } from "./lib/codexInvoker.js";
 import { processNextCommand } from "./lib/processor.js";
 import { createCommandRepository } from "./lib/relayRepository.js";
+import { createResultAttachmentPublisher } from "./lib/resultAttachmentPublisher.js";
 
 async function main(): Promise<void> {
   const configPath = process.env.CODEX_REMOTE_BRIDGE_CONFIG ?? "config.local.json";
@@ -10,6 +11,7 @@ async function main(): Promise<void> {
   const repository = createCommandRepository(config);
   const invoker = createCodexInvoker(config);
   const attachmentDownloader = createAttachmentDownloader(config);
+  const resultAttachmentPublisher = createResultAttachmentPublisher(config);
 
   console.log(`Config path: ${configPath}`);
   console.log(`Relay mode: ${config.relayMode}`);
@@ -23,6 +25,7 @@ async function main(): Promise<void> {
     repository,
     invoker,
     attachmentDownloader,
+    resultAttachmentPublisher,
   });
 
   if (result.kind === "none") {

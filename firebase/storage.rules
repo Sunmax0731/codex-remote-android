@@ -33,6 +33,11 @@ service firebase.storage {
       allow delete: if ownsUser(userId);
     }
 
+    match /users/{userId}/sessions/{sessionId}/commands/{commandId}/results/{resultId}/{fileName} {
+      allow read: if ownsUser(userId);
+      allow write: if false;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

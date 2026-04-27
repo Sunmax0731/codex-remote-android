@@ -20,6 +20,8 @@ void main() {
   tearDown(() {
     binding.platformDispatcher.clearLocaleTestValue();
     binding.platformDispatcher.clearLocalesTestValue();
+    commandAttachmentImageLoader = defaultCommandAttachmentImageLoader;
+    resultAttachmentImageLoader = defaultResultAttachmentImageLoader;
   });
 
   test('parses notification routing payloads', () {
@@ -349,6 +351,26 @@ void main() {
     expect(attachments, hasLength(1));
     expect(attachments.single.fileName, 'screen.png');
     expect(safeAttachmentFileName(r'..\bad/name?.txt'), '__bad_name_.txt');
+  });
+
+  test('normalizes command result image metadata', () {
+    final attachments = commandResultAttachmentsFromData([
+      {
+        'id': 'result_0',
+        'type': 'image',
+        'fileName': 'result.png',
+        'contentType': 'image/png',
+        'sizeBytes': 123,
+        'storagePath':
+            'users/u/sessions/s/commands/c/results/result_0/result.png',
+        'sha256': List.filled(64, 'b').join(),
+      },
+      {'id': 'result_1', 'type': 'file', 'fileName': 'notes.md'},
+    ]);
+
+    expect(attachments, hasLength(1));
+    expect(attachments.single.fileName, 'result.png');
+    expect(attachments.single.storagePath, contains('/results/'));
   });
 
   test('accepts only supported pending attachment types', () async {
@@ -1244,6 +1266,239 @@ void main() {
     expect(find.text('Elapsed: 1m 30s'), findsWidgets);
   });
 
+  testWidgets('shows pending image attachment preview before sending', (
+    tester,
+  ) async {
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const [
+      SessionSummary(id: 'session-1', title: 'Session 1', status: 'idle'),
+    ]);
+    repository.emitCommands('session-1', const <CommandSummary>[]);
+    await pumpFrames(tester);
+
+    await tester.tap(find.text('Session 1'));
+    await pumpFrames(tester);
+
+    final state = tester.state(find.byType(SessionDetailPage)) as dynamic;
+    state.setState(() {
+      state.attachments.add(
+        PendingCommandAttachment(
+          fileName: 'screen.png',
+          contentType: 'image/png',
+          bytes: Uint8List.fromList(kTransparentImageBytes),
+          kind: 'image',
+        ),
+      );
+    });
+    await pumpFrames(tester);
+
+    expect(
+      find.byKey(const ValueKey('pending-attachment-image-screen.png')),
+      findsOneWidget,
+    );
+    expect(find.text('screen.png'), findsOneWidget);
+  });
+
+  testWidgets('shows image preview for sent command attachments', (
+    tester,
+  ) async {
+    final repository = FakeSessionRepository();
+    commandAttachmentImageLoader = (attachment) async {
+      if (attachment.id == 'att_1') {
+        return Uint8List.fromList(kTransparentImageBytes);
+      }
+      return null;
+    };
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const [
+      SessionSummary(id: 'session-1', title: 'Session 1', status: 'completed'),
+    ]);
+    repository.emitCommands('session-1', [
+      const CommandSummary(
+        id: 'command-1',
+        text: 'Check attachment',
+        status: 'completed',
+        resultText: 'done',
+        attachments: [
+          CommandAttachment(
+            id: 'att_1',
+            type: 'image',
+            fileName: 'screen.png',
+            contentType: 'image/png',
+            sizeBytes: 68,
+            storagePath:
+                'users/u/sessions/s/commands/c/attachments/att_1/screen.png',
+            sha256: 'hash',
+          ),
+          CommandAttachment(
+            id: 'att_2',
+            type: 'file',
+            fileName: 'notes.txt',
+            contentType: 'text/plain',
+            sizeBytes: 16,
+            storagePath:
+                'users/u/sessions/s/commands/c/attachments/att_2/notes.txt',
+            sha256: 'hash2',
+          ),
+        ],
+      ),
+    ]);
+    await pumpFrames(tester);
+
+    await tester.tap(find.text('Session 1'));
+    await pumpFrames(tester);
+    repository.emitCommands('session-1', [
+      const CommandSummary(
+        id: 'command-1',
+        text: 'Check attachment',
+        status: 'completed',
+        resultText: 'done',
+        attachments: [
+          CommandAttachment(
+            id: 'att_1',
+            type: 'image',
+            fileName: 'screen.png',
+            contentType: 'image/png',
+            sizeBytes: 68,
+            storagePath:
+                'users/u/sessions/s/commands/c/attachments/att_1/screen.png',
+            sha256: 'hash',
+          ),
+          CommandAttachment(
+            id: 'att_2',
+            type: 'file',
+            fileName: 'notes.txt',
+            contentType: 'text/plain',
+            sizeBytes: 16,
+            storagePath:
+                'users/u/sessions/s/commands/c/attachments/att_2/notes.txt',
+            sha256: 'hash2',
+          ),
+        ],
+      ),
+    ]);
+    await pumpFrames(tester);
+
+    expect(
+      find.byKey(const ValueKey('command-attachment-image-command-1-att_1')),
+      findsOneWidget,
+    );
+    expect(find.text('notes.txt'), findsOneWidget);
+  });
+
+  testWidgets('shows result image thumbnails below result text', (
+    tester,
+  ) async {
+    final repository = FakeSessionRepository();
+    resultAttachmentImageLoader = (attachment) async {
+      if (attachment.id == 'result_0') {
+        return Uint8List.fromList(kTransparentImageBytes);
+      }
+      return null;
+    };
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const [
+      SessionSummary(id: 'session-1', title: 'Session 1', status: 'completed'),
+    ]);
+    repository.emitCommands('session-1', const [
+      CommandSummary(
+        id: 'command-1',
+        text: 'Create image',
+        status: 'completed',
+        resultText: 'Here is the result.',
+        resultAttachments: [
+          CommandResultAttachment(
+            id: 'result_0',
+            type: 'image',
+            fileName: 'result.png',
+            contentType: 'image/png',
+            sizeBytes: 68,
+            storagePath:
+                'users/u/sessions/s/commands/c/results/result_0/result.png',
+            sha256: 'hash',
+          ),
+        ],
+      ),
+    ]);
+    await pumpFrames(tester);
+
+    await tester.tap(find.text('Session 1'));
+    await pumpFrames(tester);
+    repository.emitCommands('session-1', const [
+      CommandSummary(
+        id: 'command-1',
+        text: 'Create image',
+        status: 'completed',
+        resultText: 'Here is the result.',
+        resultAttachments: [
+          CommandResultAttachment(
+            id: 'result_0',
+            type: 'image',
+            fileName: 'result.png',
+            contentType: 'image/png',
+            sizeBytes: 68,
+            storagePath:
+                'users/u/sessions/s/commands/c/results/result_0/result.png',
+            sha256: 'hash',
+          ),
+        ],
+      ),
+    ]);
+    await pumpFrames(tester);
+
+    expect(find.text('Here is the result.'), findsOneWidget);
+    expect(find.byTooltip('result.png / 68 B'), findsOneWidget);
+  });
+
   testWidgets('uses Chinese strings for core empty state', (tester) async {
     tester.platformDispatcher.localeTestValue = const Locale('zh');
     tester.platformDispatcher.localesTestValue = const [Locale('zh')];
@@ -1315,6 +1570,78 @@ Future<void> pumpFrames(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 300));
 }
+
+const kTransparentImageBytes = <int>[
+  0x89,
+  0x50,
+  0x4E,
+  0x47,
+  0x0D,
+  0x0A,
+  0x1A,
+  0x0A,
+  0x00,
+  0x00,
+  0x00,
+  0x0D,
+  0x49,
+  0x48,
+  0x44,
+  0x52,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x08,
+  0x06,
+  0x00,
+  0x00,
+  0x00,
+  0x1F,
+  0x15,
+  0xC4,
+  0x89,
+  0x00,
+  0x00,
+  0x00,
+  0x0D,
+  0x49,
+  0x44,
+  0x41,
+  0x54,
+  0x78,
+  0x9C,
+  0x63,
+  0xF8,
+  0xCF,
+  0xC0,
+  0x00,
+  0x00,
+  0x03,
+  0x01,
+  0x01,
+  0x00,
+  0xC9,
+  0xFE,
+  0x92,
+  0xEF,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x49,
+  0x45,
+  0x4E,
+  0x44,
+  0xAE,
+  0x42,
+  0x60,
+  0x82,
+];
 
 class FakeSessionRepository implements SessionRepository {
   final StreamController<List<SessionSummary>> controller =

@@ -8,7 +8,7 @@ import {
   type DocumentSnapshot,
   type Firestore,
 } from "firebase-admin/firestore";
-import type { BridgeConfig, CommandClaim, CommandRepository, RemoteCommand } from "./types.js";
+import type { BridgeConfig, CommandClaim, CommandRepository, CommandResultAttachment, RemoteCommand } from "./types.js";
 
 export class FirestoreRelayRepository implements CommandRepository {
   private readonly config: BridgeConfig;
@@ -100,7 +100,12 @@ export class FirestoreRelayRepository implements CommandRepository {
     return running.docs.find((doc) => isExpiredRunning(doc.data(), now)) ?? null;
   }
 
-  async markCompleted(claim: CommandClaim, resultText: string, now: Date): Promise<void> {
+  async markCompleted(
+    claim: CommandClaim,
+    resultText: string,
+    now: Date,
+    resultAttachments: CommandResultAttachment[] = [],
+  ): Promise<void> {
     const firestore = await this.getFirestore();
     const nowTimestamp = Timestamp.fromDate(now);
     const commandRef = commandDocument(firestore, claim);
@@ -111,6 +116,7 @@ export class FirestoreRelayRepository implements CommandRepository {
         status: "completed",
         completedAt: nowTimestamp,
         resultText,
+        resultAttachments,
         errorText: FieldValue.delete(),
       });
 
@@ -367,6 +373,7 @@ function toRemoteCommand(
     codexOutputSchema: optionalString(data.codexOutputSchema),
     codexJson: typeof data.codexJson === "boolean" ? data.codexJson : undefined,
     resultText: data.resultText,
+    resultAttachments: commandResultAttachments(data.resultAttachments),
     errorText: data.errorText,
     notificationSentAt: timestampToIso(data.notificationSentAt),
     attachments: commandAttachments(data.attachments),
@@ -448,6 +455,51 @@ function optionalStringArray(value: unknown): string[] | undefined {
     .filter((entry) => entry.length > 0);
 
   return entries.length > 0 ? entries : undefined;
+}
+
+function commandResultAttachments(value: unknown): RemoteCommand["resultAttachments"] {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const attachments = value
+    .map((entry) => {
+      if (!isRecord(entry)) {
+        return null;
+      }
+      const id = optionalString(entry.id);
+      const type = entry.type;
+      const fileName = optionalString(entry.fileName);
+      const contentType = optionalString(entry.contentType);
+      const sizeBytes = entry.sizeBytes;
+      const storagePath = optionalString(entry.storagePath);
+      const digest = optionalString(entry.sha256);
+
+      if (
+        !id ||
+        type !== "image" ||
+        !fileName ||
+        !contentType ||
+        !Number.isInteger(sizeBytes) ||
+        !storagePath ||
+        !digest
+      ) {
+        return null;
+      }
+
+      return {
+        id,
+        type,
+        fileName,
+        contentType,
+        sizeBytes,
+        storagePath,
+        sha256: digest,
+      };
+    })
+    .filter((entry): entry is NonNullable<RemoteCommand["resultAttachments"]>[number] => entry !== null);
+
+  return attachments.length > 0 ? attachments : undefined;
 }
 
 function commandAttachments(value: unknown): RemoteCommand["attachments"] {
