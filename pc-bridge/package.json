@@ -12,6 +12,7 @@
     "test": "tsc && node --test \"dist/tests/**/*.test.js\"",
     "validate:local": "tsc && node dist/scripts/validate-local-relay.js",
     "diagnose": "tsc && node dist/scripts/collect-diagnostics.js",
+    "e2e:evidence": "tsc && node dist/scripts/collect-e2e-evidence.js",
     "qr:firebase": "tsc && node dist/scripts/generate-firebase-setup-qr.js",
     "setup:web": "tsc && node dist/scripts/setup-web.js",
     "package:dist": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-distribution.ps1"
