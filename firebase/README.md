@@ -172,6 +172,24 @@ PCブリッジはFirebase Admin SDKでFirestoreへ接続します。利用者自
 5. Git管理外の安全な場所に保存する。
 6. `pc-bridge/config.local.json` の `serviceAccountPath` に保存場所を設定する。
 
+Firebase ConsoleからFirebase Admin SDK用のprivate keyを作成する場合は、次の画面で操作します。
+
+1. Project Overviewの歯車メニューから `Project settings` を開く。
+
+![Service account project settings](../docs/assets/firebase-setup-screenshots/masked/26-service-account-project-settings.png)
+
+2. `Service accounts` タブを開き、`Firebase Admin SDK` の `Generate new private key` を選択する。
+
+![Firebase Admin SDK service account](../docs/assets/firebase-setup-screenshots/masked/27-service-account-admin-sdk.png)
+
+3. 確認ダイアログで注意事項を確認し、`Generate key` を選択する。
+
+![Generate private key dialog](../docs/assets/firebase-setup-screenshots/masked/28-service-account-generate-key-dialog.png)
+
+4. JSONファイルをPCローカルの安全な場所に保存する。
+
+![Save service account JSON](../docs/assets/firebase-setup-screenshots/masked/29-service-account-save-json.png)
+
 注意:
 
 - service account JSONは絶対にGitへコミットしないでください。
