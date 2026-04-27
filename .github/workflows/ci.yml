@@ -156,3 +156,14 @@ jobs:
           }
 
           .\scripts\check-release-readiness.ps1 @arguments
+
+  secret-scan:
+    name: Tracked files secret scan
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan tracked files
+        shell: pwsh
+        run: .\scripts\scan-secrets.ps1
