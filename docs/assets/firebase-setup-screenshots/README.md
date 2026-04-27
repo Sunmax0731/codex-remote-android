@@ -32,6 +32,13 @@ Current project creation screenshots:
 - `16-firestore-location.png`: Firestore database ID and location selection.
 - `17-firestore-security-rules.png`: Firestore security rules mode selection.
 - `18-firestore-created.png`: Firestore database created confirmation.
+- `19-android-add-app-entry.png`: Android app registration entry point.
+- `20-android-platform-selection.png`: Android platform selection.
+- `21-android-register-form.png`: Android package name and app nickname input.
+- `22-android-download-config.png`: `google-services.json` download step.
+- `23-android-sdk-instructions.png`: Firebase SDK instructions screen.
+- `24-android-next-steps.png`: Android registration next steps screen.
+- `25-android-registration-complete.png`: Android app registration confirmation.
 
 Only commit images after confirming the following are hidden:
 
