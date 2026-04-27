@@ -367,9 +367,11 @@ function resolveLaunchCommand(commandPath: string, args: string[]): { command: s
   };
 }
 
-function cliErrorText(result: RunCodexExecResult, fallback: string): string {
-  const stderr = redactSensitiveText(result.stderr).trim();
-  const stdout = redactSensitiveText(result.stdout).trim();
+const maxCliErrorDetailLength = 4000;
+
+export function cliErrorText(result: RunCodexExecResult, fallback: string): string {
+  const stderr = summarizeCliStream(redactSensitiveText(result.stderr));
+  const stdout = summarizeCliStream(redactSensitiveText(result.stdout));
   const detail = [stderr, stdout].filter((value) => value.length > 0).join("\n\n");
 
   if (!detail) {
@@ -377,4 +379,37 @@ function cliErrorText(result: RunCodexExecResult, fallback: string): string {
   }
 
   return `${fallback}\n\n${detail}`;
+}
+
+function summarizeCliStream(value: string): string {
+  const lines = value
+    .split(/\r?\n/)
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim().length > 0)
+    .filter((line) => !isNoisyCliLine(line));
+
+  const detail = lines.join("\n").trim();
+  if (detail.length <= maxCliErrorDetailLength) {
+    return detail;
+  }
+
+  return `${detail.slice(0, maxCliErrorDetailLength - 14).trimEnd()}\n...[truncated]`;
+}
+
+function isNoisyCliLine(line: string): boolean {
+  const trimmed = line.trim();
+  return (
+    /^<\/?(html|head|body|script|style|svg|path|div|meta|noscript)\b/i.test(trimmed) ||
+    /^<!(doctype)\b/i.test(trimmed) ||
+    trimmed.includes("window._cf_chl_opt") ||
+    trimmed.includes("challenge-platform") ||
+    trimmed.includes("cloudflare") ||
+    trimmed.includes("__cf_chl_") ||
+    trimmed.includes("cdn-cgi") ||
+    trimmed.includes("failed to warm featured plugin ids cache") ||
+    trimmed.includes("startup remote plugin sync failed") ||
+    trimmed.includes("events failed with status 403 Forbidden") ||
+    trimmed.includes("remote plugin sync request to https://chatgpt.com/backend-api/plugins") ||
+    trimmed.includes("analytics-events/events")
+  );
 }
