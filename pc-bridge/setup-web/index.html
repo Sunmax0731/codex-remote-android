@@ -69,6 +69,21 @@
 
       <section class="panel span-2">
         <div class="section-heading">
+          <h2 data-i18n="costNoticeTitle">Firebase cost notice</h2>
+          <p data-i18n="costNoticeSubtitle">This app uses your own Firebase/GCP project, so billing and budget alerts belong to that project.</p>
+        </div>
+        <div class="notice">
+          <p data-i18n="costNoticeBody">Firestore reads/writes, Cloud Functions invocations, Cloud Logging, and Functions-related Google Cloud services can create billable usage. FCM is listed by Firebase as a no-cost product, but the Cloud Function that sends completion notifications requires Blaze plan usage.</p>
+          <p>
+            <a href="https://firebase.google.com/pricing" target="_blank" rel="noreferrer" data-i18n="firebasePricingLink">Firebase pricing</a>
+            ·
+            <a href="https://docs.cloud.google.com/billing/docs/how-to/budgets" target="_blank" rel="noreferrer" data-i18n="budgetAlertsLink">Google Cloud budgets and alerts</a>
+          </p>
+        </div>
+      </section>
+
+      <section class="panel span-2">
+        <div class="section-heading">
           <h2 data-i18n="jsonRegistrationTitle">JSON Registration</h2>
           <p data-i18n="jsonRegistrationSubtitle">Use client config for the QR. Keep admin credentials on the PC side only.</p>
         </div>

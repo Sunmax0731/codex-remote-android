@@ -169,6 +169,14 @@ firebase deploy --only functions
 
 `firebase use --add` では、利用者自身が用意したFirebase project IDを選択します。Cloud Functionsの初回デプロイにはBlazeプランとGoogle Cloud APIの有効化が必要です。詳細は [Firebase手順](firebase/README.md) と [Cloud Functions手順](firebase/functions/README.md) を参照してください。
 
+### Firebase費用と課金注意点
+
+このアプリは利用者自身のFirebase/GCPプロジェクトを使うため、Firestore、Cloud Functions、Cloud Logging、Functions周辺のGoogle Cloudサービスで課金が発生し得ます。FCMはFirebaseのno-cost productとして扱われますが、完了通知を送るFunctionsやFirestoreの利用量は確認が必要です。
+
+少人数利用では通常、セッション/command数、PCブリッジのpolling、heartbeat、通知回数が主な利用量になります。Cloud Functionsを使うRelease相当の構成ではBlazeプランが必要です。セットアップ直後にGoogle Cloud BillingのBudgets & alertsで小さな予算アラートを設定してください。
+
+詳細と公式料金リンクは [Firebase費用ガイド](docs/firebase-cost-guide.md) を参照してください。
+
 ## 利用開始手順
 
 このアプリを使い始めるための準備は、[利用開始手順](docs/getting-started.md) を参照してください。自分以外の利用者へ配布するための準備は、[配布準備](docs/distribution-prep.md) を参照してください。

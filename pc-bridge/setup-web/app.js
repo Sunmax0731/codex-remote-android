@@ -25,6 +25,13 @@ const messages = {
     step6: "Create a PC bridge service account JSON and keep it local only.",
     step7: "Generate the QR and scan it from the Android setup screen.",
     step8: "Deploy Firestore rules, indexes, and Functions when needed.",
+    costNoticeTitle: "Firebase cost notice",
+    costNoticeSubtitle:
+      "This app uses your own Firebase/GCP project, so billing and budget alerts belong to that project.",
+    costNoticeBody:
+      "Firestore reads/writes, Cloud Functions invocations, Cloud Logging, and Functions-related Google Cloud services can create billable usage. FCM is listed by Firebase as a no-cost product, but the Cloud Function that sends completion notifications requires Blaze plan usage.",
+    firebasePricingLink: "Firebase pricing",
+    budgetAlertsLink: "Google Cloud budgets and alerts",
     appNameLabel: "App name",
     packageNameLabel: "Android package name",
     fixedAppInfoTitle: "Distributed APK settings",
@@ -144,6 +151,13 @@ const messages = {
     step6: "PCブリッジ用service account JSONを作成し、PC上だけで保管する。",
     step7: "QRを生成し、Androidのセットアップ画面から読み取る。",
     step8: "必要に応じてFirestore Rules、Indexes、Functionsをデプロイする。",
+    costNoticeTitle: "Firebase費用の注意",
+    costNoticeSubtitle:
+      "このアプリは自分のFirebase/GCPプロジェクトを使うため、課金と予算アラートもそのプロジェクトで管理します。",
+    costNoticeBody:
+      "Firestore read/write、Cloud Functions invocation、Cloud Logging、Functions関連のGoogle Cloudサービスで課金対象の利用が発生し得ます。FCMはFirebaseのno-cost productですが、完了通知を送るCloud FunctionにはBlazeプラン利用が関係します。",
+    firebasePricingLink: "Firebase料金",
+    budgetAlertsLink: "Google Cloud予算アラート",
     appNameLabel: "アプリ名",
     packageNameLabel: "Android package名",
     fixedAppInfoTitle: "配布APKの固定設定",
@@ -258,6 +272,13 @@ const messages = {
     step6: "创建 PC 桥接用 service account JSON，并只保存在本机。",
     step7: "生成二维码，并从 Android 设置画面扫描。",
     step8: "按需部署 Firestore rules、indexes 和 Functions。",
+    costNoticeTitle: "Firebase 费用提示",
+    costNoticeSubtitle:
+      "此应用使用你自己的 Firebase/GCP 项目，因此结算和预算提醒也由该项目管理。",
+    costNoticeBody:
+      "Firestore read/write、Cloud Functions invocation、Cloud Logging 以及 Functions 相关 Google Cloud 服务可能产生计费使用量。FCM 被 Firebase 列为 no-cost product，但发送完成通知的 Cloud Function 与 Blaze plan 使用有关。",
+    firebasePricingLink: "Firebase 价格",
+    budgetAlertsLink: "Google Cloud 预算提醒",
     appNameLabel: "应用名称",
     packageNameLabel: "Android package 名称",
     fixedAppInfoTitle: "分发 APK 的固定设置",
