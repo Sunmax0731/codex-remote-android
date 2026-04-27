@@ -21,6 +21,11 @@ Current project creation screenshots:
 - `05-analytics-account.png`: Analytics account selection.
 - `06-project-ready.png`: Project creation completion.
 - `07-project-dashboard.png`: Firebase project dashboard.
+- `08-auth-navigation.png`: Navigation from project dashboard to Authentication.
+- `09-auth-get-started.png`: Authentication get started screen.
+- `10-auth-sign-in-method.png`: Sign-in method provider list.
+- `11-auth-enable-anonymous.png`: Anonymous provider enable toggle.
+- `12-auth-anonymous-enabled.png`: Anonymous provider enabled confirmation.
 
 Only commit images after confirming the following are hidden:
 
