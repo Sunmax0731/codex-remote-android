@@ -44,3 +44,13 @@ Releaseは次を満たした時点で完了とする。
 ## release APK作成手順
 
 release APKの作成手順、署名鍵の扱い、version更新、リリースノート項目は [release APK作成手順](release-apk.md) を参照する。
+
+## Release 1.0.2以降のDelivery強化
+
+Release 1.0.2以降は、QCDS改善ロードマップに沿ってRelease作業の再現性を上げる。
+
+- Release作業をRunbook化し、versionName/versionCode、Git tag、Release note、artifact、SHA256の整合を確認する。
+- APK build、署名検証、PCブリッジzip生成、SHA256生成、Release note雛形作成を可能な範囲でスクリプト化する。
+- CIでは署名鍵やservice account JSONを必要としないbuild、test、audit、secret scan相当のチェックを実行する。
+- 実Firebaseを使う実機E2Eは、既存検証用環境を使うローカルRunbookとして手順化し、Release evidenceを残す。
+- 詳細は [QCDS強化計画](qcds-hardening-plan.md) の DFR-001 / DFR-002 を参照する。

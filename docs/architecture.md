@@ -769,3 +769,13 @@ Phase 7またはPhase 8で、少なくとも次を確認する。
 - heartbeat間隔とoffline判定時間の実測調整。
 - pairing codeの具体UIと有効期限。
 - 通知再試行の実装方式。
+
+## QCDS強化アーキテクチャ補足
+
+Release 1.0.2以降の設計補足は [QCDS強化計画](qcds-hardening-plan.md) と [仕様書](specification.md) に集約する。
+
+- セットアップ導線は、PCブリッジ同梱のローカルセットアップWeb UIへ統一する。GitHub Pagesによる静的公開は採用しない。
+- セットアップWeb UIは、Firebase手順確認、`google-services.json` 検証、service account JSONのローカル確認、QR生成、`config.local.json` 生成補助、PCブリッジ状態確認へ段階的に拡張する。
+- Android QR payloadにはFirebaseクライアント設定だけを含め、service account JSON、private key、Admin SDK credential、PCブリッジtokenは含めない。
+- PCブリッジの起動確認、常駐化、ログ確認はNode.js側のローカルAPI境界に閉じ、UIではredaction済み情報だけを表示する。
+- テストはFlutter、PCブリッジ、Firebase Emulator、実機E2E、CIの層に分け、各Issueで追加する。

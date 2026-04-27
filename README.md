@@ -226,3 +226,13 @@ Issue投稿時のテンプレート:
 - [質問テンプレート](.github/ISSUE_TEMPLATE/question.md)
 
 Issueには、再現手順、期待する動作、実際の動作、実行環境、関連ログを可能な範囲で記載してください。秘密情報、token、service account JSON、個人情報、非公開コード全文は投稿しないでください。
+
+## QCDS改善ロードマップ
+
+Release 1.0.2以降は、Quality / Cost / Delivery / Security をS評価へ近づけるための改善Issueを追跡します。
+
+- [QCDS強化計画](docs/qcds-hardening-plan.md)
+- [仕様書](docs/specification.md)
+- [QCDS改善ロードマップIssue #167](https://github.com/Sunmax0731/codex-remote-android/issues/167)
+
+方針として、利用者自身のFirebaseプロジェクトを使う自前Firebase方式を維持します。セットアップ画面はPCブリッジ同梱のローカルセットアップWeb UIへ統一し、GitHub Pagesでの静的公開は採用しません。
