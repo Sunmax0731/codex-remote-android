@@ -1,3 +1,4 @@
+import { redactSensitiveText } from "./redaction.js";
 import type { BridgeConfig, CodexInvoker, CommandRepository } from "./types.js";
 
 export type ProcessNextCommandInput = {
@@ -40,13 +41,13 @@ export async function processNextCommand(input: ProcessNextCommandInput): Promis
     command,
     workspacePath: input.config.workspacePath,
     onProgress: (progressText, progressAt) =>
-      input.repository.updateProgress(claim, progressText, progressAt, input.config.claimTtlSeconds),
+      input.repository.updateProgress(claim, redactSensitiveText(progressText), progressAt, input.config.claimTtlSeconds),
   });
 
   const completedAt = new Date();
 
   if (result.kind === "success") {
-    await input.repository.markCompleted(claim, result.resultText, completedAt);
+    await input.repository.markCompleted(claim, redactSensitiveText(result.resultText), completedAt);
     return {
       kind: "processed",
       commandId: command.commandId,
@@ -54,7 +55,7 @@ export async function processNextCommand(input: ProcessNextCommandInput): Promis
     };
   }
 
-  await input.repository.markFailed(claim, result.errorText, completedAt);
+  await input.repository.markFailed(claim, redactSensitiveText(result.errorText), completedAt);
   return {
     kind: "processed",
     commandId: command.commandId,
