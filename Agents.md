@@ -57,6 +57,15 @@
 - stream-backed UIのテストでは、`pumpAndSettle()` のタイムアウトとbroadcast streamのイベント取りこぼしに注意する。
 - ワイヤレスデバッグ実機は接続ポートが変わるため、`flutter devices` で現在のdevice idを確認してから `flutter install -d <device-id> --debug` を実行する。
 
+## Attachment and Result Image Notes
+
+- AndroidからPCへ渡す入力は `attachments`、PCからAndroidへ返す出力画像は `resultAttachments` として分ける。
+- AndroidアプリはPCローカルpathを直接読めない。結果画像はPCブリッジがFirebase Storageへuploadし、Firestoreへmetadataだけを書き戻す。
+- `/attachments/` はAndroid client writeを許可する入力path、`/results/` はAndroid client readのみ許可する出力pathとして扱う。
+- 結果画像が表示されない場合は、Firestore `resultAttachments`、Storage object、Storage Rules、PCブリッジwatcher再起動、Android loader errorの順に切り分ける。
+- PCブリッジの長時間watcherは起動済みの `dist` を使うため、TypeScript変更後はbuildだけでなくwatcher再起動まで確認する。
+- Codex CLIやCloudflare由来のHTML/長大stderrは、利用者向けエラーへそのまま出さず、redactionと短い原因分類を通す。
+
 ## Phase Order
 
 1. 要件定義

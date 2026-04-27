@@ -9,7 +9,8 @@
 5. Repeat over cellular network.
 6. Verify push notification behavior.
 7. Verify device-language behavior for Japanese, English, Chinese, Korean, and English fallback where practical.
-8. File issues for defects instead of hiding them in notes.
+8. Verify attachment input and result image output flows where applicable.
+9. File issues for defects instead of hiding them in notes.
 
 ## Android Regression Notes
 
@@ -17,6 +18,8 @@
 - For localization-related widget tests, set test platform locales explicitly to avoid host-locale drift.
 - Avoid unbounded `pumpAndSettle()` for stream-backed screens when app-level localization delegates are active; use bounded frame pumps unless the test specifically needs route/dialog animations to settle.
 - For Xperia wireless debugging, confirm the current device ID with `flutter devices`; the port can change after reconnect or device reboot.
+- For result image regression, verify Firestore `resultAttachments`, Storage `/results/` object existence, Android thumbnail rendering, tap preview, and long-press save.
+- If a result thumbnail is missing, inspect Firestore metadata first, then Storage object, Storage Rules, app loader error, and PC bridge watcher freshness.
 
 ## Validation
 

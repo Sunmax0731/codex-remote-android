@@ -9,9 +9,11 @@
 5. Implement session creation.
 6. Implement session detail with command composer.
 7. Implement final result display.
-8. Add loading, queued, running, completed, and failed states.
-9. Keep device-language localization current for Japanese, English, Chinese, and Korean.
-10. When adding user-facing text, add it to the app localization table and keep technical identifiers such as CLI options and status values unchanged.
+8. Render result image thumbnails below result text when `resultAttachments` are present.
+9. Support tap-to-preview and long-press save for result thumbnails.
+10. Add loading, queued, running, completed, and failed states.
+11. Keep device-language localization current for Japanese, English, Chinese, and Korean.
+12. When adding user-facing text, add it to the app localization table and keep technical identifiers such as CLI options and status values unchanged.
 
 ## Localization Notes
 
@@ -34,5 +36,8 @@
 - Layout fits Xperia 1 III portrait screen.
 - Session list reads only the authenticated user's sessions.
 - Duplicate command submission is prevented while pending.
+- Result image thumbnails display below result text when `resultAttachments` can be read from Storage.
+- Thumbnail tap opens a popup preview, and long press saves the image.
+- Preview load failures show a concise diagnostic without leaking credentials or local PC paths.
 - Device locale changes select supported app text automatically, with English fallback.
 - `flutter analyze` and `flutter test` pass after localization changes.

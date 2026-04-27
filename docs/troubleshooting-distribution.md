@@ -174,12 +174,36 @@ codex.cmd exec --help
 確認項目:
 
 - `pc-bridge/config.local.json` に `firebaseStorageBucket` が設定されている。
-- PCブリッジ用service accountに `roles/datastore.user` と `roles/storage.objectViewer` が付与されている。
+- PCブリッジ用service accountに `roles/datastore.user` とStorage object read/write権限が付与されている。初期運用では `roles/storage.objectUser` を使う。
 - `attachmentCachePath` がPC上で作成可能な場所になっている。
 - PCブリッジlogに `Attachment size is invalid`, `Attachment downloaded hash mismatch`, `Attachment storage path is invalid` などが出ていないか確認する。
 - `type=image` はCodex CLIへ `--image` として渡される。Codex CLIが画像入力を受け付けるversionか確認する。
 - `type=file` はdownload先directoryを `--add-dir` に渡し、promptへlocal pathを追記する。対象fileがcommand完了前に削除されていないか確認する。
 - command完了後は `.local/attachments/{userId}/{sessionId}/{commandId}/` がcleanupされる。調査時はwatcher logとcommand IDで追跡する。
+
+## 結果画像サムネイルが表示されない
+
+症状:
+
+- Codexの回答本文には画像らしいMarkdownがあるが、Androidアプリにサムネイルが出ない。
+- サムネイル枠にpreview errorが表示される。
+
+確認項目:
+
+- Firestoreの対象commandに `resultAttachments` が保存されている。
+- `resultAttachments[0].storagePath` が `users/{uid}/sessions/{sessionId}/commands/{commandId}/results/...` になっている。
+- Firebase Storageに該当objectが存在する。
+- Storage Rulesがデプロイ済みで、対象userが `results` pathをreadできる。
+- `pc-bridge/config.local.json` の `firebaseStorageBucket` が実際のbucket名と一致している。新しいFirebaseプロジェクトでは `<project-id>.firebasestorage.app` 形式になることがある。
+- PCブリッジをコード更新後に再起動している。常駐watcherは起動時点の `dist` を使うため、build後の再起動が必要。
+- PCブリッジlogに結果画像uploadのsummaryまたはStorage errorが出ていないか確認する。
+
+切り分け順:
+
+1. Firestoreで `resultAttachments` の有無を確認する。
+2. `storagePath` のobjectがStorageに存在するか確認する。
+3. Androidのpreview error表示またはlogcatで `storage/object-not-found`、`permission-denied`、bucket名不一致を確認する。
+4. PCブリッジを `npm.cmd run build` 後に `npm.cmd run start:watch` で再起動する。
 
 ## 通知が届かない
 

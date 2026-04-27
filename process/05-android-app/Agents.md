@@ -3,6 +3,7 @@
 ## Flutter UI Agent
 
 - Build session list, session detail, command composer, and result display.
+- Render result image thumbnails below result text, with tap-to-preview and long-press save behavior.
 - Optimize layout for Xperia 1 III portrait display.
 - Keep all user-facing text routed through the app localization layer.
 - Preserve technical labels such as CLI flags, model IDs, status values, and file paths as literal text.
@@ -11,6 +12,7 @@
 
 - Keep authentication, session state, command state, and notification navigation predictable.
 - Ensure stream-backed screens render stable empty, queued, running, completed, and failed states in widget tests.
+- Keep preview loading failures visible enough for diagnosis without exposing credentials or local PC paths.
 
 ## Android Platform Agent
 

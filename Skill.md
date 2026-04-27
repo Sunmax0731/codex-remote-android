@@ -67,6 +67,7 @@ Issueの種類に応じて、最小十分な検証を行う。
 - PCブリッジ: ユニットテスト、ローカル実行、Firebase接続の安全な確認
 - Firebase/通知: Emulatorまたは検証用Firebaseプロジェクトでのルール・Functions・FCM確認
 - Release: APKビルド、Xperia 1 IIIへのインストール、E2Eスモーク
+- 添付/結果画像: 入力添付command、結果画像command、Storage Rules、Firestore metadata、Androidサムネイルtap/long pressを確認
 
 Flutter SDKなどのローカルツールが未導入の場合は、失敗を隠さずIssueまたは最終報告に残す。
 
@@ -77,6 +78,15 @@ Flutter SDKなどのローカルツールが未導入の場合は、失敗を隠
 - broadcast streamを使うFake repositoryは、購読開始直前のemitを取りこぼしやすい。最新値を保持してwatch開始時に再送する。
 - ワイヤレスデバッグの接続ポートは変わるため、実機インストール前に `flutter devices` で現在のdevice idを確認する。
 - debug APKを実機へ反映する場合は `flutter build apk --debug` の後、`flutter install -d <device-id> --debug` を使う。
+
+### 添付と結果画像でつまずきやすい点
+
+- `attachments` はAndroidからPCブリッジへ渡す入力、`resultAttachments` はPCブリッジからAndroidへ返す出力として扱う。片方のmetadataだけを見て判断しない。
+- AndroidアプリはPCローカルpathを読めない。回答本文に `![image](local.png)` があっても、PCブリッジがStorageへuploadし、Firestoreへ `resultAttachments` を書かない限りサムネイルは表示できない。
+- Firebase Storage bucketは `<project-id>.appspot.com` ではなく `<project-id>.firebasestorage.app` 形式の場合がある。`google-services.json`、Android setup QR、`pc-bridge/config.local.json` のbucket名を一致させる。
+- `storage/object-not-found` は、bucket未作成、bucket名不一致、upload前metadata、または古いwatcherが動いている場合に起きやすい。Firestore metadataだけでなくStorage object実体を確認する。
+- TypeScriptのPCブリッジを直した後は `npm.cmd run build` だけで終わらせず、常駐watcherを再起動する。
+- 結果画像表示の切り分けは、Firestore `resultAttachments`、Storage object、Storage Rules、Android loader error、PCブリッジlogの順で確認する。
 
 ### 5. コミット、push、統合
 
@@ -105,6 +115,7 @@ Issueを閉じるのは、変更がリモートへ反映され、検証結果が
 
 - `docs/requirements.md`: ユーザー価値、MVP範囲、受入条件、非機能要件
 - `docs/architecture.md`: システム構成、通信方式、データモデル、セキュリティ境界
+- `docs/attachment-flow-design.md`: 入力添付、結果画像metadata、Storage path、PCブリッジ連携
 - `docs/release-plan.md`: Release条件、APK配布、実機インストール、検証証跡
 - `process/`: 工程別の担当、手順、検証観点
 - `README.md`: プロジェクト概要、現在の進め方、主要ドキュメントへの入口

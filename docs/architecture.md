@@ -10,18 +10,20 @@ MVPでは、WiFiと携帯回線の両方で利用できることを優先し、A
 
 MVPは次の3要素で構成する。
 
-- Androidアプリ: セッション一覧、セッション作成、指示入力、進捗概要/最終結果表示、通知タップ時の遷移、端末言語に応じた表示切替を担当する。
-- Firebaseリレー: 認証、セッション/コマンド保存、PCブリッジ登録、通知トリガーを担当する。
-- PCブリッジ: Firebase上の待機中コマンドを監視し、自宅PC上のCodexワークフローへ渡し、最終結果をFirebaseへ書き戻す。
+- Androidアプリ: セッション一覧、セッション作成、指示入力、進捗概要/最終結果表示、結果画像表示、通知タップ時の遷移、端末言語に応じた表示切替を担当する。
+- Firebaseリレー: 認証、セッション/コマンド保存、入力添付と結果画像のStorage保存、PCブリッジ登録、通知トリガーを担当する。
+- PCブリッジ: Firebase上の待機中コマンドを監視し、自宅PC上のCodexワークフローへ渡し、最終結果と結果画像metadataをFirebaseへ書き戻す。
 
 ```text
 Android app
   -> Firebase Auth
   -> Cloud Firestore
+  -> Firebase Storage
   -> Firebase Cloud Messaging
 
 PC bridge
   -> Cloud Firestore
+  -> Firebase Storage
   -> local VS Code / Codex workflow
 ```
 
@@ -34,7 +36,7 @@ PC bridge
 5. PCブリッジが自分に紐づく `queued` コマンドを検出する。
 6. PCブリッジがコマンドをclaimし、状態を `running` にする。
 7. PCブリッジが固定ワークスペース上のCodexワークフローへ指示テキストを渡す。
-8. PCブリッジが最終結果またはエラーをFirestoreへ書き戻す。
+8. PCブリッジが最終結果またはエラーをFirestoreへ書き戻す。最終結果にローカル画像参照が含まれる場合は、画像をFirebase Storageへuploadし、`resultAttachments` metadataをFirestoreへ保存する。
 9. コマンド状態が `completed` または `failed` になる。
 10. Firebase Cloud Functionsが完了通知をFCMでAndroid端末へ送信する。
 11. Androidアプリは通知タップまたは画面更新で最終結果を表示する。
@@ -138,6 +140,7 @@ Codexへ送る作業単位を表す。
 - `startedAt`
 - `completedAt`
 - `resultText`
+- `resultAttachments`: PCブリッジがuploadした結果画像metadata配列。Androidアプリは読み取り専用として扱う。
 - `errorText`
 - `notificationSentAt`
 
@@ -191,6 +194,7 @@ MVPでは次の方針を採用する。
 - セッションを作成する。
 - コマンドを作成する。
 - コマンド状態と最終結果を表示する。
+- 結果画像metadataがある場合、Storageから画像を読み込み、結果テキストの下へサムネイル表示する。
 - running中のコマンドでは、PCブリッジが保存した進捗概要を表示する。
 - FCM tokenを登録・更新する。
 - 通知タップ時に該当セッションへ遷移する。
@@ -248,7 +252,7 @@ app/lib/src/widgets/command_widgets.dart
 - `src/dialogs/text_value_dialogs.dart`: セッション名入力、グループ選択/新規入力、グループ候補計算を保持する。
 - `src/widgets/connection_widgets.dart`: PC接続状態のコンパクト表示、接続設定モーダル、PC確認、CLI既定値導線、日時/期間表示helperを保持する。
 - `src/widgets/session_tile.dart`: セッション一覧カードの表示を保持する。
-- `src/widgets/command_widgets.dart`: コマンドカード、コマンド入力欄、空状態、起動/読み込みメッセージ、コマンド経過時間計算を保持する。
+- `src/widgets/command_widgets.dart`: コマンドカード、コマンド入力欄、空状態、起動/読み込みメッセージ、コマンド経過時間計算、結果画像サムネイル、拡大プレビュー、保存導線、preview失敗表示を保持する。
 
 ### 主要クラス関係
 
@@ -381,7 +385,7 @@ Androidアプリから許可する書き込み:
 Androidアプリから禁止する書き込み:
 
 - `running`, `completed`, `failed` への直接遷移。
-- `resultText`, `errorText`, `claimedByPcBridgeId`, `claimExpiresAt` の直接更新。
+- `resultText`, `resultAttachments`, `errorText`, `claimedByPcBridgeId`, `claimExpiresAt` の直接更新。
 - 他端末やPCブリッジの資格情報更新。
 
 ### PCブリッジの書き込み制限
@@ -391,7 +395,7 @@ PCブリッジから許可する書き込み:
 - 自分の `pcBridges/{pcBridgeId}` の `lastSeenAt`, `status`, `version` 更新。
 - 自分を `targetPcBridgeId` に持つ `queued` コマンドのclaim。
 - claim済みコマンドの `running`, `completed`, `failed` 更新。
-- `resultText`, `errorText`, `startedAt`, `completedAt` 更新。
+- `resultText`, `resultAttachments`, `errorText`, `startedAt`, `completedAt` 更新。
 
 PCブリッジから禁止する書き込み:
 
@@ -574,6 +578,7 @@ PCブリッジはローカルに診断ログを出す。
 - コマンドID。
 - 状態遷移。
 - エラー種別。
+- 結果画像をuploadした件数とStorage pathの短いsummary。
 
 ログに含めないもの:
 
@@ -743,6 +748,7 @@ Phase 7またはPhase 8で、少なくとも次を確認する。
 - リポジトリにPCブリッジcredential、pairing token、署名鍵が含まれていない。
 - Firestore Security Rulesの拒否テストが通る。
 - Androidアプリから `resultText` や `status=completed` を直接書けない。
+- Androidアプリから `resultAttachments` を直接書けない。
 - 他ユーザーの `sessions` や `commands` を読めない。
 - 通知payloadにコマンド本文や結果全文が含まれていない。
 - PCブリッジは固定ワークスペース以外をFirestore値だけで実行対象にしない。
@@ -794,3 +800,42 @@ Release 1.0.2以降の設計補足は [QCDS強化計画](qcds-hardening-plan.md)
 - 汎用ファイルはattachment directoryを `--add-dir` へ渡し、promptに参照pathを追記する。
 - 既存の `codexImages` はPCローカルpathを直接指定する互換入力として残し、スマホからの途中添付とは分けて扱う。
 - Storage Rules、size/MIME制限、local cache cleanup、E2E smokeは実装Issueで分割して扱う。
+
+## Result attachment architecture
+
+Codex処理後に生成された画像は、入力添付とは別の `resultAttachments` として扱う。AndroidアプリはPCローカルpathを直接読めないため、PCブリッジが結果本文内のMarkdown画像参照を検出し、参照先がローカル画像ファイルである場合だけFirebase Storageへuploadする。
+
+Firestore fields:
+
+```json
+{
+  "resultText": "結果本文\n\n![preview](image.png)",
+  "resultAttachments": [
+    {
+      "id": "result_01",
+      "type": "image",
+      "fileName": "image.png",
+      "contentType": "image/png",
+      "sizeBytes": 123456,
+      "storagePath": "users/<uid>/sessions/<sessionId>/commands/<commandId>/results/result_01/image.png",
+      "sha256": "<server-hash>"
+    }
+  ]
+}
+```
+
+Storage path:
+
+```text
+users/{userId}/sessions/{sessionId}/commands/{commandId}/results/{resultAttachmentId}/{safeFileName}
+```
+
+方針:
+
+- `attachments` はAndroidからPCブリッジへ渡す入力、`resultAttachments` はPCブリッジからAndroidへ返す出力として分ける。
+- Androidアプリは `resultAttachments` のStorage objectを読み、結果テキストの下にサムネイルを表示する。
+- サムネイルのtapは拡大ダイアログ、long pressは端末保存を起動する。
+- Androidクライアントから `/results/` への書き込みは許可しない。読み取りは対象userだけに制限する。
+- PCブリッジはAdmin SDK credentialで `/results/` へuploadする。
+- remote URL、data URL、存在しないローカルpath、画像以外のMarkdown linkは結果添付として扱わない。
+- 結果本文にはPCローカルpathを保存しない。必要な表示はStorage pathとmetadataを経由する。

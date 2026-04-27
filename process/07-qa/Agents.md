@@ -16,6 +16,7 @@
 
 - Confirm security rules, notification routing, and command ownership after changes.
 - Confirm supported locale selection and English fallback after localization or settings UI changes.
+- Confirm input `attachments` and output `resultAttachments` separately so regressions in one direction do not mask the other.
 
 ## Handoff
 

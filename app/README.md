@@ -22,6 +22,7 @@ Firebase SDK設定では、利用者自身のFirebaseプロジェクトから取
 - `firebase_core`
 - `firebase_auth`
 - `cloud_firestore`
+- `firebase_storage`
 - `firebase_messaging`
 - `flutter_local_notifications`
 
@@ -41,7 +42,7 @@ Firebase SDK設定では、利用者自身のFirebaseプロジェクトから取
 
 セッション一覧では `/users/{uid}/sessions` を `updatedAt` 降順で購読し、`New session` から新規セッションを作成する。作成時はMVP接続先として `targetPcBridgeId: home-main-pc` を保存する。
 
-セッション詳細では `/users/{uid}/sessions/{sessionId}/commands` を `createdAt` 降順で購読し、入力したテキストを `queued` コマンドとして作成する。`running` 中はPCブリッジがFirestoreに保存した進捗概要と経過時間を表示し、完了後は `resultText` または `errorText` を最終結果として表示する。
+セッション詳細では `/users/{uid}/sessions/{sessionId}/commands` を `createdAt` 降順で購読し、入力したテキストを `queued` コマンドとして作成する。`running` 中はPCブリッジがFirestoreに保存した進捗概要と経過時間を表示し、完了後は `resultText` または `errorText` を最終結果として表示する。`resultAttachments` に画像metadataがある場合は、Firebase Storageから画像を読み込み、結果テキストの下にサムネイルを表示する。サムネイルtapで拡大表示し、long pressで端末へ保存する。
 
 表示言語:
 
@@ -65,6 +66,7 @@ Firebase SDK設定では、利用者自身のFirebaseプロジェクトから取
 - セッションを作成する。
 - 選択中セッションへテキスト指示を送信する。
 - コマンドの進捗概要、最終結果、失敗状態を表示する。
+- 結果画像サムネイル、拡大プレビュー、保存導線を表示する。
 - FCM tokenを登録・更新する。
 - 完了通知タップ時に該当セッションへ遷移する。
 - 端末言語に応じて主要UIを日本語、英語、中国語、韓国語で表示する。

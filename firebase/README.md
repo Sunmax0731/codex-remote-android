@@ -161,9 +161,9 @@ app/android/app/google-services.json
 
 ## 5. PCブリッジ用service account JSONを作成する
 
-PCブリッジはFirebase Admin SDKでFirestoreへ接続します。利用者自身のFirebase/GCPプロジェクトでservice account keyを作成してください。
+PCブリッジはFirebase Admin SDKでFirestoreとFirebase Storageへ接続します。利用者自身のFirebase/GCPプロジェクトでservice account keyを作成してください。
 
-継続運用では、PCブリッジ専用service accountを作成し、Firestore read/write用の `roles/datastore.user` を付与する方針を推奨します。詳細は [Firebase service account permissions](../docs/firebase-service-account-permissions.md) を参照してください。
+継続運用では、PCブリッジ専用service accountを作成し、Firestore read/write用の `roles/datastore.user` とStorage object read/write権限を付与する方針を推奨します。詳細は [Firebase service account permissions](../docs/firebase-service-account-permissions.md) を参照してください。
 
 手順:
 

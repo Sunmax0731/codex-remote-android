@@ -89,6 +89,7 @@ npm.cmd run e2e:evidence -- --session-id <sessionId> --command-id <commandId>
 - `pcBridge.lastHealthCheckStatus`: `responded`
 - `session.status`: `completed`
 - `command.status`: `completed`
+- `command.resultAttachments`: 画像結果がある場合は1件以上
 - `command.notificationSuccessCount`: `1` 以上
 - `command.notificationFailureCount`: `0`
 
@@ -103,6 +104,19 @@ npm.cmd run e2e:evidence -- --session-id <sessionId> --command-id <commandId>
 5. PCブリッジの一時download先が `.local/attachments/{userId}/{sessionId}/{commandId}/{attachmentId}/` 配下になり、command完了後に削除されることを確認する。
 6. `exe` / `ps1` / `zip` などの未許可ファイルがAndroid側で送信対象にならない、またはRulesで拒否されることを確認する。
 7. 25 MiBを超えるファイル、または6件以上の添付が拒否されることを確認する。
+
+## Result image E2E smoke
+
+結果画像を含むrelease smokeでは、入力添付とは別に次を確認する。
+
+1. Codexがローカル画像を生成し、最終結果本文にMarkdown画像参照を含むcommandを送信する。
+2. PCブリッジlogで結果画像upload件数が記録されることを確認する。
+3. Firestoreの `commands/{commandId}.resultAttachments[0]` に `type=image`, `contentType`, `sizeBytes`, `storagePath`, `sha256` が保存されることを確認する。
+4. Storageの `users/{uid}/sessions/{sessionId}/commands/{commandId}/results/...` にobjectが存在することを確認する。
+5. Androidアプリで結果テキストの下に画像サムネイルが表示されることを確認する。
+6. サムネイルtapで拡大ダイアログが開くことを確認する。
+7. サムネイルlong pressで画像保存ができることを確認する。
+8. 結果画像がない通常commandでは、余分な空枠やエラー表示が出ないことを確認する。
 
 証跡には、秘密情報を含まない範囲で以下だけを残す。
 
@@ -149,6 +163,13 @@ npm.cmd run e2e:evidence -- --session-id <sessionId> --command-id <commandId>
   - Attachment count:
   - MIME/type:
   - Status:
+- Result image command:
+  - Command ID:
+  - resultAttachments count:
+  - MIME/type:
+  - Thumbnail displayed:
+  - Popup preview:
+  - Long-press save:
 - Attachment negative checks:
   - Unsupported type:
   - Over size:
