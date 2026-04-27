@@ -40,6 +40,9 @@ pc-bridge/logs/
 .vscode/
 *.iml
 
+# Documentation screenshot intake
+docs/assets/firebase-setup-screenshots/inbox/
+
 # OS
 Thumbs.db
 Desktop.ini
