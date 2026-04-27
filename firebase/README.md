@@ -118,8 +118,38 @@ cd ..
 Firebase ConsoleでAndroidアプリを追加します。
 
 - Android package name: `com.sunmax.remotecodex`
-- App nickname: 任意。
+- App nickname: `RemoteCodex`
 - SHA-1: MVPのdebug installでは必須ではありません。Google Sign-In等を追加する場合に設定します。
+
+画面例:
+
+1. Project Overviewで `Add app` を選択する。
+
+![Android app entry point](../docs/assets/firebase-setup-screenshots/masked/19-android-add-app-entry.png)
+
+2. Androidアイコンを選択する。
+
+![Android platform selection](../docs/assets/firebase-setup-screenshots/masked/20-android-platform-selection.png)
+
+3. Android package nameとApp nicknameを入力し、`Register app` を選択する。
+
+![Android register form](../docs/assets/firebase-setup-screenshots/masked/21-android-register-form.png)
+
+4. `Download google-services.json` を選択して保存する。
+
+![Download google-services.json](../docs/assets/firebase-setup-screenshots/masked/22-android-download-config.png)
+
+5. 配布APK利用者は、この画面のSDK追加作業は実施しなくて構いません。確認後、次へ進みます。
+
+![Android SDK instructions](../docs/assets/firebase-setup-screenshots/masked/23-android-sdk-instructions.png)
+
+6. `Continue to console` を選択する。
+
+![Android next steps](../docs/assets/firebase-setup-screenshots/masked/24-android-next-steps.png)
+
+7. Project OverviewでAndroidアプリが登録済みになっていることを確認する。
+
+![Android app registered](../docs/assets/firebase-setup-screenshots/masked/25-android-registration-complete.png)
 
 登録後、`google-services.json` をダウンロードし、次の場所に配置します。
 
