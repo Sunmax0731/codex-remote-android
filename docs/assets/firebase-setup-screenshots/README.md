@@ -39,6 +39,10 @@ Current project creation screenshots:
 - `23-android-sdk-instructions.png`: Firebase SDK instructions screen.
 - `24-android-next-steps.png`: Android registration next steps screen.
 - `25-android-registration-complete.png`: Android app registration confirmation.
+- `26-service-account-project-settings.png`: Project settings entry point for service account setup.
+- `27-service-account-admin-sdk.png`: Firebase Admin SDK service account screen.
+- `28-service-account-generate-key-dialog.png`: Private key generation confirmation dialog.
+- `29-service-account-save-json.png`: Service account JSON save dialog with local path and filename masked.
 
 Only commit images after confirming the following are hidden:
 
