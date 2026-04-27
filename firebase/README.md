@@ -79,6 +79,28 @@ Firebase ConsoleでFirestore Databaseを作成します。
 - mode: 本番モードを推奨。
 - location: 利用者の地域に合わせて選択。
 
+画面例:
+
+1. Cloud Firestoreを開き、`Create database` を選択する。
+
+![Firestore get started](../docs/assets/firebase-setup-screenshots/masked/14-firestore-get-started.png)
+
+2. editionを選択する。通常は `Standard edition` を選択する。
+
+![Firestore select edition](../docs/assets/firebase-setup-screenshots/masked/15-firestore-select-edition.png)
+
+3. Database IDは既定の `(default)` のままにし、利用地域に近いlocationを選択する。
+
+![Firestore location](../docs/assets/firebase-setup-screenshots/masked/16-firestore-location.png)
+
+4. Security Rulesは `Start in production mode` を選択して作成する。
+
+![Firestore security rules](../docs/assets/firebase-setup-screenshots/masked/17-firestore-security-rules.png)
+
+5. 作成後、Database画面が表示されることを確認する。
+
+![Firestore created](../docs/assets/firebase-setup-screenshots/masked/18-firestore-created.png)
+
 Firestore Security RulesとIndexesは、このディレクトリのファイルをFirebase CLIからデプロイします。
 
 ```powershell
