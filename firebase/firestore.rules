@@ -10,6 +10,91 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    function validQueuedCommand(userId, sessionId, commandId) {
+      return request.resource.data.keys().hasOnly([
+        "text",
+        "status",
+        "targetPcBridgeId",
+        "createdByDeviceId",
+        "attachments",
+        "createdAt"
+      ])
+      && request.resource.data.status == "queued"
+      && validAttachments(userId, sessionId, commandId);
+    }
+
+    function validAttachments(userId, sessionId, commandId) {
+      return !request.resource.data.keys().hasAny(["attachments"])
+        || (
+          request.resource.data.attachments is list
+          && request.resource.data.attachments.size() <= 5
+          && (
+            request.resource.data.attachments.size() == 0
+            || validAttachment(userId, sessionId, commandId, request.resource.data.attachments[0])
+          )
+          && (
+            request.resource.data.attachments.size() <= 1
+            || validAttachment(userId, sessionId, commandId, request.resource.data.attachments[1])
+          )
+          && (
+            request.resource.data.attachments.size() <= 2
+            || validAttachment(userId, sessionId, commandId, request.resource.data.attachments[2])
+          )
+          && (
+            request.resource.data.attachments.size() <= 3
+            || validAttachment(userId, sessionId, commandId, request.resource.data.attachments[3])
+          )
+          && (
+            request.resource.data.attachments.size() <= 4
+            || validAttachment(userId, sessionId, commandId, request.resource.data.attachments[4])
+          )
+        );
+    }
+
+    function validAttachment(userId, sessionId, commandId, attachment) {
+      return attachment is map
+        && attachment.keys().hasOnly([
+          "id",
+          "type",
+          "fileName",
+          "contentType",
+          "sizeBytes",
+          "storagePath",
+          "sha256"
+        ])
+        && attachment.id is string
+        && attachment.id.matches("^att_[A-Za-z0-9_\\-]+$")
+        && attachment.type in ["image", "file"]
+        && attachment.fileName is string
+        && attachment.fileName.matches("^[^/\\\\]{1,160}$")
+        && validAttachmentContentType(attachment.contentType)
+        && attachment.sizeBytes is int
+        && attachment.sizeBytes > 0
+        && attachment.sizeBytes <= 25 * 1024 * 1024
+        && attachment.storagePath ==
+          "users/" + userId +
+          "/sessions/" + sessionId +
+          "/commands/" + commandId +
+          "/attachments/" + attachment.id +
+          "/" + attachment.fileName
+        && attachment.sha256 is string
+        && attachment.sha256.matches("^[a-f0-9]{64}$");
+    }
+
+    function validAttachmentContentType(contentType) {
+      return contentType in [
+        "application/json",
+        "application/pdf",
+        "application/x-yaml",
+        "image/gif",
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "text/markdown",
+        "text/plain"
+      ];
+    }
+
     match /users/{userId} {
       allow read, create, update: if ownsUser(userId);
       allow delete: if false;
@@ -62,7 +147,7 @@ service cloud.firestore {
         match /commands/{commandId} {
           allow read: if ownsUser(userId);
           allow create: if ownsUser(userId)
-            && request.resource.data.status == "queued";
+            && validQueuedCommand(userId, sessionId, commandId);
           allow update, delete: if false;
         }
       }

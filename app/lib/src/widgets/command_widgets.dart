@@ -86,6 +86,25 @@ class _CommandTileState extends State<_CommandTile> {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
+            if (command.attachments.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  for (final attachment in command.attachments)
+                    Chip(
+                      avatar: Icon(
+                        attachment.type == 'image'
+                            ? Icons.image_outlined
+                            : Icons.insert_drive_file_outlined,
+                        size: 18,
+                      ),
+                      label: Text(attachment.fileName),
+                    ),
+                ],
+              ),
+            ],
             if (command.progressUpdatedAt != null &&
                 !isTerminalStatus(status)) ...[
               const SizedBox(height: 6),
@@ -127,12 +146,18 @@ Duration? commandElapsed(CommandSummary command) {
 class _CommandComposer extends StatelessWidget {
   const _CommandComposer({
     required this.controller,
+    required this.attachments,
     required this.isSending,
+    required this.onAddAttachment,
+    required this.onRemoveAttachment,
     required this.onSend,
   });
 
   final TextEditingController controller;
+  final List<PendingCommandAttachment> attachments;
   final bool isSending;
+  final VoidCallback onAddAttachment;
+  final ValueChanged<PendingCommandAttachment> onRemoveAttachment;
   final VoidCallback onSend;
 
   @override
@@ -142,38 +167,87 @@ class _CommandComposer extends StatelessWidget {
       elevation: 4,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: TextField(
-                controller: controller,
-                minLines: 1,
-                maxLines: 4,
-                textInputAction: TextInputAction.newline,
-                decoration: InputDecoration(
-                  labelText: l10n.t('instruction'),
-                  border: const OutlineInputBorder(),
+            if (attachments.isNotEmpty) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    for (final attachment in attachments)
+                      InputChip(
+                        avatar: Icon(
+                          attachment.kind == 'image'
+                              ? Icons.image_outlined
+                              : Icons.insert_drive_file_outlined,
+                          size: 18,
+                        ),
+                        label: Text(attachment.fileName),
+                        tooltip:
+                            '${attachment.contentType} / ${formatAttachmentSize(attachment.sizeBytes)}',
+                        onDeleted: isSending
+                            ? null
+                            : () => onRemoveAttachment(attachment),
+                      ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            IconButton.filled(
-              onPressed: isSending ? null : onSend,
-              tooltip: l10n.t('send'),
-              icon: isSending
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.send),
+              const SizedBox(height: 8),
+            ],
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                IconButton(
+                  onPressed: isSending ? null : onAddAttachment,
+                  tooltip: l10n.t('attachFiles'),
+                  icon: const Icon(Icons.attach_file),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    minLines: 1,
+                    maxLines: 4,
+                    textInputAction: TextInputAction.newline,
+                    decoration: InputDecoration(
+                      labelText: l10n.t('instruction'),
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  onPressed: isSending ? null : onSend,
+                  tooltip: l10n.t('send'),
+                  icon: isSending
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.send),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
+}
+
+String formatAttachmentSize(int sizeBytes) {
+  if (sizeBytes < 1024) {
+    return '$sizeBytes B';
+  }
+  final kib = sizeBytes / 1024;
+  if (kib < 1024) {
+    return '${kib.toStringAsFixed(1)} KiB';
+  }
+  return '${(kib / 1024).toStringAsFixed(1)} MiB';
 }
 
 class _NoCommands extends StatelessWidget {
