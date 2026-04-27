@@ -219,6 +219,8 @@ schtasks /Run /TN "CodexRemotePcBridge"
 
 ## 秘密情報の扱い
 
+紛失・漏えい時の対応は [Credential incident runbook](credential-incident-runbook.md) を参照してください。
+
 次は共有しない。
 
 - service account JSON
