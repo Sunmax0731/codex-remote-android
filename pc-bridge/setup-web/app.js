@@ -54,6 +54,23 @@ const messages = {
     configReady: "config.local.json template is ready.",
     configCopied: "config.local.json template copied.",
     configCopyFailed: "Copy failed. Select the text and copy it manually.",
+    bridgeOpsTitle: "PC Bridge Operations",
+    bridgeOpsSubtitle:
+      "Check config.local.json, watcher state, scheduled startup, and redacted logs from this local setup UI.",
+    refreshBridgeStatus: "Refresh status",
+    startBridge: "Start watcher",
+    registerBridgeTask: "Register on-login task",
+    bridgeConfigStatusTitle: "Config status",
+    bridgeProcessStatusTitle: "Process status",
+    bridgeLogTitle: "Latest redacted watcher log",
+    bridgeLogEmpty: "No log loaded.",
+    bridgeOpsReady: "Ready.",
+    bridgeStatusLoading: "Checking PC bridge status...",
+    bridgeStartRequested: "Watcher start was requested. Refresh status after a few seconds.",
+    bridgeTaskRegistered: "On-login task registration completed.",
+    bridgeActionFailed: (message) => `PC bridge action failed: ${message}`,
+    statusYes: "yes",
+    statusNo: "no",
     googleServicesPackageOk: "Android package matches com.sunmax.remotecodex.",
     googleServicesPackageMissing:
       "Android package com.sunmax.remotecodex was not found.",
@@ -156,6 +173,23 @@ const messages = {
     configReady: "config.local.jsonの雛形を生成しました。",
     configCopied: "config.local.jsonの雛形をコピーしました。",
     configCopyFailed: "コピーに失敗しました。テキストを選択して手動でコピーしてください。",
+    bridgeOpsTitle: "PCブリッジ運用",
+    bridgeOpsSubtitle:
+      "このローカルセットアップUIからconfig.local.json、watcher状態、常駐化、redaction済みログを確認します。",
+    refreshBridgeStatus: "状態を更新",
+    startBridge: "watcherを起動",
+    registerBridgeTask: "ログオン時タスクを登録",
+    bridgeConfigStatusTitle: "設定状態",
+    bridgeProcessStatusTitle: "プロセス状態",
+    bridgeLogTitle: "最新のredaction済みwatcherログ",
+    bridgeLogEmpty: "ログはまだ読み込まれていません。",
+    bridgeOpsReady: "準備完了。",
+    bridgeStatusLoading: "PCブリッジ状態を確認中...",
+    bridgeStartRequested: "watcher起動を要求しました。数秒後に状態を更新してください。",
+    bridgeTaskRegistered: "ログオン時タスクの登録が完了しました。",
+    bridgeActionFailed: (message) => `PCブリッジ操作に失敗しました: ${message}`,
+    statusYes: "はい",
+    statusNo: "いいえ",
     googleServicesPackageOk: "Android packageがcom.sunmax.remotecodexと一致しています。",
     googleServicesPackageMissing:
       "Android package com.sunmax.remotecodex が見つかりません。",
@@ -252,6 +286,23 @@ const messages = {
     configReady: "config.local.json 模板已准备好。",
     configCopied: "config.local.json 模板已复制。",
     configCopyFailed: "复制失败。请选中文本后手动复制。",
+    bridgeOpsTitle: "PC 桥接运行",
+    bridgeOpsSubtitle:
+      "从本地设置 UI 检查 config.local.json、watcher 状态、常驻启动和已脱敏日志。",
+    refreshBridgeStatus: "刷新状态",
+    startBridge: "启动 watcher",
+    registerBridgeTask: "登记登录时任务",
+    bridgeConfigStatusTitle: "设置状态",
+    bridgeProcessStatusTitle: "进程状态",
+    bridgeLogTitle: "最新脱敏 watcher 日志",
+    bridgeLogEmpty: "尚未加载日志。",
+    bridgeOpsReady: "就绪。",
+    bridgeStatusLoading: "正在检查 PC 桥接状态...",
+    bridgeStartRequested: "已请求启动 watcher。请几秒后刷新状态。",
+    bridgeTaskRegistered: "登录时任务登记已完成。",
+    bridgeActionFailed: (message) => `PC 桥接操作失败: ${message}`,
+    statusYes: "是",
+    statusNo: "否",
     googleServicesPackageOk: "Android package 与 com.sunmax.remotecodex 一致。",
     googleServicesPackageMissing:
       "未找到 Android package com.sunmax.remotecodex。",
@@ -318,6 +369,13 @@ const workspacePath = document.querySelector("#workspacePath");
 const configPreview = document.querySelector("#configPreview");
 const copyConfig = document.querySelector("#copyConfig");
 const configStatus = document.querySelector("#configStatus");
+const refreshBridgeStatus = document.querySelector("#refreshBridgeStatus");
+const startBridge = document.querySelector("#startBridge");
+const registerBridgeTask = document.querySelector("#registerBridgeTask");
+const bridgeConfigStatus = document.querySelector("#bridgeConfigStatus");
+const bridgeProcessStatus = document.querySelector("#bridgeProcessStatus");
+const bridgeLogTail = document.querySelector("#bridgeLogTail");
+const bridgeOpsStatus = document.querySelector("#bridgeOpsStatus");
 const generateQr = document.querySelector("#generateQr");
 const saveLocal = document.querySelector("#saveLocal");
 const clearLocal = document.querySelector("#clearLocal");
@@ -331,6 +389,7 @@ let lastPayload = null;
 languageSelect.value = currentLanguage;
 applyLanguage();
 loadLocalState();
+refreshPcBridgeStatus();
 
 languageSelect.addEventListener("change", () => {
   currentLanguage = languageSelect.value;
@@ -409,6 +468,21 @@ copyConfig.addEventListener("click", async () => {
     configPreview.select();
     setStatus(configStatus, t("configCopyFailed"), true);
   }
+});
+
+refreshBridgeStatus.addEventListener("click", () => {
+  refreshPcBridgeStatus();
+});
+
+startBridge.addEventListener("click", async () => {
+  await postBridgeAction("/api/pc-bridge/start", t("bridgeStartRequested"));
+});
+
+registerBridgeTask.addEventListener("click", async () => {
+  await postBridgeAction(
+    "/api/pc-bridge/register-task",
+    t("bridgeTaskRegistered"),
+  );
 });
 
 generateQr.addEventListener("click", async () => {
@@ -547,6 +621,101 @@ function detectInitialLanguage() {
   if (browserLanguage.startsWith("ja")) return "ja";
   if (browserLanguage.startsWith("zh")) return "zh";
   return "en";
+}
+
+async function refreshPcBridgeStatus() {
+  setStatus(bridgeOpsStatus, t("bridgeStatusLoading"), false);
+  try {
+    const response = await fetch("/api/pc-bridge/status", {
+      headers: { Accept: "application/json" },
+    });
+    const report = await response.json();
+    if (!response.ok) {
+      throw new Error(report.error ?? response.statusText);
+    }
+
+    renderStatusList(bridgeConfigStatus, {
+      path: report.config?.path,
+      exists: yesNo(report.config?.exists),
+      valid: yesNo(report.config?.valid),
+      classification: report.config?.classification,
+      relayMode: report.config?.relayMode,
+      codexMode: report.config?.codexMode,
+      pcBridgeId: report.config?.pcBridgeId,
+      firebaseProjectId: report.config?.firebaseProjectId,
+      serviceAccountConfigured: yesNo(report.config?.serviceAccountConfigured),
+      serviceAccountPathExists: yesNo(report.config?.serviceAccountPathExists),
+      workspaceConfigured: yesNo(report.config?.workspaceConfigured),
+      error: report.config?.error,
+    });
+
+    renderStatusList(bridgeProcessStatus, {
+      supported: yesNo(report.process?.supported),
+      running: yesNo(report.process?.running),
+      matches: Array.isArray(report.process?.matches)
+        ? String(report.process.matches.length)
+        : undefined,
+      error: report.process?.error,
+    });
+
+    if (report.logs?.found) {
+      bridgeLogTail.textContent =
+        `# ${report.logs.file} (${report.logs.updatedAt})\n` +
+        (report.logs.redactedTail ?? "");
+    } else {
+      bridgeLogTail.textContent = t("bridgeLogEmpty");
+    }
+
+    setStatus(bridgeOpsStatus, t("ready"), false);
+  } catch (error) {
+    setStatus(
+      bridgeOpsStatus,
+      t("bridgeActionFailed", error instanceof Error ? error.message : String(error)),
+      true,
+    );
+  }
+}
+
+async function postBridgeAction(url, successMessage) {
+  setStatus(bridgeOpsStatus, t("bridgeStatusLoading"), false);
+  try {
+    const response = await fetch(url, { method: "POST" });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.stderr || result.error || response.statusText);
+    }
+    setStatus(bridgeOpsStatus, successMessage, false);
+    await refreshPcBridgeStatus();
+  } catch (error) {
+    setStatus(
+      bridgeOpsStatus,
+      t("bridgeActionFailed", error instanceof Error ? error.message : String(error)),
+      true,
+    );
+  }
+}
+
+function renderStatusList(container, entries) {
+  container.replaceChildren();
+  for (const [key, value] of Object.entries(entries)) {
+    if (value === undefined || value === null || value === "") {
+      continue;
+    }
+
+    const term = document.createElement("dt");
+    term.textContent = key;
+    const description = document.createElement("dd");
+    description.textContent = String(value);
+    container.append(term, description);
+  }
+}
+
+function yesNo(value) {
+  if (typeof value !== "boolean") {
+    return undefined;
+  }
+
+  return value ? t("statusYes") : t("statusNo");
 }
 
 function validateSetupInputs() {

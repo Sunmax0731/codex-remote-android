@@ -132,6 +132,31 @@
 
       <section class="panel span-2">
         <div class="section-heading">
+          <h2 data-i18n="bridgeOpsTitle">PC Bridge Operations</h2>
+          <p data-i18n="bridgeOpsSubtitle">Check config.local.json, watcher state, scheduled startup, and redacted logs from this local setup UI.</p>
+        </div>
+        <div class="actions">
+          <button id="refreshBridgeStatus" class="button primary" data-i18n="refreshBridgeStatus">Refresh status</button>
+          <button id="startBridge" class="button secondary" data-i18n="startBridge">Start watcher</button>
+          <button id="registerBridgeTask" class="button secondary" data-i18n="registerBridgeTask">Register on-login task</button>
+        </div>
+        <div class="bridge-status-grid">
+          <div>
+            <h3 data-i18n="bridgeConfigStatusTitle">Config status</h3>
+            <dl class="status-list" id="bridgeConfigStatus"></dl>
+          </div>
+          <div>
+            <h3 data-i18n="bridgeProcessStatusTitle">Process status</h3>
+            <dl class="status-list" id="bridgeProcessStatus"></dl>
+          </div>
+        </div>
+        <h3 data-i18n="bridgeLogTitle">Latest redacted watcher log</h3>
+        <pre id="bridgeLogTail" class="log-tail" data-i18n="bridgeLogEmpty">No log loaded.</pre>
+        <div class="status-line" id="bridgeOpsStatus" data-i18n="bridgeOpsReady">Ready.</div>
+      </section>
+
+      <section class="panel span-2">
+        <div class="section-heading">
           <h2 data-i18n="qrGeneratorTitle">QR Generator</h2>
           <p data-i18n="qrGeneratorSubtitle">Generate the Android setup QR for the distributed APK.</p>
         </div>
