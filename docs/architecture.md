@@ -779,3 +779,18 @@ Release 1.0.2以降の設計補足は [QCDS強化計画](qcds-hardening-plan.md)
 - Android QR payloadにはFirebaseクライアント設定だけを含め、service account JSON、private key、Admin SDK credential、PCブリッジtokenは含めない。
 - PCブリッジの起動確認、常駐化、ログ確認はNode.js側のローカルAPI境界に閉じ、UIではredaction済み情報だけを表示する。
 - テストはFlutter、PCブリッジ、Firebase Emulator、実機E2E、CIの層に分け、各Issueで追加する。
+
+## Session attachment architecture
+
+セッション途中の画像・ファイル添付は [Session attachment flow design](attachment-flow-design.md) に従う。
+
+概要:
+
+- `commands/{commandId}.attachments` に添付metadataを保存する。
+- file bodyはFirebase Storageの `users/{userId}/sessions/{sessionId}/commands/{commandId}/attachments/{attachmentId}/...` に保存する。
+- Androidは自分のuser pathだけへuploadする。
+- PCブリッジはcommand claim後にStorage objectを `.local/attachments/...` へdownloadする。
+- 画像はdownload後にCodex CLI `--image` へ渡す。
+- 汎用ファイルはattachment directoryを `--add-dir` へ渡し、promptに参照pathを追記する。
+- 既存の `codexImages` はPCローカルpathを直接指定する互換入力として残し、スマホからの途中添付とは分けて扱う。
+- Storage Rules、size/MIME制限、local cache cleanup、E2E smokeは実装Issueで分割して扱う。
