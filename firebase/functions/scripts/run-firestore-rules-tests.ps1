@@ -9,7 +9,7 @@ $previousDebug = $env:DEBUG
 
 try {
   $env:DEBUG = ""
-  firebase emulators:exec --config $configPath --only firestore --project codex-remote-rules-test $testCommand
+  firebase emulators:exec --config $configPath --only firestore,storage --project codex-remote-rules-test $testCommand
   $exitCode = $LASTEXITCODE
 } finally {
   $env:DEBUG = $previousDebug

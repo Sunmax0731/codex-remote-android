@@ -201,6 +201,21 @@ const cliOptionHelpLocations = {
   },
 };
 const androidDeviceId = 'android-app';
+const maxCommandAttachments = 5;
+const maxCommandAttachmentBytes = 25 * 1024 * 1024;
+const allowedCommandAttachmentTypes = <String, String>{
+  'gif': 'image/gif',
+  'jpeg': 'image/jpeg',
+  'jpg': 'image/jpeg',
+  'json': 'application/json',
+  'md': 'text/markdown',
+  'pdf': 'application/pdf',
+  'png': 'image/png',
+  'txt': 'text/plain',
+  'webp': 'image/webp',
+  'yaml': 'application/x-yaml',
+  'yml': 'application/x-yaml',
+};
 const notificationChannelId = 'remote_codex_completion';
 const notificationChannelName = 'RemoteCodex completion';
 final appNavigatorKey = GlobalKey<NavigatorState>();

@@ -27,6 +27,7 @@ class CommandSummary {
     required this.id,
     required this.text,
     required this.status,
+    this.attachments = const <CommandAttachment>[],
     this.createdAt,
     this.startedAt,
     this.completedAt,
@@ -39,6 +40,7 @@ class CommandSummary {
   final String id;
   final String text;
   final String status;
+  final List<CommandAttachment> attachments;
   final DateTime? createdAt;
   final DateTime? startedAt;
   final DateTime? completedAt;
@@ -46,6 +48,42 @@ class CommandSummary {
   final DateTime? progressUpdatedAt;
   final String? resultText;
   final String? errorText;
+}
+
+class PendingCommandAttachment {
+  const PendingCommandAttachment({
+    required this.fileName,
+    required this.contentType,
+    required this.bytes,
+    required this.kind,
+  });
+
+  final String fileName;
+  final String contentType;
+  final Uint8List bytes;
+  final String kind;
+
+  int get sizeBytes => bytes.lengthInBytes;
+}
+
+class CommandAttachment {
+  const CommandAttachment({
+    required this.id,
+    required this.type,
+    required this.fileName,
+    required this.contentType,
+    required this.sizeBytes,
+    required this.storagePath,
+    required this.sha256,
+  });
+
+  final String id;
+  final String type;
+  final String fileName;
+  final String contentType;
+  final int sizeBytes;
+  final String storagePath;
+  final String sha256;
 }
 
 class PcBridgeStatus {

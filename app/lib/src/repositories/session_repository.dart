@@ -36,16 +36,23 @@ abstract class SessionRepository {
     required String sessionId,
     required String pcBridgeId,
     required String text,
+    List<PendingCommandAttachment> attachments =
+        const <PendingCommandAttachment>[],
   });
 }
 
 class FirestoreSessionRepository implements SessionRepository {
-  FirestoreSessionRepository([FirebaseFirestore? firestore])
-    : _firestore = firestore;
+  FirestoreSessionRepository([
+    FirebaseFirestore? firestore,
+    FirebaseStorage? storage,
+  ]) : _firestore = firestore,
+       _storage = storage;
 
   final FirebaseFirestore? _firestore;
+  final FirebaseStorage? _storage;
 
   FirebaseFirestore get firestore => _firestore ?? FirebaseFirestore.instance;
+  FirebaseStorage get storage => _storage ?? FirebaseStorage.instance;
 
   @override
   Stream<List<SessionSummary>> watchSessions(String uid) {
@@ -103,6 +110,7 @@ class FirestoreSessionRepository implements SessionRepository {
               id: doc.id,
               text: data['text'] as String? ?? '',
               status: data['status'] as String? ?? 'queued',
+              attachments: commandAttachmentsFromData(data['attachments']),
               createdAt: timestampToDateTime(data['createdAt']),
               startedAt: timestampToDateTime(data['startedAt']),
               completedAt: timestampToDateTime(data['completedAt']),
@@ -282,7 +290,13 @@ class FirestoreSessionRepository implements SessionRepository {
     required String sessionId,
     required String pcBridgeId,
     required String text,
+    List<PendingCommandAttachment> attachments =
+        const <PendingCommandAttachment>[],
   }) async {
+    if (attachments.length > maxCommandAttachments) {
+      throw StateError('Too many attachments.');
+    }
+
     final sessionRef = firestore
         .collection('users')
         .doc(uid)
@@ -290,23 +304,70 @@ class FirestoreSessionRepository implements SessionRepository {
         .doc(sessionId);
     final commandRef = sessionRef.collection('commands').doc();
     final batch = firestore.batch();
+    final uploadedRefs = <Reference>[];
+    final attachmentData = <Map<String, Object>>[];
 
-    batch.set(commandRef, {
-      'text': text,
-      'status': 'queued',
-      'targetPcBridgeId': pcBridgeId,
-      'createdByDeviceId': 'android-app',
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    try {
+      for (var index = 0; index < attachments.length; index++) {
+        final attachment = attachments[index];
+        validatePendingAttachment(attachment);
+        final attachmentId = attachmentIdFor(index);
+        final fileName = safeAttachmentFileName(attachment.fileName);
+        final storagePath =
+            'users/$uid/sessions/$sessionId/commands/${commandRef.id}/attachments/$attachmentId/$fileName';
+        final digest = sha256.convert(attachment.bytes).toString();
+        final ref = storage.ref(storagePath);
 
-    batch.set(sessionRef, {
-      'status': 'queued',
-      'updatedAt': FieldValue.serverTimestamp(),
-      'lastCommandId': commandRef.id,
-      'lastCommandPreview': preview(text),
-    }, SetOptions(merge: true));
+        await ref.putData(
+          attachment.bytes,
+          SettableMetadata(
+            contentType: attachment.contentType,
+            customMetadata: {
+              'attachmentId': attachmentId,
+              'commandId': commandRef.id,
+              'sha256': digest,
+            },
+          ),
+        );
+        uploadedRefs.add(ref);
+        attachmentData.add({
+          'id': attachmentId,
+          'type': attachment.kind,
+          'fileName': fileName,
+          'contentType': attachment.contentType,
+          'sizeBytes': attachment.sizeBytes,
+          'storagePath': storagePath,
+          'sha256': digest,
+        });
+      }
 
-    await batch.commit();
+      batch.set(commandRef, {
+        'text': text,
+        'status': 'queued',
+        'targetPcBridgeId': pcBridgeId,
+        'createdByDeviceId': androidDeviceId,
+        if (attachmentData.isNotEmpty) 'attachments': attachmentData,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      batch.set(sessionRef, {
+        'status': 'queued',
+        'updatedAt': FieldValue.serverTimestamp(),
+        'lastCommandId': commandRef.id,
+        'lastCommandPreview': preview(text),
+      }, SetOptions(merge: true));
+
+      await batch.commit();
+    } catch (_) {
+      for (final ref in uploadedRefs) {
+        try {
+          await ref.delete();
+        } catch (_) {
+          // Best-effort cleanup; the original upload or Firestore failure wins.
+        }
+      }
+      rethrow;
+    }
   }
 
   DocumentReference<Map<String, dynamic>> sessionDocument(
@@ -319,6 +380,74 @@ class FirestoreSessionRepository implements SessionRepository {
         .collection('sessions')
         .doc(sessionId);
   }
+}
+
+List<CommandAttachment> commandAttachmentsFromData(Object? value) {
+  if (value is! Iterable) {
+    return const <CommandAttachment>[];
+  }
+
+  return value
+      .whereType<Map>()
+      .map((entry) {
+        final id = optionString(entry['id']);
+        final type = optionString(entry['type']);
+        final fileName = optionString(entry['fileName']);
+        final contentType = optionString(entry['contentType']);
+        final sizeBytes = entry['sizeBytes'];
+        final storagePath = optionString(entry['storagePath']);
+        final digest = optionString(entry['sha256']);
+        if (id == null ||
+            type == null ||
+            fileName == null ||
+            contentType == null ||
+            sizeBytes is! int ||
+            storagePath == null ||
+            digest == null) {
+          return null;
+        }
+        return CommandAttachment(
+          id: id,
+          type: type,
+          fileName: fileName,
+          contentType: contentType,
+          sizeBytes: sizeBytes,
+          storagePath: storagePath,
+          sha256: digest,
+        );
+      })
+      .whereType<CommandAttachment>()
+      .toList(growable: false);
+}
+
+void validatePendingAttachment(PendingCommandAttachment attachment) {
+  if (attachment.sizeBytes <= 0 ||
+      attachment.sizeBytes > maxCommandAttachmentBytes) {
+    throw StateError('Invalid attachment size.');
+  }
+  if (!allowedCommandAttachmentTypes.containsValue(attachment.contentType)) {
+    throw StateError('Unsupported attachment content type.');
+  }
+}
+
+String attachmentIdFor(int index) {
+  return 'att_${DateTime.now().microsecondsSinceEpoch}_$index';
+}
+
+String safeAttachmentFileName(String value) {
+  final trimmed = value.trim();
+  final fallback = trimmed.isEmpty ? 'attachment' : trimmed;
+  final sanitized = fallback
+      .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
+      .replaceAll(RegExp(r'\s+'), '_');
+  final withoutTraversal = sanitized
+      .split('/')
+      .last
+      .split('\\')
+      .last
+      .replaceAll('..', '_');
+
+  return withoutTraversal.isEmpty ? 'attachment' : withoutTraversal;
 }
 
 SessionCreateOptions? sessionOptionsFromData(Map<String, dynamic>? data) {

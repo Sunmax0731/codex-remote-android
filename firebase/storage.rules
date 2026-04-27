@@ -1,0 +1,40 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsUser(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function validAttachmentContentType() {
+      return request.resource.contentType in [
+        "application/json",
+        "application/pdf",
+        "application/x-yaml",
+        "image/gif",
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "text/markdown",
+        "text/plain"
+      ];
+    }
+
+    match /users/{userId}/sessions/{sessionId}/commands/{commandId}/attachments/{attachmentId}/{fileName} {
+      allow read: if ownsUser(userId);
+      allow create, update: if ownsUser(userId)
+        && request.resource.size > 0
+        && request.resource.size <= 25 * 1024 * 1024
+        && validAttachmentContentType();
+      allow delete: if ownsUser(userId);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

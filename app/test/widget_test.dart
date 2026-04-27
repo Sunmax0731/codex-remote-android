@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remote_codex/main.dart';
@@ -316,6 +318,39 @@ void main() {
     expect(parsed?.codexConfigOverrides, ['model="gpt-5.5"']);
     expect(parsed?.codexLocalProvider, 'ollama');
     expect(parsed?.codexJson, true);
+  });
+
+  test('normalizes command attachment metadata', () {
+    final attachments = commandAttachmentsFromData([
+      {
+        'id': 'att_1_0',
+        'type': 'image',
+        'fileName': 'screen.png',
+        'contentType': 'image/png',
+        'sizeBytes': 123,
+        'storagePath':
+            'users/u/sessions/s/commands/c/attachments/att_1_0/screen.png',
+        'sha256': List.filled(64, 'a').join(),
+      },
+      {'id': 'broken'},
+    ]);
+
+    expect(attachments, hasLength(1));
+    expect(attachments.single.fileName, 'screen.png');
+    expect(safeAttachmentFileName(r'..\bad/name?.txt'), '__bad_name_.txt');
+  });
+
+  test('accepts only supported pending attachment types', () {
+    final supported = pendingAttachmentFromFile(
+      PlatformFile(name: 'notes.md', size: 4, bytes: Uint8List.fromList([1])),
+    );
+    final blocked = pendingAttachmentFromFile(
+      PlatformFile(name: 'run.ps1', size: 4, bytes: Uint8List.fromList([1])),
+    );
+
+    expect(supported?.contentType, 'text/markdown');
+    expect(supported?.kind, 'file');
+    expect(blocked, isNull);
   });
 
   testWidgets('requests a PC bridge health check from the status panel', (
@@ -1256,6 +1291,8 @@ class FakeSessionRepository implements SessionRepository {
   int savedDefaultsCount = 0;
   int deletedSessionCount = 0;
   String? createdCommandText;
+  List<PendingCommandAttachment> createdCommandAttachments =
+      const <PendingCommandAttachment>[];
   String? renamedSessionTitle;
   bool? updatedFavorite;
   String? updatedGroupName;
@@ -1428,8 +1465,11 @@ class FakeSessionRepository implements SessionRepository {
     required String sessionId,
     required String pcBridgeId,
     required String text,
+    List<PendingCommandAttachment> attachments =
+        const <PendingCommandAttachment>[],
   }) async {
     createdCommandText = text;
+    createdCommandAttachments = attachments;
     emitCommands(sessionId, [
       CommandSummary(id: 'command-1', text: text, status: 'queued'),
     ]);

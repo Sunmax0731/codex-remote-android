@@ -18,6 +18,7 @@ class SessionDetailPage extends StatefulWidget {
 
 class _SessionDetailPageState extends State<SessionDetailPage> {
   final TextEditingController controller = TextEditingController();
+  final List<PendingCommandAttachment> attachments = [];
   bool isSending = false;
 
   @override
@@ -28,7 +29,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
 
   Future<void> sendCommand() async {
     final text = controller.text.trim();
-    if (text.isEmpty || isSending) {
+    if ((text.isEmpty && attachments.isEmpty) || isSending) {
       return;
     }
 
@@ -39,13 +40,78 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
         sessionId: widget.session.id,
         pcBridgeId: widget.bootstrap.pcBridgeId,
         text: text,
+        attachments: List.unmodifiable(attachments),
       );
       controller.clear();
+      attachments.clear();
     } finally {
       if (mounted) {
         setState(() => isSending = false);
       }
     }
+  }
+
+  Future<void> addAttachments() async {
+    if (isSending) {
+      return;
+    }
+    final l10n = context.l10n;
+    if (attachments.length >= maxCommandAttachments) {
+      showSnack(l10n.t('attachmentLimitReached'));
+      return;
+    }
+
+    try {
+      final result = await FilePicker.pickFiles(
+        allowMultiple: true,
+        withData: true,
+      );
+      if (result == null) {
+        return;
+      }
+
+      final next = [...attachments];
+      for (final file in result.files) {
+        if (next.length >= maxCommandAttachments) {
+          showSnack(l10n.t('attachmentLimitReached'));
+          break;
+        }
+
+        final attachment = pendingAttachmentFromFile(file);
+        if (attachment == null) {
+          showSnack('${l10n.t('attachmentUnsupported')}: ${file.name}');
+          continue;
+        }
+        if (attachment.sizeBytes > maxCommandAttachmentBytes) {
+          showSnack('${l10n.t('attachmentTooLarge')}: ${file.name}');
+          continue;
+        }
+        next.add(attachment);
+      }
+
+      if (mounted) {
+        setState(() {
+          attachments
+            ..clear()
+            ..addAll(next);
+        });
+      }
+    } catch (error) {
+      showSnack('${l10n.t('attachmentPickFailed')}: $error');
+    }
+  }
+
+  void removeAttachment(PendingCommandAttachment attachment) {
+    setState(() => attachments.remove(attachment));
+  }
+
+  void showSnack(String message) {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   SessionSummary currentSessionFrom(List<SessionSummary> sessions) {
@@ -233,7 +299,10 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                 ),
                 _CommandComposer(
                   controller: controller,
+                  attachments: attachments,
                   isSending: isSending,
+                  onAddAttachment: addAttachments,
+                  onRemoveAttachment: removeAttachment,
                   onSend: sendCommand,
                 ),
               ],
@@ -243,4 +312,34 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
       },
     );
   }
+}
+
+PendingCommandAttachment? pendingAttachmentFromFile(PlatformFile file) {
+  final bytes = file.bytes;
+  if (bytes == null) {
+    return null;
+  }
+
+  final extension = (file.extension ?? extensionFromName(file.name))
+      .toLowerCase()
+      .trim();
+  final contentType = allowedCommandAttachmentTypes[extension];
+  if (contentType == null) {
+    return null;
+  }
+
+  return PendingCommandAttachment(
+    fileName: safeAttachmentFileName(file.name),
+    contentType: contentType,
+    bytes: bytes,
+    kind: contentType.startsWith('image/') ? 'image' : 'file',
+  );
+}
+
+String extensionFromName(String fileName) {
+  final index = fileName.lastIndexOf('.');
+  if (index < 0 || index == fileName.length - 1) {
+    return '';
+  }
+  return fileName.substring(index + 1);
 }
