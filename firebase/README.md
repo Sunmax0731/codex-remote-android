@@ -163,6 +163,8 @@ app/android/app/google-services.json
 
 PCブリッジはFirebase Admin SDKでFirestoreへ接続します。利用者自身のFirebase/GCPプロジェクトでservice account keyを作成してください。
 
+継続運用では、PCブリッジ専用service accountを作成し、Firestore read/write用の `roles/datastore.user` を付与する方針を推奨します。詳細は [Firebase service account permissions](../docs/firebase-service-account-permissions.md) を参照してください。
+
 手順:
 
 1. Google Cloud Consoleで対象Firebaseプロジェクトを開く。

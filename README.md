@@ -192,6 +192,7 @@ firebase deploy --only functions
 - [CI](docs/ci.md)
 - [Public repository continuous security audit](docs/security-continuous-audit.md)
 - [Credential incident runbook](docs/credential-incident-runbook.md)
+- [Firebase service account permissions](docs/firebase-service-account-permissions.md)
 - [利用者向けクイックスタート](docs/user-quickstart.md)
 - [配布利用者向けトラブルシュート](docs/troubleshooting-distribution.md)
 
