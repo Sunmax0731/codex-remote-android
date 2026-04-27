@@ -218,6 +218,44 @@ textarea {
   min-height: 260px;
 }
 
+.bridge-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.status-list {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0 0 16px;
+}
+
+.status-list dt {
+  color: var(--muted);
+}
+
+.status-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: Consolas, "Cascadia Mono", monospace;
+}
+
+.log-tail {
+  min-height: 180px;
+  max-height: 360px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  white-space: pre-wrap;
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 12px;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -395,6 +433,7 @@ code {
   .layout,
   .two-column,
   .config-grid,
+  .bridge-status-grid,
   .qr-area,
   .link-grid {
     display: block;

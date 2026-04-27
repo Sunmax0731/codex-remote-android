@@ -1,12 +1,16 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { readFile } from "node:fs/promises";
+import { access, readFile, readdir, stat } from "node:fs/promises";
+import { constants } from "node:fs";
+import { spawn } from "node:child_process";
 import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadBridgeConfig } from "../src/lib/config.js";
 import {
   buildFirebaseSetupPayload,
   firebaseSetupPayloadToDataUrl,
   parseGoogleServicesJson,
 } from "../src/lib/firebaseSetupQr.js";
+import { redactSensitiveText } from "../src/lib/redaction.js";
 
 type GenerateRequest = {
   googleServicesJson?: string;
@@ -30,6 +34,21 @@ const server = createServer(async (request, response) => {
   try {
     if (request.method === "POST" && request.url === "/api/firebase-setup-qr") {
       await handleGenerateQr(request, response);
+      return;
+    }
+
+    if (request.method === "GET" && request.url === "/api/pc-bridge/status") {
+      await handleBridgeStatus(response);
+      return;
+    }
+
+    if (request.method === "POST" && request.url === "/api/pc-bridge/start") {
+      await handleBridgeStart(response);
+      return;
+    }
+
+    if (request.method === "POST" && request.url === "/api/pc-bridge/register-task") {
+      await handleBridgeRegisterTask(response);
       return;
     }
 
@@ -74,6 +93,74 @@ async function handleGenerateQr(
   const qrDataUrl = await firebaseSetupPayloadToDataUrl(payload);
 
   sendJson(response, 200, { payload, qrDataUrl });
+}
+
+async function handleBridgeStatus(response: ServerResponse): Promise<void> {
+  const configPath = resolve(process.env.CODEX_REMOTE_BRIDGE_CONFIG ?? "config.local.json");
+  const report: Record<string, unknown> = {
+    generatedAt: new Date().toISOString(),
+    config: {
+      path: maskPath(configPath),
+      exists: await exists(configPath),
+      valid: false,
+    },
+    process: await inspectBridgeProcess(),
+    logs: await readLatestBridgeLog(),
+  };
+
+  try {
+    const config = await loadBridgeConfig(configPath);
+    const serviceAccountPathExists = config.serviceAccountPath
+      ? await exists(config.serviceAccountPath)
+      : false;
+
+    report.config = {
+      path: maskPath(configPath),
+      exists: true,
+      valid: true,
+      relayMode: config.relayMode,
+      codexMode: config.codexMode,
+      pcBridgeId: maskId(config.pcBridgeId),
+      firebaseProjectId: maskProjectId(config.firebaseProjectId),
+      serviceAccountConfigured: typeof config.serviceAccountPath === "string" && config.serviceAccountPath.length > 0,
+      serviceAccountPathExists,
+      workspaceConfigured: config.workspacePath.length > 0,
+      classification: classifyConfigState(null, serviceAccountPathExists),
+    };
+  } catch (error) {
+    report.config = {
+      path: maskPath(configPath),
+      exists: await exists(configPath),
+      valid: false,
+      error: redactSensitiveText(error instanceof Error ? error.message : String(error)),
+      classification: classifyConfigState(error, false),
+    };
+  }
+
+  sendJson(response, 200, report);
+}
+
+async function handleBridgeStart(response: ServerResponse): Promise<void> {
+  const scriptPath = join(rootDir, "scripts", "start-watch-background.bat");
+  const child = spawn(scriptPath, {
+    cwd: rootDir,
+    detached: true,
+    shell: false,
+    stdio: "ignore",
+    windowsHide: true,
+  });
+  child.unref();
+  sendJson(response, 200, { started: true, script: "scripts/start-watch-background.bat" });
+}
+
+async function handleBridgeRegisterTask(response: ServerResponse): Promise<void> {
+  const scriptPath = join(rootDir, "scripts", "register-watch-task.bat");
+  const result = await runCommand(scriptPath, [], rootDir);
+  sendJson(response, result.exitCode === 0 ? 200 : 500, {
+    exitCode: result.exitCode,
+    stdout: redactSensitiveText(result.stdout),
+    stderr: redactSensitiveText(result.stderr),
+  });
 }
 
 async function serveStatic(
@@ -134,4 +221,173 @@ function sendText(
     "Cache-Control": "no-store",
   });
   response.end(body);
+}
+
+async function inspectBridgeProcess(): Promise<Record<string, unknown>> {
+  if (process.platform !== "win32") {
+    return {
+      supported: false,
+      running: false,
+      note: "Process inspection is currently implemented for Windows.",
+    };
+  }
+
+  const result = await runCommand(
+    "powershell.exe",
+    [
+      "-NoProfile",
+      "-Command",
+      "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'dist[\\\\/]+src[\\\\/]+watch.js|start:watch|run-watch.bat' } | Select-Object ProcessId,Name,CommandLine | ConvertTo-Json -Depth 4",
+    ],
+    rootDir,
+  );
+
+  if (result.exitCode !== 0) {
+    return {
+      supported: true,
+      running: false,
+      error: redactSensitiveText(result.stderr || result.stdout),
+    };
+  }
+
+  const trimmed = result.stdout.trim();
+  if (!trimmed) {
+    return { supported: true, running: false, matches: [] };
+  }
+
+  const parsed = JSON.parse(trimmed) as unknown;
+  const matches = (Array.isArray(parsed) ? parsed : [parsed]).filter(
+    (entry) =>
+      !String((entry as Record<string, unknown>).CommandLine ?? "").includes(
+        "Get-CimInstance Win32_Process",
+      ),
+  );
+  return {
+    supported: true,
+    running: matches.length > 0,
+    matches: matches.map((entry) => redactProcessEntry(entry)),
+  };
+}
+
+async function readLatestBridgeLog(): Promise<Record<string, unknown>> {
+  const logsDir = join(rootDir, "logs");
+  const entries = await readdir(logsDir).catch(() => []);
+  const candidates = await Promise.all(
+    entries
+      .filter((entry) => /^pc-bridge-watch-.*\.log$/i.test(entry))
+      .map(async (entry) => {
+        const path = join(logsDir, entry);
+        return { entry, path, stats: await stat(path) };
+      }),
+  );
+  const latest = candidates.sort((a, b) => b.stats.mtimeMs - a.stats.mtimeMs)[0];
+  if (!latest) {
+    return { found: false };
+  }
+
+  const text = await readFile(latest.path, "utf8");
+  return {
+    found: true,
+    file: latest.entry,
+    updatedAt: latest.stats.mtime.toISOString(),
+    redactedTail: tail(redactSensitiveText(text), 6000),
+  };
+}
+
+function runCommand(command: string, args: string[], cwd: string): Promise<{ exitCode: number | null; stdout: string; stderr: string }> {
+  return new Promise((resolveRun) => {
+    const child = spawn(command, args, {
+      cwd,
+      shell: false,
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk: string) => {
+      stderr += chunk;
+    });
+    child.on("error", (error) => {
+      resolveRun({ exitCode: 1, stdout, stderr: stderr + error.message });
+    });
+    child.on("close", (exitCode) => {
+      resolveRun({ exitCode, stdout, stderr });
+    });
+  });
+}
+
+async function exists(path: string): Promise<boolean> {
+  try {
+    await access(path, constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function redactProcessEntry(value: unknown): unknown {
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  const entry = value as Record<string, unknown>;
+  return {
+    processId: entry.ProcessId,
+    name: entry.Name,
+    commandLine: typeof entry.CommandLine === "string" ? redactSensitiveText(entry.CommandLine) : entry.CommandLine,
+  };
+}
+
+function classifyConfigState(error: unknown, serviceAccountPathExists: boolean): string {
+  if (!error) {
+    return serviceAccountPathExists ? "ready" : "service-account-path-missing";
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes("ENOENT") || message.includes("no such file")) {
+    return "config-file-missing";
+  }
+  if (message.includes("Missing required bridge config field")) {
+    return "config-required-field-missing";
+  }
+  if (message.includes("Unsupported")) {
+    return "config-value-unsupported";
+  }
+  if (message.includes("JSON")) {
+    return "config-json-invalid";
+  }
+  return "config-error";
+}
+
+function maskId(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  return value.length <= 8 ? "***" : `${value.slice(0, 4)}...${value.slice(-4)}`;
+}
+
+function maskProjectId(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const [prefix] = value.split("-");
+  return `${prefix}-***`;
+}
+
+function maskPath(value: string): string {
+  const normalized = value.replace(/\\/g, "/");
+  const parts = normalized.split("/").filter((part) => part.length > 0);
+  return parts.length <= 2 ? normalized : `.../${parts.slice(-2).join("/")}`;
+}
+
+function tail(value: string, maxLength: number): string {
+  return value.length <= maxLength ? value : `...${value.slice(value.length - maxLength + 3)}`;
 }
