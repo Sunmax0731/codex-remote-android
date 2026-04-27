@@ -17,9 +17,10 @@ test("buildCompletionMessage uses completed result preview", () => {
 });
 
 test("buildCompletionMessage uses failed error preview and redacts secrets", () => {
+  const githubToken = "ghp_" + "abcdefghijklmnopqrstuvwxyz1234567890";
   const message = buildCompletionMessage(
     "failed",
-    { errorText: "failed with ghp_abcdefghijklmnopqrstuvwxyz1234567890" },
+    { errorText: `failed with ${githubToken}` },
     "sessionA",
     "commandA",
   );
@@ -40,7 +41,8 @@ test("buildCompletionMessage falls back to session and command when preview is m
 });
 
 test("compactPreview truncates after redaction and whitespace compaction", () => {
-  const preview = compactPreview(`${"x ".repeat(90)}AIza123456789012345678901234567890123456`);
+  const firebaseApiKey = "AIza" + "123456789012345678901234567890123456";
+  const preview = compactPreview(`${"x ".repeat(90)}${firebaseApiKey}`);
 
   assert.equal(preview.length, 120);
   assert.ok(preview.endsWith("..."));
@@ -48,12 +50,15 @@ test("compactPreview truncates after redaction and whitespace compaction", () =>
 });
 
 test("redactSensitiveText redacts Firebase and service account secrets", () => {
+  const privateKey = "-----BEGIN " + "PRIVATE KEY-----abc-----END " + "PRIVATE KEY-----";
+  const googleAccessToken = "ya29." + "a0AfH6SMBtoken";
+  const firebaseApiKey = "AIza" + "123456789012345678901234567890123456";
   const redacted = redactSensitiveText(
     [
-      '"private_key":"-----BEGIN PRIVATE KEY-----abc-----END PRIVATE KEY-----"',
+      `"private_key":"${privateKey}"`,
       '"client_secret":"secret-value"',
-      "ya29.a0AfH6SMBtoken",
-      "AIza123456789012345678901234567890123456",
+      googleAccessToken,
+      firebaseApiKey,
     ].join("\n"),
   );
 

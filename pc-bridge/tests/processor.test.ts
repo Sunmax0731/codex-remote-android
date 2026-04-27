@@ -6,15 +6,17 @@ import type { CodexInvoker, CommandClaim, CommandRepository, RemoteCommand } fro
 
 test("processNextCommand completes claimed commands and redacts progress and result text", async () => {
   const repository = new MemoryCommandRepository(makeCommand());
+  const privateKey = "-----BEGIN " + "PRIVATE KEY-----abc-----END " + "PRIVATE KEY-----";
+  const firebaseApiKey = "AIza" + "123456789012345678901234567890123456";
   const invoker: CodexInvoker = {
     async invoke(input) {
       await input.onProgress?.(
-        'working with "private_key":"-----BEGIN PRIVATE KEY-----abc-----END PRIVATE KEY-----"',
+        `working with "private_key":"${privateKey}"`,
         new Date("2026-04-27T01:00:01.000Z"),
       );
       return {
         kind: "success",
-        resultText: "done with AIza123456789012345678901234567890123456",
+        resultText: `done with ${firebaseApiKey}`,
       };
     },
   };
@@ -36,11 +38,12 @@ test("processNextCommand completes claimed commands and redacts progress and res
 
 test("processNextCommand marks invoker failures as failed and redacts error text", async () => {
   const repository = new MemoryCommandRepository(makeCommand());
+  const githubToken = "ghp_" + "abcdefghijklmnopqrstuvwxyz1234567890";
   const invoker: CodexInvoker = {
     async invoke() {
       return {
         kind: "failure",
-        errorText: "failed with ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+        errorText: `failed with ${githubToken}`,
       };
     },
   };
