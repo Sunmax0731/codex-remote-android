@@ -45,7 +45,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
       controller.clear();
       attachments.clear();
     } catch (error) {
-      showSnack('Command send failed: $error');
+      showSnack(commandSendFailedMessage(error));
     } finally {
       if (mounted) {
         setState(() => isSending = false);
@@ -364,4 +364,14 @@ String extensionFromName(String fileName) {
     return '';
   }
   return fileName.substring(index + 1);
+}
+
+String commandSendFailedMessage(Object error) {
+  if (error is FirebaseException &&
+      error.plugin == 'firebase_storage' &&
+      error.code == 'object-not-found') {
+    return 'Command send failed: Firebase Storage bucket is not set up or the storage bucket setting is incorrect.';
+  }
+
+  return 'Command send failed: $error';
 }

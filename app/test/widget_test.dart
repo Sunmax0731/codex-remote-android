@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remote_codex/main.dart';
@@ -380,6 +381,14 @@ void main() {
 
     expect(attachment?.contentType, 'application/pdf');
     expect(attachment?.bytes, Uint8List.fromList(<int>[1, 2, 3, 4]));
+  });
+
+  test('explains Firebase Storage bucket setup failures', () {
+    final message = commandSendFailedMessage(
+      FirebaseException(plugin: 'firebase_storage', code: 'object-not-found'),
+    );
+
+    expect(message, contains('Firebase Storage bucket is not set up'));
   });
 
   testWidgets('requests a PC bridge health check from the status panel', (
