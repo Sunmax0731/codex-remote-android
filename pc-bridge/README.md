@@ -461,3 +461,14 @@ npm.cmd run test
 - `processNextCommand` のcompleted/failed遷移、progress/result/error textの秘密情報redaction、claim対象なしの `none` 応答。
 
 実Firebaseを使う確認は `npm.cmd run validate:local` やFirestore relayの手動smokeと分ける。単体テストではローカルJSON relayまたはRepository test doubleを使い、service account JSONや利用者のFirebase projectには依存しない。詳細は `docs/pc-bridge-tests.md` に記録する。
+
+## 診断情報の収集
+
+不具合報告用に、秘密情報を避けたPCブリッジ診断JSONを出力できる。
+
+```powershell
+cd pc-bridge
+npm.cmd run diagnose
+```
+
+出力には `config.local.json`、service account JSON、local path原文、token原文は含めない。Issueへ貼る前に目視確認し、詳細手順は `docs/diagnostics-runbook.md` を参照する。

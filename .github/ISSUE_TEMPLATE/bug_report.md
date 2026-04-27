@@ -1,6 +1,6 @@
 ---
 name: 不具合報告
-about: アプリ、PCブリッジ、Firebase連携の不具合を報告する
+about: Androidアプリ、PCブリッジ、Firebase連携の不具合を報告する
 title: "[Bug] "
 labels: bug
 assignees: ""
@@ -8,7 +8,7 @@ assignees: ""
 
 ## 概要
 
-何が起きているかを簡潔に書いてください。
+何が起きているかを1-3文で書いてください。
 
 ## 再現手順
 
@@ -18,28 +18,41 @@ assignees: ""
 
 ## 期待する動作
 
-本来どう動いてほしいかを書いてください。
 
 ## 実際の動作
 
-実際に起きた動作、エラー表示、状態を書いてください。
 
 ## 環境
 
-- Android端末:
-- Androidバージョン:
-- アプリバージョンまたはcommit:
+- アプリversion / Release tag:
+- Android端末 / OS version:
 - PC OS:
-- PCブリッジ起動方法:
-- Firebase project:
-- ネットワーク: WiFi / 携帯電話回線
+- Node.js version:
+- PCブリッジversion:
+- Codex CLI version:
+- Firebase project ID: `xxxx-***`
+- PCブリッジ起動方法: foreground / background bat / Task Scheduler
 
-## ログ・スクリーンショット
+## 診断情報
 
-関連するログやスクリーンショットがあれば添付してください。
+`pc-bridge` で次を実行し、秘密情報がないことを確認してから貼ってください。
 
-秘密情報、token、service account JSON、個人情報、非公開コード全文は貼らないでください。
+```powershell
+npm.cmd run diagnose
+```
+
+```json
+ここにredaction済み診断JSONを貼る
+```
+
+## Firebase確認結果
+
+- Functions log時刻:
+- command status:
+- notificationSuccessCount:
+- notificationFailureCount:
+- notificationLastError:
 
 ## 補足
 
-その他、気づいたことがあれば書いてください。
+貼らないもの: service account JSON、private key、token、UID原文、API key原文、`config.local.json` 全文、非公開コード全文。
