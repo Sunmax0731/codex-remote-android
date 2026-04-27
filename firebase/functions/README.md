@@ -22,8 +22,13 @@ Phase 6で実装する主な処理:
 ```powershell
 npm.cmd run build
 npm.cmd run check
+npm.cmd run test:functions
+npm.cmd run test:rules
+npm.cmd run test
 firebase deploy --only functions
 ```
+
+Functions単体テストとFirestore Rules Emulatorテストの対象範囲は `docs/firebase-tests.md` に記録する。
 
 pnpmで依存関係を管理する場合:
 
