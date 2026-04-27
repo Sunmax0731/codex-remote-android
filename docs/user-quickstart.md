@@ -178,6 +178,14 @@ firebase deploy --only functions
 
 初回デプロイではBlazeプランやGoogle Cloud APIの有効化が必要になる場合がある。
 
+## 10.1 Firebase費用と予算アラートを確認する
+
+このアプリは自分のFirebase/GCPプロジェクトを使う。ホスト済みサービス方式ではないため、課金と予算アラートは自分のプロジェクトで管理する。
+
+主に増える利用量は、Firestoreのread/write、PCブリッジのpollingとheartbeat、command完了時のCloud Functions invocation、Functions/Cloud Loggingのログである。FCM自体はFirebaseのno-cost productとして扱われるが、通知を送るFunctionsや周辺Google CloudサービスにはBlazeプランと従量課金が関係する。
+
+Google Cloud ConsoleのBillingでBudgets & alertsを作り、対象プロジェクトに小さな月額予算と複数しきい値の通知を設定する。詳細は [Firebase費用ガイド](firebase-cost-guide.md) を参照する。
+
 ## 11. PCブリッジを起動する
 
 PCブリッジのフォルダで起動する。
