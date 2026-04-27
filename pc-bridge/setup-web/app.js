@@ -37,8 +37,39 @@ const messages = {
     serviceAccountTitle: "Service account JSON",
     serviceAccountDesc:
       "This is checked locally for setup progress. It is not sent to the QR endpoint.",
+    serviceAccountPathLabel: "Service account JSON path for config.local.json",
     dangerNotice:
       "Never scan or share service account JSON, private keys, or Admin SDK credentials.",
+    configHelperTitle: "config.local.json Helper",
+    configHelperSubtitle:
+      "Generate a PC bridge config template without embedding service account JSON or QR secrets.",
+    pcBridgeIdLabel: "PC bridge ID",
+    displayNameLabel: "Display name",
+    workspaceNameLabel: "Workspace name",
+    workspacePathLabel: "Workspace path",
+    configSecretNotice:
+      "The generated template contains project IDs and local paths, but not API keys, private keys, or service account JSON contents.",
+    copyConfig: "Copy config template",
+    configWaiting: "Load google-services.json to generate a config template.",
+    configReady: "config.local.json template is ready.",
+    configCopied: "config.local.json template copied.",
+    configCopyFailed: "Copy failed. Select the text and copy it manually.",
+    googleServicesPackageOk: "Android package matches com.sunmax.remotecodex.",
+    googleServicesPackageMissing:
+      "Android package com.sunmax.remotecodex was not found.",
+    googleServicesRequiredOk:
+      "Required Firebase client fields are present.",
+    googleServicesRequiredMissing: (fields) =>
+      `Missing required Firebase fields: ${fields}.`,
+    googleServicesNoAdminSecrets:
+      "No service account private key was detected in this QR input.",
+    googleServicesHasAdminSecrets:
+      "This looks like Admin SDK or service account JSON. Do not use it for the QR.",
+    qrBoundaryTitle: "QR payload boundary",
+    qrIncludes:
+      "QR includes: projectId, apiKey, appId, messagingSenderId, storageBucket.",
+    qrExcludes:
+      "QR excludes: service account JSON, private_key, client_email, local paths, config.local.json.",
     qrGeneratorTitle: "QR Generator",
     qrGeneratorSubtitle:
       "Generate the Android setup QR for the distributed APK.",
@@ -108,8 +139,37 @@ const messages = {
     serviceAccountTitle: "Service account JSON",
     serviceAccountDesc:
       "セットアップ状況確認のためブラウザ内で確認します。QR生成APIには送信しません。",
+    serviceAccountPathLabel: "config.local.jsonに書くservice account JSONのパス",
     dangerNotice:
       "service account JSON、秘密鍵、Admin SDK認証情報をQR化したり共有したりしないでください。",
+    configHelperTitle: "config.local.json補助",
+    configHelperSubtitle:
+      "service account JSONやQR用の秘密値を埋め込まずに、PCブリッジ設定の雛形を生成します。",
+    pcBridgeIdLabel: "PCブリッジID",
+    displayNameLabel: "表示名",
+    workspaceNameLabel: "ワークスペース名",
+    workspacePathLabel: "ワークスペースパス",
+    configSecretNotice:
+      "生成される雛形にはproject IDとローカルパスを含みますが、API key、秘密鍵、service account JSON本文は含みません。",
+    copyConfig: "設定雛形をコピー",
+    configWaiting: "google-services.jsonを読み込むと設定雛形を生成できます。",
+    configReady: "config.local.jsonの雛形を生成しました。",
+    configCopied: "config.local.jsonの雛形をコピーしました。",
+    configCopyFailed: "コピーに失敗しました。テキストを選択して手動でコピーしてください。",
+    googleServicesPackageOk: "Android packageがcom.sunmax.remotecodexと一致しています。",
+    googleServicesPackageMissing:
+      "Android package com.sunmax.remotecodex が見つかりません。",
+    googleServicesRequiredOk: "必要なFirebaseクライアント項目があります。",
+    googleServicesRequiredMissing: (fields) =>
+      `不足しているFirebase項目: ${fields}`,
+    googleServicesNoAdminSecrets:
+      "QR入力内にservice account秘密鍵は見つかりません。",
+    googleServicesHasAdminSecrets:
+      "Admin SDKまたはservice account JSONのようです。QRには使わないでください。",
+    qrIncludes:
+      "QRに含める項目: projectId, apiKey, appId, messagingSenderId, storageBucket。",
+    qrExcludes:
+      "QRに含めない項目: service account JSON, private_key, client_email, local path, config.local.json。",
     qrGeneratorTitle: "QR生成",
     qrGeneratorSubtitle: "配布APK向けのAndroidセットアップQRを生成します。",
     generateQr: "QRを生成",
@@ -175,8 +235,37 @@ const messages = {
     serviceAccountTitle: "Service account JSON",
     serviceAccountDesc:
       "仅在浏览器内用于检查设置进度，不会发送到二维码生成接口。",
+    serviceAccountPathLabel: "写入 config.local.json 的 service account JSON 路径",
     dangerNotice:
       "不要扫描或共享 service account JSON、私钥或 Admin SDK 凭据。",
+    configHelperTitle: "config.local.json 辅助",
+    configHelperSubtitle:
+      "生成 PC 桥接设置模板，不嵌入 service account JSON 或二维码机密。",
+    pcBridgeIdLabel: "PC bridge ID",
+    displayNameLabel: "显示名称",
+    workspaceNameLabel: "工作区名称",
+    workspacePathLabel: "工作区路径",
+    configSecretNotice:
+      "生成的模板包含 project ID 和本地路径，但不包含 API key、私钥或 service account JSON 内容。",
+    copyConfig: "复制设置模板",
+    configWaiting: "加载 google-services.json 后可生成设置模板。",
+    configReady: "config.local.json 模板已准备好。",
+    configCopied: "config.local.json 模板已复制。",
+    configCopyFailed: "复制失败。请选中文本后手动复制。",
+    googleServicesPackageOk: "Android package 与 com.sunmax.remotecodex 一致。",
+    googleServicesPackageMissing:
+      "未找到 Android package com.sunmax.remotecodex。",
+    googleServicesRequiredOk: "必要的 Firebase 客户端字段已存在。",
+    googleServicesRequiredMissing: (fields) =>
+      `缺少 Firebase 字段: ${fields}`,
+    googleServicesNoAdminSecrets:
+      "二维码输入中未检测到 service account 私钥。",
+    googleServicesHasAdminSecrets:
+      "这看起来像 Admin SDK 或 service account JSON。不要用于二维码。",
+    qrIncludes:
+      "二维码包含: projectId, apiKey, appId, messagingSenderId, storageBucket。",
+    qrExcludes:
+      "二维码不包含: service account JSON, private_key, client_email, local path, config.local.json。",
     qrGeneratorTitle: "二维码生成",
     qrGeneratorSubtitle: "为分发 APK 生成 Android 设置二维码。",
     generateQr: "生成二维码",
@@ -218,8 +307,17 @@ const localStatus = document.querySelector("#localStatus");
 const googleServicesFile = document.querySelector("#googleServicesFile");
 const googleServicesText = document.querySelector("#googleServicesText");
 const googleServicesStatus = document.querySelector("#googleServicesStatus");
+const googleServicesChecks = document.querySelector("#googleServicesChecks");
 const serviceAccountFile = document.querySelector("#serviceAccountFile");
 const serviceAccountStatus = document.querySelector("#serviceAccountStatus");
+const serviceAccountPath = document.querySelector("#serviceAccountPath");
+const pcBridgeId = document.querySelector("#pcBridgeId");
+const displayName = document.querySelector("#displayName");
+const workspaceName = document.querySelector("#workspaceName");
+const workspacePath = document.querySelector("#workspacePath");
+const configPreview = document.querySelector("#configPreview");
+const copyConfig = document.querySelector("#copyConfig");
+const configStatus = document.querySelector("#configStatus");
 const generateQr = document.querySelector("#generateQr");
 const saveLocal = document.querySelector("#saveLocal");
 const clearLocal = document.querySelector("#clearLocal");
@@ -248,6 +346,8 @@ googleServicesFile.addEventListener("change", async () => {
   if (!file) return;
   googleServicesText.value = await file.text();
   setStatus(googleServicesStatus, t("loadedFile", file.name), false);
+  validateSetupInputs();
+  updateConfigPreview();
 });
 
 googleServicesText.addEventListener("input", () => {
@@ -257,6 +357,8 @@ googleServicesText.addEventListener("input", () => {
     value ? t("googleServicesReady") : t("notLoaded"),
     false,
   );
+  validateSetupInputs();
+  updateConfigPreview();
 });
 
 serviceAccountFile.addEventListener("change", async () => {
@@ -277,6 +379,35 @@ serviceAccountFile.addEventListener("change", async () => {
     );
   } catch (error) {
     setStatus(serviceAccountStatus, t("invalidJson", error.message), true);
+  }
+  updateConfigPreview();
+});
+
+for (const input of [
+  serviceAccountPath,
+  pcBridgeId,
+  displayName,
+  workspaceName,
+  workspacePath,
+]) {
+  input.addEventListener("input", () => {
+    saveLocalState();
+    updateConfigPreview();
+  });
+}
+
+copyConfig.addEventListener("click", async () => {
+  if (!configPreview.value.trim()) {
+    setStatus(configStatus, t("configWaiting"), true);
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(configPreview.value);
+    setStatus(configStatus, t("configCopied"), false);
+  } catch {
+    configPreview.select();
+    setStatus(configStatus, t("configCopyFailed"), true);
   }
 });
 
@@ -305,6 +436,7 @@ generateQr.addEventListener("click", async () => {
     qrBox.replaceChildren(image);
     lastPayload = result.payload;
     renderPayload(result.payload);
+    updateConfigPreview(result.payload);
     setStatus(qrStatus, t("qrGenerated"), false);
   } catch (error) {
     qrBox.replaceChildren(document.createTextNode(t("qrOutput")));
@@ -322,9 +454,12 @@ clearLocal.addEventListener("click", () => {
   googleServicesText.value = "";
   lastPayload = null;
   payloadList.replaceChildren();
+  googleServicesChecks.replaceChildren();
+  configPreview.value = "";
   qrBox.replaceChildren(document.createTextNode(t("qrOutput")));
   setStatus(localStatus, t("inputsCleared"), false);
   setStatus(googleServicesStatus, t("notLoaded"), false);
+  setStatus(configStatus, t("configWaiting"), false);
   setStatus(qrStatus, t("ready"), false);
 });
 
@@ -343,6 +478,19 @@ function loadLocalState() {
       googleServicesText.value = state.googleServicesText;
       setStatus(googleServicesStatus, t("googleServicesRestored"), false);
     }
+    for (const [key, element] of Object.entries({
+      serviceAccountPath,
+      pcBridgeId,
+      displayName,
+      workspaceName,
+      workspacePath,
+    })) {
+      if (typeof state[key] === "string") {
+        element.value = state[key];
+      }
+    }
+    validateSetupInputs();
+    updateConfigPreview();
     setStatus(localStatus, t("inputsRestored"), false);
   } catch {
     localStorage.removeItem(storageKey);
@@ -357,6 +505,11 @@ function saveLocalState() {
       appName: fixedAppName,
       packageName: fixedPackageName,
       googleServicesText: googleServicesText.value,
+      serviceAccountPath: serviceAccountPath.value,
+      pcBridgeId: pcBridgeId.value,
+      displayName: displayName.value,
+      workspaceName: workspaceName.value,
+      workspacePath: workspacePath.value,
     }),
   );
 }
@@ -396,6 +549,146 @@ function detectInitialLanguage() {
   return "en";
 }
 
+function validateSetupInputs() {
+  googleServicesChecks.replaceChildren();
+  const text = googleServicesText.value.trim();
+  if (!text) {
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(stripBom(text));
+    const payload = extractPayloadFromGoogleServices(parsed, fixedPackageName);
+    const containsAdminSecrets =
+      typeof parsed.private_key === "string" ||
+      typeof parsed.client_email === "string" ||
+      typeof parsed.client_x509_cert_url === "string";
+
+    addCheck(t("googleServicesRequiredOk"), true);
+    addCheck(
+      payload.packageName === fixedPackageName
+        ? t("googleServicesPackageOk")
+        : t("googleServicesPackageMissing"),
+      payload.packageName === fixedPackageName,
+    );
+    addCheck(
+      containsAdminSecrets
+        ? t("googleServicesHasAdminSecrets")
+        : t("googleServicesNoAdminSecrets"),
+      !containsAdminSecrets,
+    );
+    addCheck(t("qrIncludes"), true);
+    addCheck(t("qrExcludes"), true);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    addCheck(t("googleServicesRequiredMissing", message), false);
+  }
+}
+
+function updateConfigPreview(payload = lastPayload) {
+  const resolvedPayload =
+    payload ?? tryExtractPayloadFromText(googleServicesText.value);
+  if (!resolvedPayload) {
+    configPreview.value = "";
+    setStatus(configStatus, t("configWaiting"), false);
+    return;
+  }
+
+  const template = {
+    pcBridgeId: nonEmpty(pcBridgeId.value) ?? "home-main-pc",
+    displayName: nonEmpty(displayName.value) ?? "Home PC",
+    workspaceName: nonEmpty(workspaceName.value) ?? "codex-remote-android",
+    workspacePath: nonEmpty(workspacePath.value) ?? "<absolute workspace path>",
+    ownerUserId: "<paste Android UID after first app start>",
+    firebaseProjectId: resolvedPayload.projectId,
+    serviceAccountPath:
+      nonEmpty(serviceAccountPath.value) ??
+      "<absolute service account JSON path>",
+    relayMode: "firestore",
+    localRelayPath: ".local/relay-state.json",
+    claimTtlSeconds: 300,
+    pollIntervalSeconds: 5,
+    heartbeatIntervalSeconds: 300,
+    maxCommandsPerTick: 5,
+    codexMode: "cli",
+    codexCommandPath: "codex.cmd",
+    codexSandbox: "workspace-write",
+    codexBypassSandbox: false,
+    codexTimeoutSeconds: 900,
+  };
+
+  configPreview.value = JSON.stringify(template, null, 2);
+  setStatus(configStatus, t("configReady"), false);
+}
+
+function tryExtractPayloadFromText(text) {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    return extractPayloadFromGoogleServices(JSON.parse(stripBom(trimmed)), fixedPackageName);
+  } catch {
+    return null;
+  }
+}
+
+function extractPayloadFromGoogleServices(googleServices, packageName) {
+  const projectInfo = googleServices.project_info ?? {};
+  const clients = Array.isArray(googleServices.client)
+    ? googleServices.client
+    : [];
+  const client = clients.find(
+    (entry) =>
+      entry?.client_info?.android_client_info?.package_name === packageName,
+  );
+  if (!client) {
+    throw new Error("client_info.android_client_info.package_name");
+  }
+
+  return {
+    schema: "codex-remote.firebase-client.v1",
+    projectId: requiredValue(projectInfo.project_id, "project_info.project_id"),
+    apiKey: requiredValue(
+      client.api_key?.[0]?.current_key,
+      "client.api_key[0].current_key",
+    ),
+    appId: requiredValue(
+      client.client_info?.mobilesdk_app_id,
+      "client.client_info.mobilesdk_app_id",
+    ),
+    messagingSenderId: requiredValue(
+      projectInfo.project_number,
+      "project_info.project_number",
+    ),
+    storageBucket: nonEmpty(projectInfo.storage_bucket),
+    packageName,
+  };
+}
+
+function requiredValue(value, field) {
+  const resolved = nonEmpty(value);
+  if (!resolved) {
+    throw new Error(field);
+  }
+
+  return resolved;
+}
+
+function nonEmpty(value) {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
+}
+
+function addCheck(message, passed) {
+  const item = document.createElement("li");
+  item.textContent = message;
+  item.className = passed ? "passed" : "failed";
+  googleServicesChecks.append(item);
+}
+
 function renderPayload(payload) {
   const labels = messages[currentLanguage].payloadFields;
   const rows = [
@@ -425,6 +718,10 @@ function maskValue(value) {
 function setStatus(element, message, isError) {
   element.textContent = message;
   element.classList.toggle("error", isError);
+}
+
+function stripBom(value) {
+  return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value;
 }
 
 function t(key, ...args) {

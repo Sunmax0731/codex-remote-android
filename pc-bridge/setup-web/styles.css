@@ -208,6 +208,16 @@ textarea {
   gap: 18px;
 }
 
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+}
+
+.config-preview {
+  min-height: 260px;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -324,6 +334,43 @@ button.ghost {
   color: var(--danger);
 }
 
+.check-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.check-list li {
+  position: relative;
+  padding-left: 22px;
+  color: var(--muted);
+}
+
+.check-list li + li {
+  margin-top: 6px;
+}
+
+.check-list li::before {
+  position: absolute;
+  left: 0;
+  font-weight: 700;
+  content: "-";
+}
+
+.check-list li.passed::before {
+  color: var(--primary);
+  content: "OK";
+}
+
+.check-list li.failed {
+  color: var(--danger);
+}
+
+.check-list li.failed::before {
+  color: var(--danger);
+  content: "!";
+}
+
 .notice {
   margin-top: 14px;
   padding: 12px;
@@ -347,6 +394,7 @@ code {
   .top-actions,
   .layout,
   .two-column,
+  .config-grid,
   .qr-area,
   .link-grid {
     display: block;
