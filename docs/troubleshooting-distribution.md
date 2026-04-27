@@ -158,6 +158,29 @@ codex.cmd exec --help
 
 `errorText` にはredactionが入るが、ログやFirestoreを共有する前には必ず秘密情報が含まれていないか確認する。
 
+## 添付uploadが失敗する
+
+確認項目:
+
+- AndroidのFirebase setup QRに `storageBucket` が含まれている。
+- Firebase Storageが作成済みで、Storage Rulesが反映されている。
+- 添付は5件以内、1 fileあたり25 MiB以内。
+- 許可MIME typeは `image/png`, `image/jpeg`, `image/webp`, `image/gif`, `text/plain`, `text/markdown`, `application/json`, `application/pdf`, `application/x-yaml`。
+- executable、script、archiveは初期実装では送信しない。
+- Firestoreのcommand metadataに `attachments` が保存されていない場合、Android側の選択・upload・Rules拒否を確認する。
+
+## 添付downloadまたはCodex CLI連携が失敗する
+
+確認項目:
+
+- `pc-bridge/config.local.json` に `firebaseStorageBucket` が設定されている。
+- PCブリッジ用service accountに `roles/datastore.user` と `roles/storage.objectViewer` が付与されている。
+- `attachmentCachePath` がPC上で作成可能な場所になっている。
+- PCブリッジlogに `Attachment size is invalid`, `Attachment downloaded hash mismatch`, `Attachment storage path is invalid` などが出ていないか確認する。
+- `type=image` はCodex CLIへ `--image` として渡される。Codex CLIが画像入力を受け付けるversionか確認する。
+- `type=file` はdownload先directoryを `--add-dir` に渡し、promptへlocal pathを追記する。対象fileがcommand完了前に削除されていないか確認する。
+- command完了後は `.local/attachments/{userId}/{sessionId}/{commandId}/` がcleanupされる。調査時はwatcher logとcommand IDで追跡する。
+
 ## 通知が届かない
 
 確認項目:

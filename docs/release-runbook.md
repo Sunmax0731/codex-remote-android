@@ -88,6 +88,8 @@ helperは次の処理を行う。
 - PC bridge heartbeatとhealth check response
 - session IDとcommand ID
 - completed command status
+- 画像添付commandと汎用ファイル添付commandのcompleted status
+- 添付の制限値確認: 5 files以内、1 file 25 MiB以内、未許可type拒否
 - notification success count
 
 ## GitHub Release前チェック
