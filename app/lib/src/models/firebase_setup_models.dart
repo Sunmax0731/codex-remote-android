@@ -24,7 +24,7 @@ class FirebaseClientConfig {
       messagingSenderId: messagingSenderId,
       projectId: projectId,
       authDomain: authDomain,
-      storageBucket: storageBucket,
+      storageBucket: storageBucket ?? '$projectId.firebasestorage.app',
     );
   }
 

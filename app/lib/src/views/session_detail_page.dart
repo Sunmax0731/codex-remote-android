@@ -44,6 +44,8 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
       );
       controller.clear();
       attachments.clear();
+    } catch (error) {
+      showSnack('Command send failed: $error');
     } finally {
       if (mounted) {
         setState(() => isSending = false);

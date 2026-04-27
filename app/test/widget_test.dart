@@ -58,6 +58,15 @@ void main() {
     expect(valid?.messagingSenderId, 'sender');
     expect(valid?.authDomain, isNull);
     expect(valid?.storageBucket, 'bucket');
+    expect(
+      const FirebaseClientConfig(
+        projectId: 'project',
+        apiKey: 'key',
+        appId: 'app',
+        messagingSenderId: 'sender',
+      ).toFirebaseOptions().storageBucket,
+      'project.firebasestorage.app',
+    );
   });
 
   test('parses Firebase setup QR payloads', () {
