@@ -92,6 +92,27 @@ npm.cmd run e2e:evidence -- --session-id <sessionId> --command-id <commandId>
 - `command.notificationSuccessCount`: `1` 以上
 - `command.notificationFailureCount`: `0`
 
+## Attachment E2E smoke
+
+添付機能を含むrelease smokeでは、通常のcommand完了確認に加えて次を確認する。
+
+1. Androidのsession detailでattach buttonを押し、画像ファイルを1件選択する。
+2. 短いpromptと一緒に送信し、Firestoreの `commands/{commandId}.attachments[0]` に `type=image`, `contentType`, `sizeBytes`, `storagePath`, `sha256` が保存されることを確認する。
+3. PCブリッジのwatcher logで添付付きcommandが `completed` になることを確認する。
+4. 同じsessionで `txt` / `md` / `json` / `pdf` / `yaml` のいずれか1件を添付して送信する。
+5. PCブリッジの一時download先が `.local/attachments/{userId}/{sessionId}/{commandId}/{attachmentId}/` 配下になり、command完了後に削除されることを確認する。
+6. `exe` / `ps1` / `zip` などの未許可ファイルがAndroid側で送信対象にならない、またはRulesで拒否されることを確認する。
+7. 25 MiBを超えるファイル、または6件以上の添付が拒否されることを確認する。
+
+証跡には、秘密情報を含まない範囲で以下だけを残す。
+
+- session ID / command ID
+- 添付件数
+- `type`, `contentType`, `sizeBytes`
+- command status
+- PCブリッジlogの該当summary
+- Storage pathはprojectやuidをmaskして記録する
+
 ## 失敗時の切り分け
 
 - 端末が見えない: `flutter devices --machine` と `adb devices -l` を確認する。ワイヤレスデバッグはペアリング後に接続が切れていないか確認する。
@@ -118,6 +139,20 @@ npm.cmd run e2e:evidence -- --session-id <sessionId> --command-id <commandId>
 - Session ID:
 - Command ID:
 - Command status: completed
+- Attachment image command:
+  - Command ID:
+  - Attachment count:
+  - MIME/type:
+  - Status:
+- Attachment file command:
+  - Command ID:
+  - Attachment count:
+  - MIME/type:
+  - Status:
+- Attachment negative checks:
+  - Unsupported type:
+  - Over size:
+  - Over count:
 - notificationSuccessCount:
 - notificationFailureCount:
 - Manual checks:
