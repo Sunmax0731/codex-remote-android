@@ -1,10 +1,17 @@
 import { redactSensitiveText } from "./redaction.js";
-import type { BridgeConfig, CodexInvoker, CommandRepository } from "./types.js";
+import type {
+  AttachmentDownloader,
+  BridgeConfig,
+  CodexInvocationResult,
+  CodexInvoker,
+  CommandRepository,
+} from "./types.js";
 
 export type ProcessNextCommandInput = {
   config: BridgeConfig;
   repository: CommandRepository;
   invoker: CodexInvoker;
+  attachmentDownloader?: AttachmentDownloader;
   now?: Date;
 };
 
@@ -37,12 +44,27 @@ export async function processNextCommand(input: ProcessNextCommandInput): Promis
     commandId: command.commandId,
   };
 
-  const result = await input.invoker.invoke({
+  const prepared = await (input.attachmentDownloader?.prepare(command) ?? {
     command,
-    workspacePath: input.config.workspacePath,
-    onProgress: (progressText, progressAt) =>
-      input.repository.updateProgress(claim, redactSensitiveText(progressText), progressAt, input.config.claimTtlSeconds),
+    async cleanup() {},
   });
+
+  let result: CodexInvocationResult;
+  try {
+    result = await input.invoker.invoke({
+      command: prepared.command,
+      workspacePath: input.config.workspacePath,
+      onProgress: (progressText, progressAt) =>
+        input.repository.updateProgress(
+          claim,
+          redactSensitiveText(progressText),
+          progressAt,
+          input.config.claimTtlSeconds,
+        ),
+    });
+  } finally {
+    await prepared.cleanup();
+  }
 
   const completedAt = new Date();
 

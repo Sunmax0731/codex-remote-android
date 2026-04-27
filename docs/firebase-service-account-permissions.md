@@ -68,6 +68,10 @@ gcloud projects add-iam-policy-binding $projectId `
   --member "serviceAccount:$serviceAccountEmail" `
   --role "roles/datastore.user"
 
+gcloud projects add-iam-policy-binding $projectId `
+  --member "serviceAccount:$serviceAccountEmail" `
+  --role "roles/storage.objectViewer"
+
 gcloud iam service-accounts keys create "D:\secure\codex-remote-pc-bridge.json" `
   --iam-account $serviceAccountEmail `
   --project $projectId
@@ -78,6 +82,7 @@ gcloud iam service-accounts keys create "D:\secure\codex-remote-pc-bridge.json" 
 ```json
 {
   "firebaseProjectId": "<firebase-project-id>",
+  "firebaseStorageBucket": "<firebase-project-id>.firebasestorage.app",
   "serviceAccountPath": "D:\\secure\\codex-remote-pc-bridge.json"
 }
 ```

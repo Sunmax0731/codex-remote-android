@@ -369,6 +369,7 @@ function toRemoteCommand(
     resultText: data.resultText,
     errorText: data.errorText,
     notificationSentAt: timestampToIso(data.notificationSentAt),
+    attachments: commandAttachments(data.attachments),
   };
 }
 
@@ -447,6 +448,55 @@ function optionalStringArray(value: unknown): string[] | undefined {
     .filter((entry) => entry.length > 0);
 
   return entries.length > 0 ? entries : undefined;
+}
+
+function commandAttachments(value: unknown): RemoteCommand["attachments"] {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const attachments = value
+    .map((entry) => {
+      if (!isRecord(entry)) {
+        return null;
+      }
+      const id = optionalString(entry.id);
+      const type = entry.type;
+      const fileName = optionalString(entry.fileName);
+      const contentType = optionalString(entry.contentType);
+      const sizeBytes = entry.sizeBytes;
+      const storagePath = optionalString(entry.storagePath);
+      const digest = optionalString(entry.sha256);
+
+      if (
+        !id ||
+        (type !== "image" && type !== "file") ||
+        !fileName ||
+        !contentType ||
+        !Number.isInteger(sizeBytes) ||
+        !storagePath ||
+        !digest
+      ) {
+        return null;
+      }
+
+      return {
+        id,
+        type,
+        fileName,
+        contentType,
+        sizeBytes,
+        storagePath,
+        sha256: digest,
+      };
+    })
+    .filter((entry): entry is NonNullable<RemoteCommand["attachments"]>[number] => entry !== null);
+
+  return attachments.length > 0 ? attachments : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 function isCodexSandbox(value: unknown): value is RemoteCommand["codexSandbox"] {

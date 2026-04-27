@@ -1,4 +1,5 @@
 import { loadBridgeConfig } from "./lib/config.js";
+import { createAttachmentDownloader } from "./lib/attachmentDownloader.js";
 import { createCodexInvoker } from "./lib/codexInvoker.js";
 import { processNextCommand } from "./lib/processor.js";
 import { createCommandRepository } from "./lib/relayRepository.js";
@@ -20,6 +21,7 @@ async function main(): Promise<void> {
   const config = await loadBridgeConfig(configPath);
   const repository = createCommandRepository(config);
   const invoker = createCodexInvoker(config);
+  const attachmentDownloader = createAttachmentDownloader(config);
   const pollIntervalMs = Math.max(1, config.pollIntervalSeconds) * 1000;
   const heartbeatIntervalMs = Math.max(1, config.heartbeatIntervalSeconds) * 1000;
   const maxCommandsPerTick = Math.max(1, config.maxCommandsPerTick);
@@ -52,6 +54,7 @@ async function main(): Promise<void> {
           config,
           repository,
           invoker,
+          attachmentDownloader,
         });
 
         if (result.kind === "none") {

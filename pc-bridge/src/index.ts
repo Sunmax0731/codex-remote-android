@@ -1,4 +1,5 @@
 import { loadBridgeConfig } from "./lib/config.js";
+import { createAttachmentDownloader } from "./lib/attachmentDownloader.js";
 import { createCodexInvoker } from "./lib/codexInvoker.js";
 import { processNextCommand } from "./lib/processor.js";
 import { createCommandRepository } from "./lib/relayRepository.js";
@@ -8,6 +9,7 @@ async function main(): Promise<void> {
   const config = await loadBridgeConfig(configPath);
   const repository = createCommandRepository(config);
   const invoker = createCodexInvoker(config);
+  const attachmentDownloader = createAttachmentDownloader(config);
 
   console.log(`Config path: ${configPath}`);
   console.log(`Relay mode: ${config.relayMode}`);
@@ -20,6 +22,7 @@ async function main(): Promise<void> {
     config,
     repository,
     invoker,
+    attachmentDownloader,
   });
 
   if (result.kind === "none") {
