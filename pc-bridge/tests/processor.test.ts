@@ -2,7 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { normalizeConfig } from "../src/lib/config.js";
 import { processNextCommand } from "../src/lib/processor.js";
-import type { CodexInvoker, CommandClaim, CommandRepository, RemoteCommand } from "../src/lib/types.js";
+import type {
+  AttachmentDownloader,
+  CodexInvoker,
+  CommandClaim,
+  CommandRepository,
+  RemoteCommand,
+} from "../src/lib/types.js";
 
 test("processNextCommand completes claimed commands and redacts progress and result text", async () => {
   const repository = new MemoryCommandRepository(makeCommand());
@@ -59,6 +65,59 @@ test("processNextCommand marks invoker failures as failed and redacts error text
   assert.equal(repository.failed?.errorText, "failed with [REDACTED_GITHUB_TOKEN]");
 });
 
+test("processNextCommand prepares attachments before invoking Codex and cleans up", async () => {
+  const command = makeCommand({
+    attachments: [
+      {
+        id: "att_1_0",
+        type: "file",
+        fileName: "notes.md",
+        contentType: "text/markdown",
+        sizeBytes: 4,
+        storagePath: "users/userA/sessions/session1/commands/command1/attachments/att_1_0/notes.md",
+        sha256: "a".repeat(64),
+      },
+    ],
+  });
+  const repository = new MemoryCommandRepository(command);
+  let cleaned = false;
+  const attachmentDownloader: AttachmentDownloader = {
+    async prepare(inputCommand) {
+      return {
+        command: {
+          ...inputCommand,
+          text: `${inputCommand.text}\n\nAttached files:\n- notes.md: D:\\cache\\notes.md`,
+          codexAddDirs: ["D:\\cache"],
+        },
+        async cleanup() {
+          cleaned = true;
+        },
+      };
+    },
+  };
+  const invoker: CodexInvoker = {
+    async invoke(input) {
+      assert.match(input.command.text, /Attached files/);
+      assert.deepEqual(input.command.codexAddDirs, ["D:\\cache"]);
+      return {
+        kind: "success",
+        resultText: "done",
+      };
+    },
+  };
+
+  const result = await processNextCommand({
+    config: testConfig(),
+    repository,
+    invoker,
+    attachmentDownloader,
+    now: new Date("2026-04-27T01:00:00.000Z"),
+  });
+
+  assert.deepEqual(result, { kind: "processed", commandId: "command1", status: "completed" });
+  assert.equal(cleaned, true);
+});
+
 test("processNextCommand returns none when no command is claimable", async () => {
   const repository = new MemoryCommandRepository(null);
   const invoker: CodexInvoker = {
@@ -89,7 +148,7 @@ function testConfig() {
   });
 }
 
-function makeCommand(): RemoteCommand {
+function makeCommand(overrides: Partial<RemoteCommand> = {}): RemoteCommand {
   return {
     userId: "userA",
     sessionId: "session1",
@@ -98,6 +157,7 @@ function makeCommand(): RemoteCommand {
     status: "running",
     targetPcBridgeId: "pc-a",
     createdAt: "2026-04-27T00:00:00.000Z",
+    ...overrides,
   };
 }
 

@@ -11,7 +11,9 @@ export type BridgeConfig = {
   workspacePath: string;
   ownerUserId?: string;
   firebaseProjectId?: string;
+  firebaseStorageBucket?: string;
   serviceAccountPath?: string;
+  attachmentCachePath: string;
   relayMode: RelayMode;
   localRelayPath: string;
   claimTtlSeconds: number;
@@ -66,6 +68,17 @@ export type RemoteCommand = {
   resultText?: string;
   errorText?: string;
   notificationSentAt?: string;
+  attachments?: CommandAttachment[];
+};
+
+export type CommandAttachment = {
+  id: string;
+  type: "image" | "file";
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  storagePath: string;
+  sha256: string;
 };
 
 export type CommandClaim = {
@@ -102,4 +115,13 @@ export type CodexInvocationResult =
 
 export type CodexInvoker = {
   invoke(input: CodexInvocation): Promise<CodexInvocationResult>;
+};
+
+export type PreparedCommandAttachments = {
+  command: RemoteCommand;
+  cleanup(): Promise<void>;
+};
+
+export type AttachmentDownloader = {
+  prepare(command: RemoteCommand): Promise<PreparedCommandAttachments>;
 };
