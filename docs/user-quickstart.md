@@ -128,6 +128,8 @@ QRに含めてはいけないもの:
 
 ## 8. service account JSONを作成する
 
+継続運用では、PCブリッジ専用service accountにFirestore read/write用の `roles/datastore.user` を付与する方針を推奨します。初回セットアップを簡単にするためFirebase Admin SDKの既定keyを使う場合も、長期運用では [Firebase service account permissions](firebase-service-account-permissions.md) を確認してください。
+
 Google Cloud ConsoleでPCブリッジ用のservice account JSONを作成する。
 
 保存先の例:

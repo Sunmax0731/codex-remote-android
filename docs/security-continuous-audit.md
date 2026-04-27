@@ -71,3 +71,4 @@ Release前には次を確認する。
 - `.\scripts\scan-secrets.ps1` が成功する。
 - `docs/release-runbook.md` のGitHub Release前チェックに従い、署名鍵、service account JSON、`config.local.json`、logsをartifactへ含めない。
 - 漏えいまたは誤公開を見つけた場合は [Credential incident runbook](credential-incident-runbook.md) に従う。
+- PCブリッジ用service accountに不要な広いロールが付いていないか、[Firebase service account permissions](firebase-service-account-permissions.md) に従って確認する。
