@@ -1,5 +1,7 @@
 # release APK作成手順
 
+Release全体の自動化手順、PCブリッジzip、SHA256SUMS、Release note雛形、GitHub Release作成前チェックは [Release runbook](release-runbook.md) を参照する。
+
 この文書は、Codex Remote Androidを自分以外の利用者へ配布するためのAPK作成手順をまとめる。
 
 ## 方針
