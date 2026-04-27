@@ -197,6 +197,8 @@ npm.cmd run build
 
 ## service account JSONのエラー
 
+service account JSONを誤って共有した、または漏えいした可能性がある場合は、先に [Credential incident runbook](credential-incident-runbook.md) に従ってkeyを無効化・再発行する。
+
 確認項目:
 
 - `serviceAccountPath` のパスが正しい。

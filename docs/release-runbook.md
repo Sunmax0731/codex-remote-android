@@ -19,6 +19,8 @@ PRとRelease前の自動チェックは [CI](ci.md) に記録している。Rele
 
 Public repository向けの継続監査と秘密情報スキャンは [Public repository continuous security audit](security-continuous-audit.md) に記録している。
 
+署名鍵、Firebase service account JSON、その他秘密情報の紛失・漏えい時対応は [Credential incident runbook](credential-incident-runbook.md) に従う。
+
 ```powershell
 Set-Location app
 flutter test
