@@ -26,6 +26,12 @@ Current project creation screenshots:
 - `10-auth-sign-in-method.png`: Sign-in method provider list.
 - `11-auth-enable-anonymous.png`: Anonymous provider enable toggle.
 - `12-auth-anonymous-enabled.png`: Anonymous provider enabled confirmation.
+- `13-firestore-navigation.png`: Navigation from project dashboard to Firestore.
+- `14-firestore-get-started.png`: Cloud Firestore get started screen.
+- `15-firestore-select-edition.png`: Firestore edition selection.
+- `16-firestore-location.png`: Firestore database ID and location selection.
+- `17-firestore-security-rules.png`: Firestore security rules mode selection.
+- `18-firestore-created.png`: Firestore database created confirmation.
 
 Only commit images after confirming the following are hidden:
 
