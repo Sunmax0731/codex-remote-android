@@ -443,3 +443,21 @@ If the terminal QR is hard to scan, also write a PNG:
 ```powershell
 npm run qr:firebase -- --out .local\firebase-setup-qr.png
 ```
+
+## 自動テスト
+
+PCブリッジの退行検出には、TypeScript checkに加えてNode.js標準の `node:test` を使う。
+
+```powershell
+cd pc-bridge
+npm.cmd run check
+npm.cmd run test
+```
+
+`npm.cmd run test` は `tsc` で `tests/**/*.ts` もビルドした後、`dist/tests/**/*.test.js` を実行する。
+2026-04-27時点の対象は次の通り。
+
+- `LocalRelayRepository` のqueued claim、targetPcBridgeId不一致除外、期限切れrunning commandの再claim、期限内running commandの除外。
+- `processNextCommand` のcompleted/failed遷移、progress/result/error textの秘密情報redaction、claim対象なしの `none` 応答。
+
+実Firebaseを使う確認は `npm.cmd run validate:local` やFirestore relayの手動smokeと分ける。単体テストではローカルJSON relayまたはRepository test doubleを使い、service account JSONや利用者のFirebase projectには依存しない。詳細は `docs/pc-bridge-tests.md` に記録する。
