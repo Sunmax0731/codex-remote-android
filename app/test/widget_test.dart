@@ -129,6 +129,74 @@ void main() {
     expect(savedConfig?.messagingSenderId, 's');
   });
 
+  testWidgets('fills Firebase setup form from QR config result', (
+    tester,
+  ) async {
+    FirebaseClientConfig? savedConfig;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: FirebaseSetupView(
+          onConfigured: (config) async {
+            savedConfig = config;
+          },
+          onUseBundledConfig: () async {},
+        ),
+      ),
+    );
+
+    final setupState = tester.state(find.byType(FirebaseSetupView)) as dynamic;
+    setupState.applyConfig(
+      const FirebaseClientConfig(
+        projectId: 'qr-project',
+        apiKey: 'qr-api-key',
+        appId: '1:123:android:qr',
+        messagingSenderId: '123',
+        authDomain: 'qr-project.firebaseapp.com',
+        storageBucket: 'qr-project.appspot.com',
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<TextField>(find.widgetWithText(TextField, 'Project ID'))
+          .controller
+          ?.text,
+      'qr-project',
+    );
+    expect(
+      tester
+          .widget<TextField>(find.widgetWithText(TextField, 'API key'))
+          .controller
+          ?.text,
+      'qr-api-key',
+    );
+    expect(
+      tester
+          .widget<TextField>(find.widgetWithText(TextField, 'App ID'))
+          .controller
+          ?.text,
+      '1:123:android:qr',
+    );
+    expect(
+      tester
+          .widget<TextField>(
+            find.widgetWithText(TextField, 'Messaging sender ID'),
+          )
+          .controller
+          ?.text,
+      '123',
+    );
+
+    await setupState.saveRuntimeConfig();
+    await pumpFrames(tester);
+
+    expect(savedConfig?.projectId, 'qr-project');
+    expect(savedConfig?.authDomain, 'qr-project.firebaseapp.com');
+    expect(savedConfig?.storageBucket, 'qr-project.appspot.com');
+  });
+
   testWidgets('shows empty session list after anonymous auth baseline', (
     tester,
   ) async {
@@ -280,6 +348,54 @@ void main() {
     await tester.pump();
 
     expect(repository.healthCheckCount, 1);
+  });
+
+  testWidgets('clears saved Firebase setup from connection settings', (
+    tester,
+  ) async {
+    final repository = FakeSessionRepository();
+    final configStore = FakeFirebaseConfigStore();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            firebaseConfig: FirebaseClientConfig(
+              projectId: 'saved-project',
+              apiKey: 'saved-key',
+              appId: '1:123:android:saved',
+              messagingSenderId: '123',
+            ),
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+        firebaseConfigStore: configStore,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const <SessionSummary>[]);
+    await pumpFrames(tester);
+
+    await tester.tap(find.byTooltip('Settings'));
+    await pumpFrames(tester);
+    expect(find.text('Firebase project: saved-project'), findsOneWidget);
+
+    await tester.tap(find.text('Reset Firebase setup'));
+    await pumpFrames(tester);
+
+    expect(configStore.clearCount, 1);
+    expect(
+      find.text(
+        'Firebase setup was cleared. Restart the app to set it up again.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('saves CLI defaults from the status panel', (tester) async {
@@ -1333,6 +1449,37 @@ class FakeSessionRepository implements SessionRepository {
           .map((session) => session.id == sessionId ? update(session) : session)
           .toList(growable: false),
     );
+  }
+}
+
+class FakeFirebaseConfigStore implements FirebaseConfigStore {
+  FirebaseClientConfig? savedConfig;
+  bool bundledConfigEnabled = false;
+  int clearCount = 0;
+
+  @override
+  Future<FirebaseClientConfig?> load() async => savedConfig;
+
+  @override
+  Future<bool> loadBundledConfigEnabled() async => bundledConfigEnabled;
+
+  @override
+  Future<void> save(FirebaseClientConfig config) async {
+    savedConfig = config;
+    bundledConfigEnabled = false;
+  }
+
+  @override
+  Future<void> saveBundledConfig() async {
+    savedConfig = null;
+    bundledConfigEnabled = true;
+  }
+
+  @override
+  Future<void> clear() async {
+    clearCount++;
+    savedConfig = null;
+    bundledConfigEnabled = false;
   }
 }
 
