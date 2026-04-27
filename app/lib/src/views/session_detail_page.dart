@@ -77,13 +77,14 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
           break;
         }
 
-        final attachment = pendingAttachmentFromFile(file);
-        if (attachment == null) {
-          showSnack('${l10n.t('attachmentUnsupported')}: ${file.name}');
+        if (file.size > maxCommandAttachmentBytes) {
+          showSnack('${l10n.t('attachmentTooLarge')}: ${file.name}');
           continue;
         }
-        if (attachment.sizeBytes > maxCommandAttachmentBytes) {
-          showSnack('${l10n.t('attachmentTooLarge')}: ${file.name}');
+
+        final attachment = await pendingAttachmentFromFile(file);
+        if (attachment == null) {
+          showSnack('${l10n.t('attachmentUnsupported')}: ${file.name}');
           continue;
         }
         next.add(attachment);
@@ -314,8 +315,10 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
   }
 }
 
-PendingCommandAttachment? pendingAttachmentFromFile(PlatformFile file) {
-  final bytes = file.bytes;
+Future<PendingCommandAttachment?> pendingAttachmentFromFile(
+  PlatformFile file,
+) async {
+  final bytes = await attachmentBytesFromFile(file);
   if (bytes == null) {
     return null;
   }
@@ -334,6 +337,23 @@ PendingCommandAttachment? pendingAttachmentFromFile(PlatformFile file) {
     bytes: bytes,
     kind: contentType.startsWith('image/') ? 'image' : 'file',
   );
+}
+
+Future<Uint8List?> attachmentBytesFromFile(PlatformFile file) async {
+  if (file.bytes != null) {
+    return file.bytes;
+  }
+
+  final path = file.path;
+  if (path == null || path.trim().isEmpty) {
+    return null;
+  }
+
+  try {
+    return await File(path).readAsBytes();
+  } catch (_) {
+    return null;
+  }
 }
 
 String extensionFromName(String fileName) {

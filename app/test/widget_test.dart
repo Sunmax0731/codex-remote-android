@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -340,17 +341,36 @@ void main() {
     expect(safeAttachmentFileName(r'..\bad/name?.txt'), '__bad_name_.txt');
   });
 
-  test('accepts only supported pending attachment types', () {
-    final supported = pendingAttachmentFromFile(
+  test('accepts only supported pending attachment types', () async {
+    final supported = await pendingAttachmentFromFile(
       PlatformFile(name: 'notes.md', size: 4, bytes: Uint8List.fromList([1])),
     );
-    final blocked = pendingAttachmentFromFile(
+    final blocked = await pendingAttachmentFromFile(
       PlatformFile(name: 'run.ps1', size: 4, bytes: Uint8List.fromList([1])),
     );
 
     expect(supported?.contentType, 'text/markdown');
     expect(supported?.kind, 'file');
     expect(blocked, isNull);
+  });
+
+  test('reads pending attachment bytes from a picked file path', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'remote-codex-attachment-test-',
+    );
+    addTearDown(() async {
+      await directory.delete(recursive: true);
+    });
+
+    final file = File('${directory.path}/picked.pdf');
+    await file.writeAsBytes(<int>[1, 2, 3, 4]);
+
+    final attachment = await pendingAttachmentFromFile(
+      PlatformFile(name: 'picked.pdf', size: 4, path: file.path),
+    );
+
+    expect(attachment?.contentType, 'application/pdf');
+    expect(attachment?.bytes, Uint8List.fromList(<int>[1, 2, 3, 4]));
   });
 
   testWidgets('requests a PC bridge health check from the status panel', (
