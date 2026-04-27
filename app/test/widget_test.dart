@@ -827,6 +827,299 @@ void main() {
     expect(repository.renamedSessionTitle, 'Renamed session');
     expect(find.text('Renamed session'), findsOneWidget);
   });
+
+  testWidgets('shows session loading and error states', (tester) async {
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    repository.failSessions(StateError('sessions unavailable'));
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await pumpFrames(tester);
+    await pumpFrames(tester);
+
+    expect(find.text('Session load failed'), findsOneWidget);
+    expect(find.textContaining('sessions unavailable'), findsOneWidget);
+  });
+
+  testWidgets('shows drawer session list and selected session', (tester) async {
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const [
+      SessionSummary(id: 'session-1', title: 'Current', status: 'running'),
+      SessionSummary(id: 'session-2', title: 'Next', status: 'completed'),
+    ]);
+    await pumpFrames(tester);
+
+    await tester.tap(
+      find.ancestor(of: find.text('Current'), matching: find.byType(ListTile)),
+    );
+    await pumpFrames(tester);
+
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await pumpFrames(tester);
+
+    expect(find.text('Sessions'), findsWidgets);
+    expect(find.text('2 session(s)'), findsOneWidget);
+    expect(find.text('Current'), findsWidgets);
+    expect(find.text('Next'), findsOneWidget);
+
+    final currentTile = tester.widget<ListTile>(
+      find
+          .ancestor(
+            of: find.text('Current').last,
+            matching: find.byType(ListTile),
+          )
+          .first,
+    );
+    expect(currentTile.selected, isTrue);
+  });
+
+  testWidgets('shows command loading and error states in detail', (
+    tester,
+  ) async {
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const [
+      SessionSummary(id: 'session-1', title: 'Session 1', status: 'idle'),
+    ]);
+    await pumpFrames(tester);
+    await tester.ensureVisible(find.text('Session 1'));
+
+    await tester.tap(
+      find.ancestor(
+        of: find.text('Session 1'),
+        matching: find.byType(ListTile),
+      ),
+    );
+    await pumpFrames(tester);
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    repository.emitCommandError(
+      'session-1',
+      StateError('commands unavailable'),
+    );
+    await pumpFrames(tester);
+
+    expect(find.text('Command load failed'), findsOneWidget);
+    expect(find.textContaining('commands unavailable'), findsOneWidget);
+  });
+
+  testWidgets('renders completed and failed command cards', (tester) async {
+    final repository = FakeSessionRepository();
+    final startedAt = DateTime(2026, 4, 27, 10);
+    final completedAt = DateTime(2026, 4, 27, 10, 1, 30);
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const [
+      SessionSummary(
+        id: 'session-1',
+        title: 'Session 1',
+        status: 'completed',
+        lastResultPreview: 'Done',
+      ),
+    ]);
+    repository.emitCommands('session-1', [
+      CommandSummary(
+        id: 'command-1',
+        text: 'Build release notes',
+        status: 'completed',
+        resultText: 'Release notes are ready.',
+        createdAt: startedAt,
+        completedAt: completedAt,
+      ),
+      CommandSummary(
+        id: 'command-2',
+        text: 'Run failing task',
+        status: 'failed',
+        errorText: 'Codex CLI failed.',
+        createdAt: startedAt,
+        completedAt: completedAt,
+      ),
+    ]);
+    await pumpFrames(tester);
+
+    await tester.tap(
+      find.ancestor(
+        of: find.text('Session 1'),
+        matching: find.byType(ListTile),
+      ),
+    );
+    await pumpFrames(tester);
+    repository.emitCommands('session-1', [
+      CommandSummary(
+        id: 'command-1',
+        text: 'Build release notes',
+        status: 'completed',
+        resultText: 'Release notes are ready.',
+        createdAt: startedAt,
+        completedAt: completedAt,
+      ),
+      CommandSummary(
+        id: 'command-2',
+        text: 'Run failing task',
+        status: 'failed',
+        errorText: 'Codex CLI failed.',
+        createdAt: startedAt,
+        completedAt: completedAt,
+      ),
+    ]);
+    await pumpFrames(tester);
+
+    expect(find.text('Build release notes'), findsOneWidget);
+    expect(find.text('completed'), findsWidgets);
+    expect(find.text('Release notes are ready.'), findsOneWidget);
+    expect(find.text('Run failing task'), findsOneWidget);
+    expect(find.text('failed'), findsWidgets);
+    expect(find.text('Codex CLI failed.'), findsOneWidget);
+    expect(find.text('Elapsed: 1m 30s'), findsWidgets);
+  });
+
+  testWidgets('uses Chinese strings for core empty state', (tester) async {
+    tester.platformDispatcher.localeTestValue = const Locale('zh');
+    tester.platformDispatcher.localesTestValue = const [Locale('zh')];
+    addTearDown(tester.platformDispatcher.clearLocaleTestValue);
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const <SessionSummary>[]);
+    await pumpFrames(tester);
+
+    final zh = AppStrings(const Locale('zh'));
+    expect(find.text(zh.t('pcBridge')), findsOneWidget);
+    expect(find.text(zh.t('noSessionsYet')), findsOneWidget);
+    expect(find.text(zh.t('newSession')), findsOneWidget);
+  });
+
+  testWidgets('follows dark theme without losing primary controls', (
+    tester,
+  ) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    final repository = FakeSessionRepository();
+
+    await tester.pumpWidget(
+      RemoteCodexApp(
+        bootstrap: Future<AppBootstrap>.value(
+          const AppBootstrap(
+            uid: 'test-uid',
+            pcBridgeId: defaultPcBridgeId,
+            notificationState: NotificationState(
+              permissionStatus: 'authorized',
+              hasToken: true,
+            ),
+          ),
+        ),
+        sessionRepository: repository,
+      ),
+    );
+    await tester.pump();
+    repository.emit(const <SessionSummary>[]);
+    await pumpFrames(tester);
+
+    expect(
+      Theme.of(tester.element(find.text('PC bridge'))).brightness,
+      Brightness.dark,
+    );
+    expect(find.text('New session'), findsOneWidget);
+    expect(find.byTooltip('Settings'), findsOneWidget);
+  });
 }
 
 Future<void> pumpFrames(WidgetTester tester) async {
@@ -841,6 +1134,7 @@ class FakeSessionRepository implements SessionRepository {
       {};
   List<SessionSummary>? latestSessions;
   final Map<String, List<CommandSummary>> latestCommands = {};
+  Object? sessionError;
   int createdSessionCount = 0;
   int healthCheckCount = 0;
   int savedDefaultsCount = 0;
@@ -857,8 +1151,16 @@ class FakeSessionRepository implements SessionRepository {
     controller.add(sessions);
   }
 
+  void failSessions(Object error) {
+    sessionError = error;
+  }
+
   @override
   Stream<List<SessionSummary>> watchSessions(String uid) async* {
+    final error = sessionError;
+    if (error != null) {
+      throw error;
+    }
     final latest = latestSessions;
     if (latest != null) {
       yield latest;
@@ -921,6 +1223,15 @@ class FakeSessionRepository implements SessionRepository {
           () => StreamController<List<CommandSummary>>.broadcast(),
         )
         .add(commands);
+  }
+
+  void emitCommandError(String sessionId, Object error) {
+    commandControllers
+        .putIfAbsent(
+          sessionId,
+          () => StreamController<List<CommandSummary>>.broadcast(),
+        )
+        .addError(error);
   }
 
   @override
